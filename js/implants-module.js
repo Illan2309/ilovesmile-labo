@@ -2556,7 +2556,7 @@
 
     var piecesList = Object.keys(piecesMap).sort();
     if (piecesList.length) {
-      body += 'Pi\u00e8ces \u00e0 commander :\n';
+      body += 'Pi\u00e8ces \u00e0 commander :\n\n';
       piecesList.forEach(function(ref) {
         body += ref + ' \u00d7' + piecesMap[ref] + '\n';
       });
