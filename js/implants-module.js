@@ -1604,6 +1604,7 @@
       var nomEsc = escT(f.nom).replace(/'/g, "\\'");
       var idEsc = escT(f.id).replace(/'/g, "\\'");
       var btns = '';
+      btns += '<button onclick="impMailFournisseur(\'' + idEsc + '\')" title="Envoyer un mail" style="color:#0277bd;">✉️</button>';
       btns += '<button onclick="impVoirStock(\'' + nomEsc + '\')" title="Voir stock">📦</button>';
       if (f.catalogueUrl) btns += '<button onclick="impOuvrirCatalogue(\'' + idEsc + '\')" title="Catalogue PDF" style="color:#6a1b9a;">📖</button>';
       btns += '<button onclick="impEditerFournisseur(\'' + idEsc + '\')" title="Modifier">✏️</button>';
@@ -2406,6 +2407,95 @@
     } catch (e) {
       console.warn('[Implants] Erreur chargement dict refs:', e.message);
     }
+  }
+
+  // ══════════════════════════════════════
+  // EMAIL FOURNISSEUR (depuis carte fournisseur)
+  // ══════════════════════════════════════
+
+  window.impMailFournisseur = function(fournisseurId) {
+    var f = _impFournisseurs.find(function(x) { return x.id === fournisseurId; });
+    if (!f) { showToast('Fournisseur introuvable', true); return; }
+
+    // Construire la liste des cabinets Cogilog
+    var cabinets = [];
+    if (typeof COGILOG_CLIENTS !== 'undefined') {
+      Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
+        var code = entry[0];
+        var data = entry[1];
+        var nom = (data[3] || '').trim();
+        if (nom) cabinets.push({ code: code, nom: nom, data: data });
+      });
+      cabinets.sort(function(a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+    }
+
+    // Popup de recherche cabinet
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99999;display:flex;align-items:center;justify-content:center;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:16px;padding:24px;width:400px;max-height:500px;box-shadow:0 8px 32px rgba(0,0,0,0.2);display:flex;flex-direction:column;';
+
+    box.innerHTML = '<div style="font-weight:700;font-size:0.92rem;margin-bottom:12px;">Commande ' + escT(f.nom) + ' — Choisir le cabinet</div>';
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Rechercher un cabinet...';
+    searchInput.style.cssText = 'width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.82rem;margin-bottom:10px;outline:none;font-family:DM Sans,sans-serif;';
+    box.appendChild(searchInput);
+
+    var listDiv = document.createElement('div');
+    listDiv.style.cssText = 'flex:1;overflow-y:auto;max-height:320px;';
+    box.appendChild(listDiv);
+
+    function renderCabList(filter) {
+      var q = (filter || '').toLowerCase();
+      var filtered = q ? cabinets.filter(function(c) { return c.nom.toLowerCase().includes(q) || c.code.toLowerCase().includes(q); }) : cabinets;
+      var html = '';
+      filtered.slice(0, 50).forEach(function(c) {
+        var parts = [c.data[4], c.data[5], c.data[8], c.data[9]].filter(function(x) { return x && x.trim(); });
+        var addr = parts.join(' ');
+        var tel = (c.data[17] || '').trim();
+        html += '<a href="' + _impBuildMailFournisseur(f, c.nom, addr, tel) + '" style="display:block;padding:8px 12px;margin:3px 0;border-radius:8px;text-decoration:none;color:var(--text);transition:background 0.1s;cursor:pointer;" onmouseover="this.style.background=\'#e3f2fd\'" onmouseout="this.style.background=\'none\'" onclick="this.parentElement.parentElement.parentElement.remove();">' +
+          '<div style="font-weight:600;font-size:0.82rem;">' + escT(c.nom) + '</div>' +
+          (addr ? '<div style="font-size:0.68rem;color:#888;">' + escT(addr) + '</div>' : '') +
+          '</a>';
+      });
+      if (!html) html = '<div style="padding:16px;text-align:center;color:#999;font-size:0.8rem;">Aucun cabinet trouve</div>';
+      listDiv.innerHTML = html;
+    }
+
+    searchInput.addEventListener('input', function() { renderCabList(this.value); });
+    renderCabList('');
+
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Annuler';
+    closeBtn.style.cssText = 'margin-top:10px;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;background:white;color:#888;font-size:0.78rem;cursor:pointer;';
+    closeBtn.onclick = function() { document.body.removeChild(overlay); };
+    box.appendChild(closeBtn);
+
+    overlay.appendChild(box);
+    overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+    document.body.appendChild(overlay);
+    searchInput.focus();
+  };
+
+  function _impBuildMailFournisseur(fournisseur, cabNom, cabAdresse, cabTel) {
+    var emailDest = (fournisseur.email || '');
+    var objet = 'Commande implants - ' + fournisseur.nom + ' - I Love Smile';
+
+    var body = 'Bonjour, j\'aimerais passer une commande\n\n';
+    body += 'Facturation : ' + cabNom;
+    if (cabAdresse) body += ' - ' + cabAdresse;
+    if (cabTel) body += ' - ' + cabTel;
+    body += '\n\n';
+    body += 'Patient : \n\n';
+    body += 'Pi\u00e8ces \u00e0 commander :\n\n\n\n';
+    body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n';
+
+    return 'mailto:' + encodeURIComponent(emailDest) +
+      '?subject=' + encodeURIComponent(objet) +
+      '&body=' + encodeURIComponent(body);
   }
 
   // ══════════════════════════════════════
