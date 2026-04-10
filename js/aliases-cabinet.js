@@ -105,7 +105,12 @@ function getAliasesText() {
 function getCogilogCompactIndex() {
   if (typeof COGILOG_CLIENTS === 'undefined' || !COGILOG_CLIENTS) return '';
   var contacts = window.CONTACTS_DENTISTES || {};
-  return Object.entries(COGILOG_CLIENTS).map(function([code, d]) {
+  var statuts = window._gcStatuts || {};
+  return Object.entries(COGILOG_CLIENTS).filter(function([code, d]) {
+    // Exclure les clients inactifs
+    var nom = (d[3] || '').trim();
+    return statuts[nom] !== 'inactif';
+  }).map(function([code, d]) {
     const nom   = (d[3] || '').trim();
     const cp    = (d[8] || '').trim();
     const ville = (d[9] || '').trim();
