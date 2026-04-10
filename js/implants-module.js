@@ -2530,7 +2530,7 @@
       '?subject=' + encodeURIComponent(objet) +
       '&body=' + encodeURIComponent(body);
 
-    window.open(mailto, '_blank');
+    window.location.href = mailto;
     showToast('Mail ' + marque + ' ouvert' + (emailDest ? ' (' + emailDest + ')' : ' (ajoutez le destinataire)'));
   }
 
