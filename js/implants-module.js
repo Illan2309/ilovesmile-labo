@@ -1023,12 +1023,14 @@
       const cabText = cab ? escT(wrapLongName(cab, 2)) : '(non trouvé)';
       const patText = escT(wrapLongName(row.patient || '', 2)) || '<span style="color:#bbb;font-style:italic;">(vide)</span>';
 
+      var codeFicheHtml = escT(row.codeRX || '');
+
       html += '<tr' + altClass + '>' +
         '<td style="font-family:\'DM Mono\',monospace;font-size:0.68rem;color:#888;white-space:nowrap;' + archClass + '">' + escT(row.dateStr || '') + '</td>' +
         '<td ' + cabTd + '>' + cabText + '</td>' +
         '<td style="' + archClass + '"><span style="font-family:\'DM Mono\',monospace;font-size:0.72rem;background:#e3f2fd;padding:2px 6px;border-radius:4px;">' + codeLaboHtml + '</span></td>' +
+        '<td style="font-family:\'DM Mono\',monospace;font-size:0.7rem;' + archClass + '">' + codeFicheHtml + '</td>' +
         '<td ' + patTd + '>' + patText + '</td>' +
-        '<td ' + refTd + '>' + escT(row.reference || '') + '</td>' +
         '<td style="font-size:0.7rem;' + archClass + '">' + piecesHtml + '</td>' +
         '</tr>';
     });
