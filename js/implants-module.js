@@ -570,11 +570,10 @@
       }
     });
 
-    // Index par numero_prescription — prescriptions avec implants uniquement
+    // Index par numero_prescription — TOUTES les prescriptions (le codeRX est un match fort)
     const indexByNum = {};
     prescriptions.forEach(p => {
-      if (!hasImplant(p)) return;
-      const num = String(p.numero_prescription || p.numero || '').trim();
+      const num = String(p.numero_prescription || p.numero || '').replace(/^N° /, '').trim();
       if (num && !indexByNum[num]) indexByNum[num] = p;
       const numClean = num.replace(/^0+/, '');
       if (numClean && !indexByNum[numClean]) indexByNum[numClean] = p;
@@ -608,25 +607,26 @@
       const hasCodeRX = row.codeRX && String(row.codeRX).trim().length > 0;
 
       if (hasCodeRX) {
-        // Numero de fiche present → match 100% ou rien (pas de fallback code labo)
+        // Numero de fiche present → match prioritaire
         const rxClean = String(row.codeRX).trim();
         const p = indexByNum[rxClean] || indexByNum[rxClean.replace(/^0+/, '')];
-        if (p && hasImplant(p)) {
-          const pTs = getPrescriptionTs(p);
-          if (datesCoherent(row._dateMs, pTs)) { matched = p; matchSource = 'codeRX'; }
+        if (p) {
+          // Match exact par codeRX : on fait confiance meme si date decalee ou pas d'acte implant
+          matched = p; matchSource = 'codeRX';
         }
         // Essayer format "LETTRE-NUMERO" (ex: "T55-155068")
         if (!matched && row.codeRX.includes('-')) {
           const parts = row.codeRX.split('-');
           if (parts.length === 2) {
             const p2 = indexByNum[parts[1]];
-            if (p2 && hasImplant(p2)) {
-              const pTs2 = getPrescriptionTs(p2);
-              if (datesCoherent(row._dateMs, pTs2)) { matched = p2; matchSource = 'codeRX-split'; }
-            }
+            if (p2) { matched = p2; matchSource = 'codeRX-split'; }
           }
         }
-        // Si pas de match → on laisse vide, PAS de fallback code labo
+        // Si pas de match par codeRX → fallback code labo
+        if (!matched && row.codeLabo && row.codeLabo !== 'SCAN') {
+          matched = findBestMatch(row.codeLabo, row._dateMs);
+          if (matched) matchSource = 'code_labo_fallback';
+        }
       } else {
         // Pas de numero de fiche → chercher par code labo (seule option)
         if (row.codeLabo && row.codeLabo !== 'SCAN') {
