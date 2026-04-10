@@ -1,0 +1,738 @@
+var DENTS_HAUT = [
+  [18,17,16,15,14,13,12,11],
+  [21,22,23,24,25,26,27,28]
+];
+var DENTS_BAS = [
+  [48,47,46,45,44,43,42,41],
+  [31,32,33,34,35,36,37,38]
+];
+
+var selectedDents = new Set();
+
+function buildDentsGrid() {
+  const grid = document.getElementById('dents-grid');
+  grid.innerHTML = '';
+
+  // Ligne haut + ligne bas uniquement (pas de labels, les boutons ont déjà le numéro)
+  const rowHaut = buildRow([...DENTS_HAUT[0], ...DENTS_HAUT[1]]);
+  grid.appendChild(rowHaut);
+
+  // Séparateur visuel entre haut et bas
+  const sep = document.createElement('div');
+  sep.style.cssText = 'height:3px;background:var(--border);border-radius:2px;margin:4px 0;';
+  grid.appendChild(sep);
+
+  const rowBas = buildRow([...DENTS_BAS[0], ...DENTS_BAS[1]]);
+  grid.appendChild(rowBas);
+}
+
+function buildRow(nums) {
+  const row = document.createElement('div');
+  row.className = 'dents-row';
+  nums.forEach((n, i) => {
+    if (i === 8) {
+      const div = document.createElement('div');
+      div.className = 'dents-divider';
+      row.appendChild(div);
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dent-btn';
+    btn.textContent = n;
+    btn.dataset.dent = n;
+    btn.onclick = () => toggleDent(n, btn);
+    row.appendChild(btn);
+  });
+  return row;
+}
+
+function toggleDent(n, btn) {
+  if (selectedDents.has(n)) {
+    selectedDents.delete(n);
+    btn.classList.remove('selected');
+  } else {
+    selectedDents.add(n);
+    btn.classList.add('selected');
+  }
+}
+
+// ---- TEINTES ----
+var TEINTES = ['A1','A2','A3','A3.5','A4','B1','B2','B3','B4','C1','C2','C3','D2','D3'];
+var selectedTeinte = '';
+
+function buildTeintes() {
+  const grid = document.getElementById('teinte-grid');
+  TEINTES.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'teinte-chip';
+    chip.textContent = t;
+    chip.onclick = () => {
+      document.querySelectorAll('.teinte-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      selectedTeinte = t;
+      document.getElementById('teinte-custom').value = t;
+    };
+    grid.appendChild(chip);
+  });
+}
+
+// ---- NUMÉRO ----
+// ---- PERSISTANCE PRESCRIPTIONS ----
+// ── Sauvegarde / chargement via Firebase (remplace localStorage) ──
+
+function sauvegarderPrescriptions() {
+  // Délégué à window.sauvegarderPrescriptions défini dans le module Firebase
+  // Guard : ne pas appeler si Firebase n'a pas encore remplacé cette fonction
+  if (window._firebaseReady && window.sauvegarderPrescriptions) window.sauvegarderPrescriptions();
+}
+
+function chargerPrescriptions() {
+  // Le chargement se fait via onSnapshot Firebase (temps réel)
+  // Rien à faire ici, Firebase pousse les données automatiquement
+}
+
+window.prescriptions = window.prescriptions || [];
+// Alias vers window.prescriptions — resynchronisé à chaque lecture via getter
+// onSnapshot remplace window.prescriptions par une nouvelle array →
+// on ne doit JAMAIS stocker un alias local stale.
+// Solution : utiliser window.prescriptions partout dans les fonctions critiques.
+var nextNum = 31461;
+
+function updateNum() {
+  // Le numéro est maintenant directement éditable dans le champ
+}
+
+// ---- SAVE ----
+// ---- EDITING STATE ----
+var editingIndex = -1;
+
+
+// ── Auto-apprentissage : créer des alias depuis la LECTURE BRUTE de l'IA ──
+function _autoLearnAliases(ancienne, corrigee) {
+  var _norm = function(s) { return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); };
+  var scanIA = ancienne.scanIA;
+  if (!scanIA || typeof scanIA !== 'object') return;
+
+  // 1. CABINET : raw_cabinet (lecture brute) → code_cogilog corrigé
+  var rawCab = _norm(scanIA.raw_cabinet || '');
+  var codeCorrige = corrigee.code_cogilog || '';
+  if (rawCab && rawCab.length >= 3 && codeCorrige) {
+    // Ne pas créer d'alias si le raw correspond déjà au bon cabinet
+    var cabinetCorrige = _norm(corrigee.cabinet || '');
+    if (rawCab !== cabinetCorrige) {
+      // Sécurité : ne PAS créer l'alias si le raw correspond à un cabinet EXISTANT dans la base
+      var _isExistingCab = false;
+      if (typeof COGILOG_CLIENTS !== 'undefined') {
+        Object.values(COGILOG_CLIENTS).forEach(function(d) {
+          if (_norm(d[3] || '') === rawCab) _isExistingCab = true;
+        });
+      }
+      if (!_isExistingCab) {
+        var aliases = JSON.parse(localStorage.getItem('cabinet_aliases') || '{}');
+        if (!aliases[rawCab]) {
+          aliases[rawCab] = codeCorrige;
+          localStorage.setItem('cabinet_aliases', JSON.stringify(aliases));
+          _syncAliasesToFirebase('cabinet');
+          showToast('🧠 Alias cabinet auto : "' + rawCab + '" → ' + codeCorrige);
+          console.log('[🧠 Auto-alias cabinet] "' + rawCab + '" → ' + codeCorrige);
+        }
+      } else {
+        console.log('[🧠 Auto-alias cabinet] IGNORÉ "' + rawCab + '" — cabinet existant dans la base');
+      }
+    }
+  }
+
+  // 2. PRATICIEN : raw_praticien (lecture brute) → praticien corrigé (max 5 alias par contact)
+  var rawPrat = _norm((scanIA.raw_praticien || '').replace(/^dr\.?\s*/i, ''));
+  var pratCorrige = (corrigee.praticien || '').replace(/^Dr\.?\s*/i, '').trim();
+  if (rawPrat && rawPrat.length >= 3 && pratCorrige && pratCorrige !== '???' && rawPrat !== _norm(pratCorrige)) {
+    var _isExistingContact = false;
+    var _allContacts = window.CONTACTS_DENTISTES || {};
+    Object.values(_allContacts).forEach(function(drList) {
+      (drList || []).forEach(function(dr) {
+        if (dr !== 'Dr ???' && _norm(dr.replace(/^Dr\.?\s*/i, '')) === rawPrat) {
+          _isExistingContact = true;
+        }
+      });
+    });
+    if (!_isExistingContact) {
+      var contactAliases = JSON.parse(localStorage.getItem('contact_aliases') || '{}');
+      var drKey = corrigee.praticien;
+      if (!contactAliases[drKey]) contactAliases[drKey] = [];
+      if (contactAliases[drKey].length < 5 && !contactAliases[drKey].includes(rawPrat)) {
+        contactAliases[drKey].push(rawPrat);
+        saveContactAliases(contactAliases);
+        showToast('🧠 Alias contact auto : "' + rawPrat + '" → ' + drKey);
+      }
+    }
+  }
+}
+
+function savePrescription() {
+  // ── VERROU ANTI-DOUBLE-CLIC (triple protection) ──
+  // 1. Flag booléen
+  if (window._saveLock) { return; }
+  // 2. Timestamp : minimum 1 seconde entre 2 sauvegardes
+  var now = Date.now();
+  if (window._saveLastTime && (now - window._saveLastTime) < 1000) { return; }
+  window._saveLastTime = now;
+  window._saveLock = true;
+  // 3. Désactiver le bouton immédiatement
+  const _saveBtn = document.getElementById('save-btn');
+  if (_saveBtn) { _saveBtn.disabled = true; _saveBtn.style.opacity = '0.6'; _saveBtn.style.pointerEvents = 'none'; }
+  const _releaseSaveLock = () => {
+    window._saveLock = false;
+    if (_saveBtn) { _saveBtn.disabled = false; _saveBtn.style.opacity = ''; _saveBtn.style.pointerEvents = ''; }
+  };
+
+  const cabinet = document.getElementById('cabinet').value.trim();
+  const praticien = document.getElementById('praticien').value.trim();
+  const patientNom = document.getElementById('patient-nom').value.trim();
+
+  const numDisplay = document.getElementById('num-display').value.trim();
+  if (!praticien && !cabinet && !patientNom && !numDisplay) {
+    showToast('Veuillez renseigner au moins le cabinet, le praticien, le patient ou le numéro.', true);
+    _releaseSaveLock(); return;
+  }
+
+  const codeLabo = document.getElementById('code-labo-display').value.trim();
+  const dateLivraison = dateToISO(document.getElementById('date-livraison').value.trim()) || document.getElementById('date-livraison').value.trim();
+  if (!codeLabo) {
+    showToast('⚠️ Code labo manquant — veuillez le renseigner avant de valider.', true);
+    document.getElementById('code-labo-display').focus();
+    _releaseSaveLock(); return;
+  }
+  const sansDate = document.getElementById('sans-date-livraison')?.checked;
+  if (!dateLivraison && !sansDate) {
+    showToast('⚠️ Date de livraison manquante — renseignez-la ou cochez "Sans date connue".', true);
+    document.getElementById('date-livraison').focus();
+    _releaseSaveLock(); return;
+  }
+  const fournisseur = document.getElementById('fournisseur').value;
+  if (!fournisseur) {
+    showToast('⚠️ Fournisseur manquant — veuillez sélectionner MERDENTAL ou HUILE.', true);
+    document.getElementById('fournisseur').focus();
+    _releaseSaveLock(); return;
+  }
+
+  // Capturer AVANT resetForm qui remet à null
+  const scanIACourant = lastScanIA;
+  const scanPhotoCourant = lastScanPhoto;
+  // Snapshot de la prescription en cours d'édition par _id (anti-race onSnapshot)
+  // window.prescriptions peut être remplacé par onSnapshot entre-temps — on cherche par _id
+  const _anciennePresc = editingIndex >= 0
+    ? (window.prescriptions || []).find(p => p._id === ((window.prescriptions||[])[editingIndex]||{})._id) || (window.prescriptions||[])[editingIndex] || null
+    : null;
+  // Capturer l'explication — depuis la zone scan ou la zone édition selon le contexte
+  const explicationsaisie = (
+    document.getElementById('edit-explication')?.value ||
+    document.getElementById('correction-explication')?.value ||
+    ''
+  ).trim();
+
+  const conjointe = [...document.querySelectorAll('input[name="conjointe"]:checked')].map(el => el.value);
+  const adjointe = [...document.querySelectorAll('input[name="adjointe"]:checked')].map(el => el.value);
+  const sexe = document.querySelector('input[name="sexe"]:checked')?.value || '';
+  const mach = [...document.querySelectorAll('input[name="mach"]:checked')].map(e => e.value);
+
+  const prescription = {
+    numero: 'N° ' + (document.getElementById('num-display').value.trim() || nextNum),
+    code_labo: document.getElementById('code-labo-display').value.trim() || '',
+    code_cogilog: document.getElementById('code-cogilog').value.trim() || '',
+    fournisseur: document.getElementById('fournisseur').value || '',
+    cabinet,
+    praticien,
+    patient: { nom: patientNom, age: document.getElementById('patient-age').value, sexe },
+    aRefaire: document.getElementById('a-refaire').checked === true,
+    aRefaireActes: window.aRefaireActes, // null = tous, [] = aucun, [...] = sélection
+    urgent: document.getElementById('urgent').checked,
+    call_me: document.getElementById('call-me').checked,
+    casEsthetique: document.getElementById('cas-esthetique').checked,
+    scan: document.getElementById('scan-check').checked,
+    scanPosition: window._scanPosition || '',
+    dates: {
+      empreinte: dateToISO(document.getElementById('date-empreinte').value),
+      livraison: dateToISO(document.getElementById('date-livraison').value),
+      sansDate: document.getElementById('sans-date-livraison')?.checked || false,
+    },
+    dents: [...selectedDents].sort((a,b) => a-b),
+    conjointe,
+    fraisage: (window._dentsActesCourant && window._dentsActesCourant['Fraisage']) || document.getElementById('fraisage').value || '',
+    piv: document.getElementById('piv').value.trim() || '',
+    adjointe,
+    quantites: (function() {
+      var q = {};
+      document.querySelectorAll('.qty-input').forEach(function(inp) {
+        if (inp.style.display !== 'none' && inp.dataset.acte) {
+          q[inp.dataset.acte] = parseInt(inp.value) || 1;
+        }
+      });
+      return q;
+    })(),
+    dentExtraire: (window._dentsActesCourant || {})['Dent à extraire'] || document.getElementById('dent-extraire').value.trim(),
+    adjonctionDent: (window._dentsActesCourant || {})['Adjonction dent'] || document.getElementById('adjonction-dent').value.trim(),
+    adjonctionCrochet: (window._dentsActesCourant || {})['Adjonction crochet'] || document.getElementById('adjonction-crochet').value.trim(),
+    machoire: mach,
+    teinte: document.getElementById('teinte-custom').value || selectedTeinte,
+    dentExtraireVal: '',
+    dentsActes: Object.assign({}, window._dentsActesCourant || {}),
+    solidGroups: JSON.parse(JSON.stringify(window._solidGroups || [])),
+    commentaires: document.getElementById('commentaires').value,
+    statut: _anciennePresc
+      ? (_anciennePresc.statut === 'importe' ? 'importe' : 'verifie')
+      : 'attente',
+    cogilog_exporte: _anciennePresc ? (_anciennePresc.cogilog_exporte || null) : null,
+    createdAt: _anciennePresc ? _anciennePresc.createdAt : new Date().toLocaleDateString('fr-FR'),
+    // Préserver photo_url + photo_type existants si pas de nouveau scan
+    photo:      _anciennePresc ? (scanPhotoCourant || _anciennePresc.photo || null) : (scanPhotoCourant || null),
+    photo_url:  _anciennePresc ? (_anciennePresc.photo_url || null) : null,
+    photo_type: _anciennePresc ? (_anciennePresc.photo_type || null) : null,
+    photo_html: _anciennePresc ? (_anciennePresc.photo_html || null) : null,
+    scanIA: _anciennePresc ? _anciennePresc.scanIA : (scanIACourant || null),
+  };
+
+  // Snapshot de editingIndex au clic (anti-race avec onSnapshot Firebase)
+  const _snapshotEditingIndex = editingIndex;
+  editingIndex = -1; // libérer immédiatement
+
+  if (_snapshotEditingIndex >= 0) {
+    // Utiliser _anciennePresc (snapshotée par _id, immunisée contre onSnapshot)
+    if (!_anciennePresc || !_anciennePresc._id) {
+      showToast('⚠️ Prescription introuvable — annulation.', true);
+      _releaseSaveLock(); return;
+    }
+    // Réutiliser l'_id existant — overwrite Firestore garanti, jamais de doublon
+    prescription._id = _anciennePresc._id;
+    // Mettre à jour en mémoire locale par _id (pas par index, évite erreur de position)
+    const _idxLocal = (window.prescriptions || []).findIndex(p => p._id === _anciennePresc._id);
+    if (_idxLocal >= 0) {
+      window.prescriptions[_idxLocal] = prescription;
+    } else {
+      // onSnapshot a remplacé l'array entre-temps — forcer la MAJ dans le nouvel array
+      const _idxRetry = (window.prescriptions || []).findIndex(p => p._id === prescription._id);
+      if (_idxRetry >= 0) window.prescriptions[_idxRetry] = prescription;
+      else window.prescriptions.unshift(prescription); // dernier recours
+      console.warn('[SAVE] Prescription introuvable en mémoire, forcé la MAJ');
+    }
+    if (window.sauvegarderUnePrescription) window.sauvegarderUnePrescription(prescription);
+
+    // Auto-apprentissage alias depuis la lecture brute de l'IA
+    if (_anciennePresc.scanIA) {
+      _autoLearnAliases(_anciennePresc, prescription);
+    }
+
+    if (_anciennePresc.scanIA) {
+      const diffs = extraireDiffs(_anciennePresc.scanIA, prescription);
+      const stats = sauvegarderApprentissage(diffs, explicationsaisie);
+      if (diffs.length > 0 && stats) showToast(`💾 Mis à jour · 🧠 ${stats.nouvelles} nouveau(x), ${stats.renforcees} renforcé(s) (${stats.total} en mémoire)`);
+      else if (diffs.length > 0) showToast(`💾 Mis à jour · 🧠 ${diffs.length} correction(s) mémorisée(s)`);
+      else showToast('✅ Prescription mise à jour ! (IA avait tout bon 👍)');
+    } else {
+      showToast('✅ Prescription mise à jour !');
+    }
+
+  } else {
+    // Nouvelle prescription — assigner _id AVANT sauvegarder (anti-doublon double-clic)
+    prescription._id = 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+    const numSaisi = document.getElementById('num-display').value.trim();
+    if (!numSaisi || isNaN(numSaisi)) {
+      nextNum++;
+    }
+    if (scanIACourant) prescription.scanIA = scanIACourant;
+    if (window.sauvegarderUnePrescription) window.sauvegarderUnePrescription(prescription);
+
+    if (scanIACourant) {
+      const diffs = extraireDiffs(scanIACourant, prescription);
+      const stats = sauvegarderApprentissage(diffs, explicationsaisie);
+      if (diffs.length > 0 && stats) showToast(`✅ Enregistrée · 🧠 ${stats.nouvelles} nouveau(x), ${stats.renforcees} renforcé(s) (${stats.total} en mémoire)`);
+      else if (diffs.length > 0) showToast(`✅ Enregistrée · 🧠 ${diffs.length} correction(s) mémorisée(s)`);
+      else showToast('✅ Prescription enregistrée ! (IA avait tout bon 👍)');
+    } else {
+      showToast('✅ Prescription enregistrée avec succès !');
+    }
+  }
+
+  lastScanPhoto = null;
+  lastScanIA = null;
+  // Déclencher le renderList différé si des onSnapshot étaient bloqués pendant l'édition
+  if (window._renderAfterEdit) window._renderAfterEdit = false;
+  renderList();
+
+  // Saisie continue : charger la prochaine prescription en attente
+  if (document.getElementById('saisie-continue')?.checked) {
+    // Forcer le statut dans window.prescriptions pour éviter de recharger celle qu'on vient de sauver
+    (window.prescriptions || []).forEach(function(p) {
+      if (p._id === prescription._id) p.statut = prescription.statut;
+    });
+    // Petite pause pour laisser Firebase sync avant de chercher la prochaine
+    var next = _trouverProchainePrescription(prescription);
+    if (next) {
+      var _nextId = next._id;
+      var _savedFournisseur = prescription.fournisseur || '';
+      setTimeout(function() {
+        editPrescriptionById(_nextId);
+        // Auto-incrémenter le code labo SEULEMENT si la fiche n'en a pas déjà un (scans PDF/HTML)
+        var codeLaboInput = document.getElementById('code-labo-display');
+        if (codeLaboInput && !codeLaboInput.value.trim()) {
+          var fournInput = document.getElementById('fournisseur');
+          var nextFourn = fournInput ? fournInput.value : '';
+          if (nextFourn) codeLaboInput.value = getNextCodeLabo(nextFourn);
+        }
+      }, 300);
+      _releaseSaveLock();
+      return;
+    } else {
+      showToast('Saisie continue : aucune prescription en attente.', true);
+    }
+  }
+
+  resetForm();
+  _releaseSaveLock();
+}
+
+// ---- POPUP COMMENTAIRES ----
+function toggleCommentairePopup() {
+  var popup = document.getElementById('commentaire-popup');
+  var ta = document.getElementById('commentaires');
+  var edit = document.getElementById('commentaires-edit');
+  if (!popup || !ta || !edit) return;
+  edit.value = ta.value;
+  popup.style.display = 'flex';
+  edit.focus();
+}
+function fermerCommentairePopup() {
+  var popup = document.getElementById('commentaire-popup');
+  if (popup) popup.style.display = 'none';
+}
+function validerCommentairePopup() {
+  var ta = document.getElementById('commentaires');
+  var edit = document.getElementById('commentaires-edit');
+  if (ta && edit) ta.value = edit.value;
+  fermerCommentairePopup();
+}
+
+// ---- RECHERCHE PAR NUMÉRO DE FICHE ----
+function rechercherNumFiche(query) {
+  var box = document.getElementById('num-suggestions');
+  if (!box) return;
+  if (!query || query.length < 2) { box.style.display = 'none'; return; }
+  var q = query.toLowerCase();
+  var results = (window.prescriptions || []).map(function(p, i) { return Object.assign({}, p, { _index: i }); })
+    .filter(function(p) {
+      var s = p.statut || 'attente';
+      return s === 'attente' || s === 'en-cours';
+    })
+    .filter(function(p) {
+      var num = (p.numero || '').toLowerCase().replace('n° ', '');
+      var codeLabo = (p.code_labo || '').toLowerCase();
+      var patient = (p.patient?.nom || '').toLowerCase();
+      return num.includes(q) || codeLabo.includes(q) || patient.includes(q) || (codeLabo + num).includes(q);
+    })
+    .slice(0, 8);
+  if (!results.length) { box.style.display = 'none'; return; }
+  box.innerHTML = results.map(function(p) {
+    var num = (p.numero || '').replace('N° ', '');
+    var codeLabo = p.code_labo ? '<span style="color:#5bc4c0;font-weight:700;margin-right:4px;">' + p.code_labo + '</span>' : '';
+    var patient = p.patient?.nom || '';
+    var cabinet = p.cabinet || '';
+    return '<div onmousedown="document.getElementById(\'num-suggestions\').style.display=\'none\';editPrescription(' + p._index + ')"'
+      + ' style="padding:8px 12px;cursor:pointer;font-size:0.78rem;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;"'
+      + ' onmouseover="this.style.background=\'#f0f7ff\'" onmouseout="this.style.background=\'\'">'
+      + '<span style="color:#1c2a35;">' + codeLabo + '<b>' + num + '</b></span>'
+      + '<span style="display:flex;align-items:center;gap:6px;"><span style="font-size:0.6rem;padding:1px 6px;border-radius:10px;background:' + ({attente:'#fff3cd','en-cours':'#fff3cd',verifie:'#d4edda',importe:'#cce5ff'}[p.statut]||'#eee') + ';color:' + ({attente:'#856404','en-cours':'#856404',verifie:'#155724',importe:'#004085'}[p.statut]||'#666') + ';">' + ({attente:'attente','en-cours':'attente',verifie:'vérifié',importe:'importé'}[p.statut]||p.statut) + '</span><span style="color:#888;font-size:0.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">' + (patient || cabinet) + '</span></span>'
+      + '</div>';
+  }).join('');
+  box.style.display = 'block';
+}
+
+// ---- SAISIE CONTINUE ----
+function _trouverProchainePrescription(vientDeSauver) {
+  var all = window.prescriptions || [];
+
+  // Natural sort key (même logique que le tri N° croissant)
+  function naturalKey(s) {
+    return (s || '').trim().replace(/(\d+)/g, function(_, n) { return n.padStart(10, '0'); });
+  }
+
+  // Clé de la prescription sauvée
+  var savedKey = naturalKey(vientDeSauver.code_labo);
+
+  // Toutes les prescriptions en attente, triées par code labo croissant
+  var enAttente = all.map(function(p, i) { return Object.assign({}, p, { _index: i }); })
+    .filter(function(p) {
+      var s = p.statut || 'attente';
+      return (s === 'attente' || s === 'en-cours') && p._id !== vientDeSauver._id;
+    })
+    .sort(function(a, b) {
+      return naturalKey(a.code_labo).localeCompare(naturalKey(b.code_labo), 'fr');
+    });
+
+  if (!enAttente.length) return null;
+
+  // Chercher la prochaine dans l'ordre croissant (code labo > saved)
+  var prochaine = enAttente.find(function(p) {
+    return naturalKey(p.code_labo).localeCompare(savedKey, 'fr') > 0;
+  });
+
+  // Si pas de suivant dans l'ordre → prendre le premier (boucle)
+  return prochaine || enAttente[0];
+}
+
+// ---- RESET ----
+function resetForm() {
+  // Déclencher le renderList différé si des onSnapshot étaient bloqués
+  if (window._renderAfterEdit) {
+    window._renderAfterEdit = false;
+    setTimeout(() => { if (typeof renderList === 'function') renderList(); }, 100);
+  }
+  document.getElementById('prescription-form').reset();
+  const _noteRappel = document.getElementById('gc-note-rappel');
+  if (_noteRappel) _noteRappel.remove();
+  selectedDents.clear();
+  selectedTeinte = '';
+  editingIndex = -1;
+  document.querySelectorAll('.dent-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.teinte-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('num-display').value = '';
+  document.getElementById('num-display').dataset.codeLabo = '';
+  document.getElementById('code-labo-display').value = '';
+  document.getElementById('cabinet').value = '';
+  const _csel = document.getElementById('code-cogilog');
+  if (_csel) _csel.value = '';
+  const _badge = document.getElementById('cogilog-code-badge');
+  if (_badge) { _badge.textContent = ''; _badge.style.display = 'none'; }
+  const _clearBtn = document.getElementById('btn-clear-cabinet');
+  if (_clearBtn) _clearBtn.style.display = 'none';
+  document.getElementById('fournisseur').value = '';
+  document.getElementById('piv').value = '';
+  document.getElementById('dent-extraire').value = '';
+  document.getElementById('adjonction-dent').value = '';
+  document.getElementById('adjonction-crochet').value = '';
+  document.getElementById('cas-esthetique').checked = false;
+  document.getElementById('scan-check').checked = false;
+  window._scanPosition = '';
+  highlightCasEsthetique();
+  highlightScan();
+  highlightPivField();
+  highlightDentExtraire();
+  const _sdcb = document.getElementById('sans-date-livraison');
+  if (_sdcb) { _sdcb.checked = false; toggleSansDate(_sdcb); }
+  // Reset panneau aperçu
+  document.getElementById('preview-panel').style.display = 'none';
+  document.getElementById('preview-panel').classList.remove('visible');
+  document.getElementById('preview-panel-body').innerHTML = '<div class="preview-panel-empty"><div style="font-size:2rem;margin-bottom:8px;">📂<\/div><div>Scannez une fiche pour voir l\'aperçu ici<\/div><\/div>';
+  currentZoom = 1;
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Enregistrer la prescription';
+  btn.style.background = '';
+  // Masquer le bouton rescan
+  const _btnRescan = document.getElementById('btn-rescan');
+  if (_btnRescan) _btnRescan.style.display = 'none';
+  // Masquer et vider le champ d'explication
+  const explZone = document.getElementById('edit-explication-zone');
+  const explInp = document.getElementById('edit-explication');
+  if (explZone) explZone.style.display = 'none';
+  if (explInp) explInp.value = '';
+  // Reset à refaire
+  window.aRefaireActes = null;
+  const btnRef = document.getElementById('btn-refaire-detail');
+  if (btnRef) { btnRef.style.display = 'none'; btnRef.textContent = 'Configurer ✏️'; }
+  // Reset quantités
+  document.querySelectorAll('.qty-input').forEach(function(inp) {
+    inp.value = '1';
+    inp.style.display = 'none';
+  });
+}
+
+
+function editPrescription(i) {
+  // Toujours lire dans window.prescriptions (jamais l'alias stale)
+  const p = (window.prescriptions || [])[i];
+  if (!p) { showToast('Prescription introuvable', true); return; }
+  editingIndex = i;
+  // FIX C : couper la contamination scan — vider lastScan* dès qu'on entre en édition
+  lastScanPhoto = null;
+  lastScanIA = null;
+
+  // Supprimer l'ancienne note cabinet avant d'en afficher une nouvelle
+  const _ancienneNote = document.getElementById('gc-note-rappel');
+  if (_ancienneNote) _ancienneNote.remove();
+
+  // Popup rappel notes cabinet (si préférence activée)
+  if (p.cabinet && (window._appPrefs?.rappel_note_prescription !== false)) {
+    const _nAcc = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const notesCab = Object.entries(window._gcNotes || {}).find(([k]) => _nAcc(k) === _nAcc(p.cabinet));
+    if (notesCab && notesCab[1] && notesCab[1].trim()) {
+      gcAfficherRappelNote(p.cabinet, notesCab[1]);
+    }
+  }
+
+  // Remplir le formulaire
+  document.getElementById('cabinet').value = p.cabinet || '';
+  document.getElementById('praticien').value = p.praticien || '';
+  document.getElementById('patient-nom').value = p.patient?.nom || '';
+  document.getElementById('patient-age').value = p.patient?.age || '';
+  document.getElementById('a-refaire').checked = p.aRefaire || false;
+  window.aRefaireActes = (p.aRefaireActes !== undefined) ? p.aRefaireActes : null;
+  const btnRef = document.getElementById('btn-refaire-detail');
+  if (btnRef) {
+    btnRef.style.display = p.aRefaire ? 'inline-block' : 'none';
+    if (p.aRefaireActes && p.aRefaireActes.length) btnRef.textContent = `Configurer ✏️ (${p.aRefaireActes.length})`;
+  }
+  document.getElementById('urgent').checked = p.urgent || false;
+  document.getElementById('call-me').checked = p.call_me || false;
+  document.getElementById('cas-esthetique').checked = p.casEsthetique || false;
+  document.getElementById('scan-check').checked = p.scan || false;
+  window._scanPosition = p.scanPosition || '';
+  setScanPosition(window._scanPosition);
+  highlightScan();
+  highlightCasEsthetique();
+  document.getElementById('date-empreinte').value = dateFromISO(p.dates?.empreinte || '');
+  document.getElementById('date-livraison').value = dateFromISO(p.dates?.livraison || '');
+  const sansDateCb = document.getElementById('sans-date-livraison');
+  if (sansDateCb) {
+    sansDateCb.checked = p.dates?.sansDate || false;
+    toggleSansDate(sansDateCb);
+  }
+  document.getElementById('fraisage').value = p.fraisage || '';
+  if (p.fraisage) {
+    const cbFrais = document.querySelector('input[name="conjointe"][value="Fraisage"]');
+    if (cbFrais) cbFrais.checked = true;
+  }
+  document.getElementById('piv').value = p.piv || '';
+  document.getElementById('dent-extraire').value = p.dentExtraire || '';
+  document.getElementById('adjonction-dent').value = p.adjonctionDent || '';
+  document.getElementById('adjonction-crochet').value = p.adjonctionCrochet || '';
+  // Injecter dans dentsActes pour que la bulle clic droit affiche les bonnes valeurs
+  if (p.dentExtraire) window._dentsActesCourant['Dent à extraire'] = p.dentExtraire;
+  if (p.adjonctionDent) window._dentsActesCourant['Adjonction dent'] = p.adjonctionDent;
+  if (p.adjonctionCrochet) window._dentsActesCourant['Adjonction crochet'] = p.adjonctionCrochet;
+  document.getElementById('teinte-custom').value = p.teinte || '';
+  // inter-bridge supprimé
+  document.getElementById('commentaires').value = p.commentaires || '';
+  document.getElementById('num-display').value = p.numero.replace('N° ', '');
+  document.getElementById('num-display').dataset.codeLabo = p.code_labo || '';
+  document.getElementById('code-labo-display').value = p.code_labo || '';
+  document.getElementById('code-cogilog').value = p.code_cogilog || '';
+  const _editBadge = document.getElementById('cogilog-code-badge');
+  const _editClearBtn = document.getElementById('btn-clear-cabinet');
+  if (_editBadge) { _editBadge.textContent = p.code_cogilog || ''; _editBadge.style.display = p.code_cogilog ? 'block' : 'none'; }
+  if (_editClearBtn) _editClearBtn.style.display = (p.cabinet || p.code_cogilog) ? 'block' : 'none';
+  document.getElementById('fournisseur').value = p.fournisseur || '';
+
+  // Sexe
+  if (p.patient?.sexe) {
+    const radio = document.querySelector(`input[name="sexe"][value="${p.patient.sexe}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  // Mâchoire
+  if (p.machoire) {
+    const vals = Array.isArray(p.machoire) ? p.machoire : [p.machoire];
+    document.querySelectorAll('input[name="mach"]').forEach(cb => {
+      cb.checked = vals.includes(cb.value);
+    });
+  }
+
+  // Dents
+  selectedDents.clear();
+  document.querySelectorAll('.dent-btn').forEach(b => b.classList.remove('selected'));
+  (p.dents || []).forEach(n => {
+    selectedDents.add(Number(n));
+    const btn = document.querySelector(`.dent-btn[data-dent="${n}"]`);
+    if (btn) btn.classList.add('selected');
+  });
+
+  // Reset badges/groupes AVANT de cocher les cases
+  clearTimeout(window._dentsActesTimeout);
+  window._dentsActesCourant = {};
+  window._solidGroups = [];
+  window._usSelection = new Set();
+  document.querySelectorAll('.acte-detail-badge').forEach(b => b.remove());
+  ['unitaire','solidaire'].forEach(id => {
+    const badge = document.getElementById('badge-' + id);
+    if (badge) badge.innerHTML = '';
+  });
+
+  // Cases conjointe
+  document.querySelectorAll('input[name="conjointe"]').forEach(cb => {
+    cb.checked = (p.conjointe || []).includes(cb.value);
+  });
+
+  // Cases adjointe
+  document.querySelectorAll('input[name="adjointe"]').forEach(cb => {
+    cb.checked = (p.adjointe || []).includes(cb.value);
+  });
+
+  // Appliquer dentsActes et solidGroups APRÈS les cases cochées
+  appliquerDentsActes(p.dentsActes);
+  appliquerSolidGroups(p.solidGroups);
+
+  // Quantités — restaurer les valeurs et afficher/masquer les inputs
+  const quantites = p.quantites || {};
+  document.querySelectorAll('.qty-input').forEach(function(inp) {
+    const acte = inp.dataset.acte;
+    const cb = inp.parentElement.querySelector('input[type="checkbox"]');
+    if (cb && cb.checked) {
+      inp.value = quantites[acte] || 1;
+      inp.style.display = 'inline-block';
+    } else {
+      inp.value = '1';
+      inp.style.display = 'none';
+    }
+  });
+
+  // Teinte
+  document.querySelectorAll('.teinte-chip').forEach(c => {
+    c.classList.toggle('selected', c.textContent === p.teinte);
+  });
+
+  // Changer le bouton
+  document.getElementById('save-btn').textContent = '💾 Mettre à jour';
+  document.getElementById('save-btn').style.background = '#f59e0b';
+
+  // Afficher le bouton rescan (seulement si la prescription a une photo)
+  const _btnRescan = document.getElementById('btn-rescan');
+  const _hasPhoto = p.photo_html || p.photo_url || p.photo || (window._photoCache && window._photoCache[p._id]);
+  if (_btnRescan) {
+    _btnRescan.style.display = (_hasPhoto && _hasPhoto !== '__photo__') ? 'inline-block' : 'none';
+  }
+  // Mémoriser les données pour le rescan
+  if (_hasPhoto && _hasPhoto !== '__photo__') {
+    window._rescanData = { photoSrc: _hasPhoto, photoType: p.photo_type || 'image', patientName: p.patient?.nom || p.numero || '', _editIdx: i };
+  } else {
+    window._rescanData = null;
+  }
+
+  // Afficher le champ d'explication si la prescription a un scanIA (donc corrigeable)
+  const explZone = document.getElementById('edit-explication-zone');
+  const explInp = document.getElementById('edit-explication');
+  if (explZone) {
+    explZone.style.display = p.scanIA ? 'flex' : 'none';
+    if (explInp) explInp.value = '';
+  }
+
+  // Afficher le panneau aperçu avec la photo ou un message
+  const panel = document.getElementById('preview-panel');
+  const body = document.getElementById('preview-panel-body');
+  const filename = document.getElementById('preview-filename');
+
+  panel.style.display = 'block'; // forcer l'affichage directement
+  filename.textContent = p.patient?.nom || p.numero;
+
+  // Pour les HTML : toujours utiliser photo_html (le base64 local) pour l'affichage, pas le lien Cloudinary raw
+  const photoAfficher = (p.photo_type === 'html' && p.photo_html) ? p.photo_html : (p.photo_url || p.photo);
+  const photoType = (p.photo_type === 'html' && p.photo_html) ? 'html' : (p._photoType || p.photo_type || 'image');
+  if (photoAfficher && photoAfficher !== '__photo__') {
+    afficherFichierDansPanel(body, photoAfficher, photoType);
+  } else {
+    body.innerHTML = `<div class="preview-panel-empty"><div style="font-size:2.5rem;margin-bottom:12px;">📋<\/div><div style="font-weight:600;margin-bottom:6px;">${p.patient?.nom || p.numero}<\/div><div style="opacity:0.6;">Aucune fiche scannée<br>pour cette prescription<\/div><\/div>`;
+  }
+
+  // Scroll après rendu
+  setTimeout(() => {
+    document.getElementById('split-wrapper').scrollIntoView({ behavior: 'smooth' });
+  }, 50);
+  showToast('Prescription chargée — modifie et sauvegarde !');
+}
