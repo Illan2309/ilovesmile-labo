@@ -165,6 +165,19 @@
     impAppliquerFiltres();
   };
 
+  // ── Bouton "Vider archive" : remet tout en cours ──
+  window.impViderArchive = function() {
+    if (!_impArchive.size) { showToast('Archive deja vide', true); return; }
+    if (!confirm('Vider l\'archive ? Toutes les commandes repasseront en "en cours".')) return;
+    _impArchiveSnapshot = new Set(_impArchive);
+    _impArchive.clear();
+    impMarquerArchive(_impRawRows);
+    impSauverArchive();
+    _impVueArchive = 'en-cours';
+    showToast('Archive videe — ' + _impRawRows.length + ' lignes en cours');
+    impAppliquerFiltres();
+  };
+
   // ── Bouton "Annuler validation" : restaure le snapshot (ctrl+z) ──
   window.impAnnulerValidation = function() {
     if (!_impArchiveSnapshot) { showToast('Rien à annuler', true); return; }
@@ -911,6 +924,7 @@
 
     // Afficher le toggle archive seulement s'il y a des archivees
     vueToggle.style.display = hasArchived ? 'inline-flex' : 'none';
+    if (document.getElementById('imp-btn-vider-archive')) document.getElementById('imp-btn-vider-archive').style.display = hasArchived ? 'inline-block' : 'none';
     // Boutons contextuels
     btnValider.style.display = (_impVueArchive !== 'archivees' && hasEnCours) ? 'inline-block' : 'none';
     btnAnnuler.style.display = (_impVueArchive === 'archivees' && hasArchived) ? 'inline-block' : 'none';
