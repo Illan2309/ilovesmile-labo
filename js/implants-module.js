@@ -2515,7 +2515,7 @@
       body += 'Facturation : ' + cab;
       if (adresse) body += ' - ' + adresse;
       if (tel) body += ' - ' + tel;
-      body += '\n';
+      body += '\n\n';
 
       // Patients sur une ligne, separes par /
       var patients = [];
