@@ -2535,22 +2535,30 @@
       body += '\n';
     });
 
-    // Pieces a commander (total regroupe)
+    // Pieces a commander (total regroupe depuis piecesMap de chaque ligne)
     var piecesMap = {};
     rows.forEach(function(r) {
-      var ref = (r.reference || '').trim();
-      if (!ref) return;
-      var qty = r.quantite || 1;
-      if (!piecesMap[ref]) piecesMap[ref] = 0;
-      piecesMap[ref] += qty;
+      if (r.piecesMap && r.piecesMap.forEach) {
+        r.piecesMap.forEach(function(qty, ref) {
+          if (!ref) return;
+          if (!piecesMap[ref]) piecesMap[ref] = 0;
+          piecesMap[ref] += qty;
+        });
+      } else {
+        // Fallback : utiliser reference + quantite
+        var ref = (r.reference || '').trim();
+        if (!ref) return;
+        var qty = r.quantite || 1;
+        if (!piecesMap[ref]) piecesMap[ref] = 0;
+        piecesMap[ref] += qty;
+      }
     });
 
     var piecesList = Object.keys(piecesMap).sort();
     if (piecesList.length) {
       body += 'Pi\u00e8ces \u00e0 commander :\n';
       piecesList.forEach(function(ref) {
-        var desc = impRefDesc(ref) || ref;
-        body += '- ' + desc + (piecesMap[ref] > 1 ? ' x' + piecesMap[ref] : '') + '\n';
+        body += ref + ' \u00d7' + piecesMap[ref] + '\n';
       });
       body += '\n';
     }
