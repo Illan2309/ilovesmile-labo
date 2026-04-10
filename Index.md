@@ -7,6 +7,7 @@
 | [PRD.md](PRD.md) | Product Requirements Document — fonctionnalites, workflow, contraintes metier |
 | [Architecture.md](Architecture.md) | Architecture technique — stack, persistence, IA, export, donnees |
 | [Index.md](Index.md) | Ce fichier — vue d'ensemble et cartographie du code |
+| [CONVENTIONS.md](CONVENTIONS.md) | **Regles de developpement obligatoires** — zero JS inline, 1 module = 1 fichier |
 
 ## Structure du projet
 

@@ -241,6 +241,15 @@ Fichier TSV (tab-separated) en **encodage MacRoman**.
 --grad: linear-gradient(120deg, #1a5c8a, #5bc4c0)  /* degrade signature */
 ```
 
+## Regles de developpement
+
+Voir **[CONVENTIONS.md](CONVENTIONS.md)** pour toutes les regles obligatoires. Les points cles :
+
+- **Zero JS inline** dans index.html — tout dans `js/`
+- **1 module = 1 fichier** — nouvelle feature = nouveau fichier
+- **Donnees dans js/data/** — constantes metier volumineuses
+- **Ordre de chargement** des scripts a respecter (donnees -> utils -> coeur -> DOM)
+
 ## Limitations actuelles
 
 1. **Pas d'authentification** — Firebase ouvert, n'importe qui avec l'URL peut lire/ecrire

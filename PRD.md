@@ -113,3 +113,5 @@ Le code est organise en **30 fichiers** modulaires (voir [Architecture.md](Archi
 - `js/` : 18 modules JS organises par responsabilite
 
 Deploiement sur **GitHub Pages** (fichiers statiques). Versioning avec **Git**.
+
+Les regles de developpement sont documentees dans **[CONVENTIONS.md](CONVENTIONS.md)**.
