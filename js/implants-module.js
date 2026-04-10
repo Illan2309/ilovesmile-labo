@@ -2516,11 +2516,7 @@
       body += '\n';
     }
 
-    body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n\n';
-    body += 'Labo I Love Smile\n';
-    body += '23 Rue Boursault 75017 Paris\n';
-    body += 'Tel : 09 80 88 67 88\n';
-    body += 'Email : contact@laboilovesmile.com\n';
+    body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n';
 
     // Objet du mail
     var objet = 'Commande implants - ' + marque + ' - I Love Smile';
