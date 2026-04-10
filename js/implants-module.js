@@ -600,7 +600,7 @@
     let _dbgMatched = 0, _dbgSkipped = 0;
 
     rows.forEach(row => {
-      if (!row.codeLabo) row.codeLabo = 'SCAN';
+      if (!row.codeLabo) row.codeLabo = '-';
 
       let matched = null;
       let matchSource = '';
