@@ -305,6 +305,10 @@ function exportCogilogTSV() {
     return;
   }
 
+  if (selected.length > 100) {
+    if (!confirm('Attention : ' + selected.length + ' bons sélectionnés, c\'est beaucoup.\nC\'est peut-être une erreur. Continuer l\'export Cogilog ?')) return;
+  }
+
   const lignes = [];
   const sansCodes = [];
 

@@ -233,7 +233,10 @@ function toggleSelectAll(checked) {
 function deleteSelected() {
   const selected = [...document.querySelectorAll('.prescription-cb:checked')].map(cb => parseInt(cb.dataset.index));
   if (!selected.length) { showToast('Aucune prescription sélectionnée.', true); return; }
-  if (!confirm(`Supprimer ${selected.length} prescription(s) ?`)) return;
+  if (selected.length > 100) {
+    if (!confirm('Attention : ' + selected.length + ' prescriptions sélectionnées, c\'est beaucoup.\nC\'est peut-être une erreur. Vraiment tout supprimer ?')) return;
+  }
+  if (!confirm('Supprimer ' + selected.length + ' prescription(s) ?')) return;
   // Collecter les IDs à supprimer avant de modifier le tableau
   const idsToDelete = selected.map(i => (window.prescriptions || [])[i]?._id).filter(Boolean);
   // Supprimer dans Firebase
