@@ -69,8 +69,8 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
       if (!_nearby[key]) _nearby[key] = 0;
       _nearby[key]++;
     });
-    // Prendre le couple cabinet/praticien le plus fréquent (min 2 occurrences)
-    var _bestNearby = null, _bestCount = 1;
+    // Prendre le couple cabinet/praticien le plus frequent (1 occurrence suffit)
+    var _bestNearby = null, _bestCount = 0;
     Object.entries(_nearby).forEach(function([key, count]) {
       if (count > _bestCount) { _bestCount = count; _bestNearby = key; }
     });
