@@ -92,6 +92,7 @@
     document.getElementById('imp-order-tbody').innerHTML = '';
     document.getElementById('imp-stats').style.display = 'none';
     document.getElementById('imp-btn-pdf').style.display = 'none';
+    if (document.getElementById('imp-btn-email')) document.getElementById('imp-btn-email').style.display = 'none';
     document.getElementById('imp-btn-valider').style.display = 'none';
     document.getElementById('imp-btn-annuler').style.display = 'none';
     document.getElementById('imp-btn-clear').style.display = 'none';
@@ -888,6 +889,7 @@
     if (_impRawRows.length === 0) {
       statsDiv.style.display = 'none';
       btnPdf.style.display = 'none';
+      if (document.getElementById('imp-btn-email')) document.getElementById('imp-btn-email').style.display = 'none';
       btnValider.style.display = 'none';
       btnAnnuler.style.display = 'none';
       btnClear.style.display = 'none';
@@ -903,6 +905,7 @@
     emptyMsg.style.display = 'none';
     statsDiv.style.display = 'flex';
     btnPdf.style.display = 'inline-block';
+    if (document.getElementById('imp-btn-email')) document.getElementById('imp-btn-email').style.display = 'inline-block';
     dateFilters.style.display = 'flex';
     btnClear.style.display = 'inline-block';
 
@@ -2382,6 +2385,153 @@
     } catch (e) {
       console.warn('[Implants] Erreur chargement dict refs:', e.message);
     }
+  }
+
+  // ══════════════════════════════════════
+  // EMAIL COMMANDE PAR MARQUE
+  // ══════════════════════════════════════
+
+  window.impEnvoyerEmailCommande = function() {
+    // Commandes en cours (non archivees)
+    var rows = (_impGrouped || []).filter(function(r) { return !r._archived; });
+    if (!rows.length) { showToast('Aucune commande en cours.', true); return; }
+
+    // Regrouper par marque
+    var parMarque = {};
+    rows.forEach(function(r) {
+      var m = r.marque || 'Inconnu';
+      if (!parMarque[m]) parMarque[m] = [];
+      parMarque[m].push(r);
+    });
+
+    var marques = Object.keys(parMarque).sort();
+
+    // Si une seule marque, envoyer directement
+    if (marques.length === 1) {
+      _impGenererMailMarque(marques[0], parMarque[marques[0]]);
+      return;
+    }
+
+    // Plusieurs marques : popup de choix
+    var choix = marques.map(function(m, i) { return (i + 1) + '. ' + m + ' (' + parMarque[m].length + ' lignes)'; }).join('\n');
+    var rep = prompt('Plusieurs marques detectees. Tapez le numero :\n\n' + choix + '\n\n(ou "tous" pour un mail par marque)');
+    if (!rep) return;
+
+    if (rep.trim().toLowerCase() === 'tous') {
+      marques.forEach(function(m) { _impGenererMailMarque(m, parMarque[m]); });
+    } else {
+      var idx = parseInt(rep) - 1;
+      if (idx >= 0 && idx < marques.length) {
+        _impGenererMailMarque(marques[idx], parMarque[marques[idx]]);
+      } else {
+        showToast('Choix invalide.', true);
+      }
+    }
+  };
+
+  function _impGenererMailMarque(marque, rows) {
+    // Trouver le fournisseur correspondant (pour l'email)
+    var fournisseur = _impFournisseurs.find(function(f) {
+      return f.nom.toLowerCase().includes(marque.toLowerCase()) || marque.toLowerCase().includes(f.nom.toLowerCase());
+    });
+    var emailDest = (fournisseur && fournisseur.email) ? fournisseur.email : '';
+
+    // Regrouper par cabinet
+    var parCabinet = {};
+    rows.forEach(function(r) {
+      var cab = r.cabinet || 'Non identifie';
+      if (!parCabinet[cab]) parCabinet[cab] = [];
+      parCabinet[cab].push(r);
+    });
+
+    // Construire le corps du mail
+    var body = 'Bonjour, j\'aimerais passer une commande\n\n';
+
+    // Sections par cabinet
+    Object.keys(parCabinet).sort().forEach(function(cab) {
+      var lignes = parCabinet[cab];
+
+      // Chercher les infos Cogilog du cabinet
+      var adresse = '';
+      var tel = '';
+      if (typeof COGILOG_CLIENTS !== 'undefined') {
+        // Chercher par nom de cabinet dans COGILOG_CLIENTS
+        var found = null;
+        Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
+          var data = entry[1];
+          var nomClient = (data[3] || '').trim().toUpperCase();
+          if (nomClient === cab.toUpperCase() || nomClient.includes(cab.toUpperCase()) || cab.toUpperCase().includes(nomClient)) {
+            found = data;
+          }
+        });
+        if (found) {
+          // Adresse : colonnes 4 (n), 5 (rue), 8 (CP), 9 (ville)
+          var parts = [found[4], found[5], found[8], found[9]].filter(function(x) { return x && x.trim(); });
+          adresse = parts.join(' ');
+          // Telephone : colonne 17
+          tel = (found[17] || '').trim();
+        }
+      }
+
+      body += 'Facturation : ' + cab;
+      if (adresse) body += ' - ' + adresse;
+      if (tel) body += ' - ' + tel;
+      body += '\n';
+
+      // Patients sur une ligne, separes par /
+      var patients = [];
+      lignes.forEach(function(r) {
+        var p = (r.patient || '').trim();
+        var cl = (r.codeLabo || '').trim();
+        if (p || cl) {
+          var entry = p || 'Patient inconnu';
+          if (cl) entry += ' - N\u00b0' + cl;
+          // Eviter les doublons
+          if (patients.indexOf(entry) === -1) patients.push(entry);
+        }
+      });
+      if (patients.length) {
+        body += 'Patient : ' + patients.join(' / ') + '\n';
+      }
+      body += '\n';
+    });
+
+    // Pieces a commander (total regroupe)
+    var piecesMap = {};
+    rows.forEach(function(r) {
+      var ref = (r.reference || '').trim();
+      if (!ref) return;
+      var qty = r.quantite || 1;
+      if (!piecesMap[ref]) piecesMap[ref] = 0;
+      piecesMap[ref] += qty;
+    });
+
+    var piecesList = Object.keys(piecesMap).sort();
+    if (piecesList.length) {
+      body += 'Pi\u00e8ces \u00e0 commander :\n';
+      piecesList.forEach(function(ref) {
+        var desc = impRefDesc(ref) || ref;
+        body += '- ' + desc + (piecesMap[ref] > 1 ? ' x' + piecesMap[ref] : '') + '\n';
+      });
+      body += '\n';
+    }
+
+    body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n\n';
+    body += 'Labo I Love Smile\n';
+    body += '23 Rue Boursault 75017 Paris\n';
+    body += 'Tel : 09 80 88 67 88\n';
+    body += 'Email : contact@laboilovesmile.com\n';
+
+    // Objet du mail
+    var objet = 'Commande implants - ' + marque + ' - I Love Smile';
+
+    // Ouvrir mailto
+    var mailto = 'mailto:' + encodeURIComponent(emailDest) +
+      '?subject=' + encodeURIComponent(objet) +
+      '&body=' + encodeURIComponent(body);
+
+    window.open(mailto, '_blank');
+    showToast('Mail ' + marque + ' ouvert' + (emailDest ? ' (' + emailDest + ')' : ' (ajoutez le destinataire)'));
   }
 
 })();
