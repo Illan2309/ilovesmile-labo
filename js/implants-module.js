@@ -169,7 +169,8 @@
   // ── Bouton "Vider archive" : remet tout en cours ──
   window.impViderArchive = function() {
     if (!_impArchive.size) { showToast('Archive deja vide', true); return; }
-    if (!confirm('Vider l\'archive ? Toutes les commandes repasseront en "en cours".')) return;
+    var code = prompt('Entrez le code pour vider l\'archive :');
+    if (code !== '1506') { showToast('Code incorrect.', true); return; }
     _impArchiveSnapshot = new Set(_impArchive);
     _impArchive.clear();
     impMarquerArchive(_impRawRows);
