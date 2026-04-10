@@ -712,6 +712,7 @@
         map.set(key, {
           cabinet: row.cabinet,
           codeLabo: row.codeLabo,
+          codeRX: row.codeRX || '',
           patient: row.patient,
           reference: row.codeRX,
           pieces: new Map(),
@@ -722,6 +723,7 @@
       const g = map.get(key);
       if (!g.cabinet && row.cabinet) g.cabinet = row.cabinet;
       if (!g.patient && row.patient) g.patient = row.patient;
+      if (!g.codeRX && row.codeRX) g.codeRX = row.codeRX;
       if (!g.reference && row.codeRX) g.reference = row.codeRX;
       if (rowDate && rowDate > g.dateMs) g.dateMs = rowDate;
       const prevQty = g.pieces.get(row.reference) || 0;
@@ -732,6 +734,7 @@
     return Array.from(map.values()).map(g => ({
       cabinet: g.cabinet,
       codeLabo: g.codeLabo,
+      codeRX: g.codeRX || '',
       patient: g.patient,
       reference: g.reference,
       marque: g.marque,
