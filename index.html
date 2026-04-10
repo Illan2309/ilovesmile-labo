@@ -963,13 +963,6 @@
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="imp-tab-btn active" id="imp-tab-commandes-btn" onclick="impSwitchTab('commandes')">📋 Commandes</button>
         <button class="imp-tab-btn" id="imp-tab-fournisseurs-btn" onclick="impSwitchTab('fournisseurs')">🏭 Fournisseurs</button>
-        <span style="width:1px;height:24px;background:#ccc;margin:0 6px;"></span>
-        <button onclick="impExporterPDF()" style="background:var(--accent); color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-pdf">📄 PDF</button>
-        <button onclick="impEnvoyerEmailCommande()" style="background:#0277bd; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-email">✉️ Email</button>
-        <button onclick="impValiderCommande()" style="background:#2e7d32; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-valider">✅ Valider</button>
-        <button onclick="impAnnulerValidation()" style="background:white; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-annuler">↩ Annuler</button>
-        <button onclick="impViderArchive()" style="background:white; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-vider-archive">🗑 Archive</button>
-        <button onclick="impEffacerImport()" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-clear">🗑 Effacer</button>
         <button onclick="fermerModalImplants()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#999; padding:4px 8px; margin-left:4px;">✕</button>
       </div>
     </div>
@@ -987,6 +980,13 @@
             📂 Glisser un fichier Excel ici ou <b>cliquer</b>
             <input type="file" id="imp-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="impHandleFile(this.files[0])">
           </div>
+          <!-- Actions -->
+          <button onclick="impExporterPDF()" style="background:var(--accent); color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-pdf">📄 PDF</button>
+          <button onclick="impEnvoyerEmailCommande()" style="background:#0277bd; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-email">✉️ Email</button>
+          <button onclick="impValiderCommande()" style="background:#2e7d32; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-valider">✅ Valider</button>
+          <button onclick="impAnnulerValidation()" style="background:white; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-annuler">↩ Annuler</button>
+          <button onclick="impViderArchive()" style="background:white; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-vider-archive">🗑 Archive</button>
+          <button onclick="impEffacerImport()" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-clear">🗑 Effacer</button>
           <!-- Filtre marque -->
           <select id="imp-filtre-marque" onchange="impAppliquerFiltres()" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.76rem; font-family:'DM Sans',sans-serif;">
             <option value="">Toutes les marques</option>
