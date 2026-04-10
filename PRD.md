@@ -94,11 +94,22 @@ Les fiches de prescription dentaire arrivent au labo sous différents formats (p
 6. Export ZIP anglais envoyé aux sous-traitants
 7. Les prescriptions "Importées EN" sont sélectionnées pour export Cogilog → TSV téléchargé et importé dans Cogilog
 
-## Contraintes métier
+## Contraintes metier
 
-- Les dates de livraison sont critiques (affichées en rouge)
+- Les dates de livraison sont critiques (affichees en rouge)
 - Le code labo est obligatoire pour sauvegarder
 - Le fournisseur (MERDENTAL/HUILE) est obligatoire
-- Les fiches "À refaire" ont un traitement spécial (codes 9-xx, prix à 0€)
-- L'export Cogilog doit être en encodage MacRoman (Mac natif)
-- Les PDFs anglais utilisent des libellés normalisés (PFM, ZIRCONIA, POST CORE, etc.)
+- Les fiches "A refaire" ont un traitement special (codes 9-xx, prix a 0 EUR)
+- L'export Cogilog doit etre en encodage MacRoman (Mac natif)
+- Les PDFs anglais utilisent des libelles normalises (PFM, ZIRCONIA, POST CORE, etc.)
+
+## Architecture technique
+
+Le code est organise en **30 fichiers** modulaires (voir [Architecture.md](Architecture.md)) :
+
+- `index.html` : HTML pur (1151 lignes, zero JS inline)
+- `style.css` : design system complet
+- `js/data/` : 6 fichiers de donnees (clients, tarifs, mappings, prompt IA)
+- `js/` : 18 modules JS organises par responsabilite
+
+Deploiement sur **GitHub Pages** (fichiers statiques). Versioning avec **Git**.
