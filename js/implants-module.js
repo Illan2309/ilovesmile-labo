@@ -115,9 +115,10 @@
 
   // ── Archive : cle unique pour chaque ligne tracking ──
   function impRowKey(row) {
-    // Cle = marque + codeLabo + reference piece + date (pour eviter que 2 mois differents partagent la meme cle)
-    const dateKey = row._dateMs ? new Date(row._dateMs).toISOString().slice(0, 10) : '';
-    return [row.marque || '', row.codeLabo || '', row.reference || '', dateKey].join('|').toUpperCase();
+    // Cle stable = marque + codeRX (numero fiche Excel) + reference piece + date
+    // N'utilise PAS codeLabo ni cabinet (enrichis apres import, donc instables)
+    var dateKey = row._dateMs ? new Date(row._dateMs).toISOString().slice(0, 10) : '';
+    return [row.marque || '', row.codeRX || '', row.reference || '', dateKey].join('|').toUpperCase();
   }
 
   // ── Charger l'archive depuis Firebase ──
