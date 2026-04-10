@@ -2521,11 +2521,10 @@
       var patients = [];
       lignes.forEach(function(r) {
         var p = (r.patient || '').trim();
-        var ref = (r.reference || '').trim();
-        if (p || ref) {
+        var fiche = (r.codeRX || '').trim();
+        if (p || fiche) {
           var entry = p || 'Patient inconnu';
-          if (ref) entry += ' - ' + ref;
-          // Eviter les doublons
+          if (fiche) entry += ' - ' + fiche;
           if (patients.indexOf(entry) === -1) patients.push(entry);
         }
       });
