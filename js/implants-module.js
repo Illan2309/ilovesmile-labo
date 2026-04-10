@@ -2410,6 +2410,13 @@
     var rows = (_impGrouped || []).filter(function(r) { return !r._archived; });
     if (!rows.length) { showToast('Aucune commande en cours.', true); return; }
 
+    // Verifier que toutes les lignes sont enrichies (cabinet + patient)
+    var nonEnrichies = rows.filter(function(r) { return !r.cabinet || !r.patient; });
+    if (nonEnrichies.length) {
+      showToast('Impossible : ' + nonEnrichies.length + ' ligne(s) sans cabinet ou patient. Completez-les avant d\'envoyer.', true);
+      return;
+    }
+
     // Regrouper par marque
     var parMarque = {};
     rows.forEach(function(r) {
