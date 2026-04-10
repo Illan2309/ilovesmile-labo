@@ -963,7 +963,14 @@
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="imp-tab-btn active" id="imp-tab-commandes-btn" onclick="impSwitchTab('commandes')">📋 Commandes</button>
         <button class="imp-tab-btn" id="imp-tab-fournisseurs-btn" onclick="impSwitchTab('fournisseurs')">🏭 Fournisseurs</button>
-        <button onclick="fermerModalImplants()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#999; padding:4px 8px; margin-left:12px;">✕</button>
+        <span style="width:1px;height:24px;background:#ccc;margin:0 6px;"></span>
+        <button onclick="impExporterPDF()" style="background:var(--accent); color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-pdf">📄 PDF</button>
+        <button onclick="impEnvoyerEmailCommande()" style="background:#0277bd; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-email">✉️ Email</button>
+        <button onclick="impValiderCommande()" style="background:#2e7d32; color:white; border:none; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-valider">✅ Valider</button>
+        <button onclick="impAnnulerValidation()" style="background:white; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-annuler">↩ Annuler</button>
+        <button onclick="impViderArchive()" style="background:white; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-vider-archive">🗑 Archive</button>
+        <button onclick="impEffacerImport()" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-clear">🗑 Effacer</button>
+        <button onclick="fermerModalImplants()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#999; padding:4px 8px; margin-left:4px;">✕</button>
       </div>
     </div>
 
@@ -991,19 +998,12 @@
             <label style="font-size:0.68rem; color:#888;">au</label>
             <input type="date" id="imp-date-to" onchange="impAppliquerFiltres()" style="padding:4px 6px; border:1px solid var(--border); border-radius:6px; font-size:0.72rem; font-family:'DM Sans',sans-serif;">
           </div>
-          <!-- Actions -->
-          <button onclick="impExporterPDF()" style="background:var(--accent); color:white; border:none; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-pdf">📄 Exporter PDF</button>
-          <button onclick="impEnvoyerEmailCommande()" style="background:#0277bd; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-email">✉️ Email commande</button>
           <!-- Vue archive -->
           <div style="display:none; border:1px solid var(--border); border-radius:8px; overflow:hidden;" id="imp-vue-toggle">
             <button onclick="impSetVueArchive('en-cours')" id="imp-vue-en-cours" style="padding:5px 10px; font-size:0.7rem; font-weight:600; cursor:pointer; border:none; background:#2e7d32; color:white;">En cours</button>
             <button onclick="impSetVueArchive('archivees')" id="imp-vue-archivees" style="padding:5px 10px; font-size:0.7rem; font-weight:600; cursor:pointer; border:none; background:white; color:#888;">Archivées</button>
             <button onclick="impSetVueArchive('toutes')" id="imp-vue-toutes" style="padding:5px 10px; font-size:0.7rem; font-weight:600; cursor:pointer; border:none; background:white; color:#888;">Toutes</button>
           </div>
-          <button onclick="impValiderCommande()" style="background:#2e7d32; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-valider">✅ Valider commande</button>
-          <button onclick="impAnnulerValidation()" style="background:white; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-annuler">↩ Annuler validation</button>
-          <button onclick="impViderArchive()" style="background:white; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-vider-archive">🗑 Vider archive</button>
-          <button onclick="impEffacerImport()" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; cursor:pointer; display:none;" id="imp-btn-clear">🗑 Effacer import</button>
         </div>
         <!-- Nom du fichier + Stats -->
         <div id="imp-file-info" style="display:none; padding:4px 0; font-size:0.72rem; color:var(--muted);">📎 <span id="imp-file-name"></span></div>
