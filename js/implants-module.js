@@ -2521,12 +2521,17 @@
     // Objet du mail
     var objet = 'Commande implants - ' + marque + ' - I Love Smile';
 
-    // Ouvrir mailto
+    // Ouvrir mailto via un lien clique programmatiquement
     var mailto = 'mailto:' + encodeURIComponent(emailDest) +
       '?subject=' + encodeURIComponent(objet) +
       '&body=' + encodeURIComponent(body);
 
-    window.location.href = mailto;
+    var a = document.createElement('a');
+    a.href = mailto;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     showToast('Mail ' + marque + ' ouvert' + (emailDest ? ' (' + emailDest + ')' : ' (ajoutez le destinataire)'));
   }
 
