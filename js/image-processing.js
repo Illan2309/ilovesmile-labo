@@ -2,6 +2,46 @@
 // IMAGE PROCESSING — traitement d'images
 // ══════════════════════════════════════════
 
+// Seuil Otsu — trouve le seuil optimal pour separer encre/papier
+function _otsuThreshold(imageData) {
+  var data = imageData.data;
+  var histogram = new Array(256).fill(0);
+  for (var i = 0; i < data.length; i += 4) {
+    var gray = Math.round(0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]);
+    histogram[gray]++;
+  }
+  var total = data.length / 4;
+  var sum = 0;
+  for (var t = 0; t < 256; t++) sum += t * histogram[t];
+  var sumB = 0, wB = 0, maxVariance = 0, threshold = 128;
+  for (var t = 0; t < 256; t++) {
+    wB += histogram[t];
+    if (wB === 0) continue;
+    var wF = total - wB;
+    if (wF === 0) break;
+    sumB += t * histogram[t];
+    var mB = sumB / wB;
+    var mF = (sum - sumB) / wF;
+    var variance = wB * wF * (mB - mF) * (mB - mF);
+    if (variance > maxVariance) { maxVariance = variance; threshold = t; }
+  }
+  return threshold;
+}
+
+// Applique la binarisation Otsu sur un canvas (noir/blanc pur)
+function _applyOtsu(ctx, w, h) {
+  var imageData = ctx.getImageData(0, 0, w, h);
+  var threshold = _otsuThreshold(imageData);
+  var data = imageData.data;
+  for (var i = 0; i < data.length; i += 4) {
+    var gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+    var val = gray < threshold ? 0 : 255;
+    data[i] = data[i+1] = data[i+2] = val;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return threshold;
+}
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -26,18 +66,10 @@ function cropTopZone(file) {
       canvas.height = cropH;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, img.width, cropH, 0, 0, img.width, cropH);
-      // Même traitement gris+contraste que l'image complète
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        let gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-        gray = ((gray - 128) * 1.5) + 128; // contraste un peu plus fort sur le crop
-        gray = gray < 0 ? 0 : (gray > 255 ? 255 : gray);
-        data[i] = data[i+1] = data[i+2] = gray;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      const b64 = canvas.toDataURL('image/jpeg', 0.90).split(',')[1];
-      console.log('[SCAN] Crop top zone: ' + canvas.width + 'x' + canvas.height);
+      // Binarisation Otsu : separe net l'encre du papier
+      var otsuT = _applyOtsu(ctx, canvas.width, canvas.height);
+      const b64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
+      console.log('[SCAN] Crop top zone: ' + canvas.width + 'x' + canvas.height + ' (Otsu threshold=' + otsuT + ')');
       resolve(b64);
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
@@ -61,18 +93,9 @@ function enhanceImageForScan(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
 
-      // Pré-traitement : niveaux de gris + contraste pour améliorer la lisibilité OCR
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        // Niveaux de gris (luminance)
-        let gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-        // Augmenter le contraste : étirer les valeurs autour de 128
-        gray = ((gray - 128) * 1.4) + 128;
-        gray = gray < 0 ? 0 : (gray > 255 ? 255 : gray);
-        data[i] = data[i+1] = data[i+2] = gray;
-      }
-      ctx.putImageData(imageData, 0, 0);
+      // Binarisation Otsu : separe l'encre du papier pour meilleure lisibilite IA
+      var otsuT = _applyOtsu(ctx, w, h);
+      console.log('[SCAN] Enhance Otsu threshold=' + otsuT);
 
       canvas.toBlob((blob) => {
         if (!blob) { resolve(file); return; }
