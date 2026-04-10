@@ -832,7 +832,7 @@
   .imp-fournisseur-card:hover { box-shadow:0 6px 20px rgba(26,92,138,0.12); border-color:var(--teal); }
   .imp-fournisseur-card.archived { opacity:0.45; }
   .imp-fournisseur-logo {
-    width:52px; height:52px; border-radius:12px; object-fit:contain;
+    width:72px; height:72px; border-radius:14px; object-fit:contain;
     background:linear-gradient(135deg,#f8f9fa,#e3f2fd); border:1px solid #e0e8ee; flex-shrink:0;
   }
   .imp-fournisseur-body { flex:1; min-width:0; display:flex; gap:10px; }
