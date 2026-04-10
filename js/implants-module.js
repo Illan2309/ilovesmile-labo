@@ -2521,10 +2521,10 @@
       var patients = [];
       lignes.forEach(function(r) {
         var p = (r.patient || '').trim();
-        var cl = (r.codeLabo || '').trim();
-        if (p || cl) {
+        var ref = (r.reference || '').trim();
+        if (p || ref) {
           var entry = p || 'Patient inconnu';
-          if (cl) entry += ' - N\u00b0' + cl;
+          if (ref) entry += ' - ' + ref;
           // Eviter les doublons
           if (patients.indexOf(entry) === -1) patients.push(entry);
         }
