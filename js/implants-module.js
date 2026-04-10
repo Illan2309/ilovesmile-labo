@@ -2534,38 +2534,35 @@
         }
       });
       if (patients.length) {
-        body += 'Patient : ' + patients.join(' / ') + '\n';
+        body += 'Patient : ' + patients.join(' / ') + '\n\n';
       }
-      body += '\n';
-    });
 
-    // Pieces a commander (total regroupe depuis piecesMap de chaque ligne)
-    var piecesMap = {};
-    rows.forEach(function(r) {
-      if (r.piecesMap && r.piecesMap.forEach) {
-        r.piecesMap.forEach(function(qty, ref) {
+      // Pieces a commander pour ce cabinet
+      var cabPieces = {};
+      lignes.forEach(function(r) {
+        if (r.piecesMap && r.piecesMap.forEach) {
+          r.piecesMap.forEach(function(qty, ref) {
+            if (!ref) return;
+            if (!cabPieces[ref]) cabPieces[ref] = 0;
+            cabPieces[ref] += qty;
+          });
+        } else {
+          var ref = (r.reference || '').trim();
           if (!ref) return;
-          if (!piecesMap[ref]) piecesMap[ref] = 0;
-          piecesMap[ref] += qty;
-        });
-      } else {
-        // Fallback : utiliser reference + quantite
-        var ref = (r.reference || '').trim();
-        if (!ref) return;
-        var qty = r.quantite || 1;
-        if (!piecesMap[ref]) piecesMap[ref] = 0;
-        piecesMap[ref] += qty;
-      }
-    });
-
-    var piecesList = Object.keys(piecesMap).sort();
-    if (piecesList.length) {
-      body += 'Pi\u00e8ces \u00e0 commander :\n\n';
-      piecesList.forEach(function(ref) {
-        body += ref + ' \u00d7' + piecesMap[ref] + '\n';
+          var qty = r.quantite || 1;
+          if (!cabPieces[ref]) cabPieces[ref] = 0;
+          cabPieces[ref] += qty;
+        }
       });
+      var cabPiecesList = Object.keys(cabPieces).sort();
+      if (cabPiecesList.length) {
+        body += 'Pi\u00e8ces \u00e0 commander :\n\n';
+        cabPiecesList.forEach(function(ref) {
+          body += ref + ' \u00d7' + cabPieces[ref] + '\n';
+        });
+      }
       body += '\n';
-    }
+    });
 
     body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n';
 
