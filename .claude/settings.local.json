@@ -11,7 +11,10 @@
       "Bash(git --version)",
       "Bash(pip3 install:*)",
       "Bash(python3 -c \"from playwright.async_api import async_playwright; print\\(''✓ Playwright importé avec succès''\\)\")",
-      "mcp__4de10633-b94c-4b78-bb22-16dce7d5f8fa__workers_list"
+      "mcp__4de10633-b94c-4b78-bb22-16dce7d5f8fa__workers_list",
+      "Bash(sed -n '10393,10395p' index.html)",
+      "Bash(sed -n '10774,10776p' index.html)",
+      "Bash(awk 'NR>=10349 && /^};/{print NR; exit}' index.html)"
     ]
   }
 }
