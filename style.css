@@ -822,23 +822,43 @@
     font-size:0.72rem; padding:4px 12px; border-radius:20px;
     font-weight:600; letter-spacing:0.2px;
   }
+  /* ── Cartes fournisseurs implants (redesign) ── */
   .imp-fournisseur-card {
-    background:white; border:1px solid var(--border); border-radius:12px;
-    padding:16px; display:flex; gap:14px; align-items:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04); transition:box-shadow 0.15s;
+    background:white; border:1px solid var(--border); border-radius:14px;
+    padding:18px 16px; display:flex; gap:14px; align-items:flex-start;
+    box-shadow:0 2px 8px rgba(0,0,0,0.04); transition:all 0.2s;
+    position:relative;
   }
-  .imp-fournisseur-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+  .imp-fournisseur-card:hover { box-shadow:0 6px 20px rgba(26,92,138,0.12); border-color:var(--teal); }
+  .imp-fournisseur-card.archived { opacity:0.45; }
   .imp-fournisseur-logo {
-    width:56px; height:56px; border-radius:10px; object-fit:contain;
-    background:#f8f9fa; border:1px solid #eee; flex-shrink:0;
+    width:52px; height:52px; border-radius:12px; object-fit:contain;
+    background:linear-gradient(135deg,#f8f9fa,#e3f2fd); border:1px solid #e0e8ee; flex-shrink:0;
   }
+  .imp-fournisseur-body { flex:1; min-width:0; display:flex; gap:10px; }
   .imp-fournisseur-info { flex:1; min-width:0; }
-  .imp-fournisseur-name { font-weight:700; font-size:0.88rem; color:var(--text); }
-  .imp-fournisseur-email { font-size:0.72rem; color:var(--muted); margin-top:2px; }
-  .imp-fournisseur-stock { font-size:0.68rem; color:var(--accent); margin-top:4px; }
-  .imp-fournisseur-actions { display:flex; gap:6px; }
-  .imp-fournisseur-actions button {
-    background:none; border:1px solid #ddd; border-radius:6px; padding:4px 10px;
-    font-size:0.68rem; cursor:pointer; color:#555; transition:all 0.15s;
+  .imp-fournisseur-name { font-weight:800; font-size:0.92rem; color:var(--text); letter-spacing:-0.01em; }
+  .imp-fournisseur-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .imp-fournisseur-tag {
+    font-size:0.62rem; font-weight:600; padding:2px 8px; border-radius:20px;
+    display:inline-flex; align-items:center; gap:3px; white-space:nowrap;
   }
-  .imp-fournisseur-actions button:hover { background:var(--accent-light); color:var(--accent); border-color:var(--accent); }
+  .imp-fournisseur-tag.email { background:#f3e5f5; color:#7b1fa2; }
+  .imp-fournisseur-tag.stock { background:#e8f5e9; color:#2e7d32; }
+  .imp-fournisseur-tag.stock.empty { background:#fff3e0; color:#e65100; }
+  .imp-fournisseur-tag.site { background:#e3f2fd; color:#0277bd; cursor:pointer; }
+  .imp-fournisseur-tag.site:hover { background:#bbdefb; }
+  .imp-fournisseur-notes {
+    font-size:0.82rem; font-weight:700; color:var(--text); margin-top:8px;
+    line-height:1.35; word-break:break-word;
+  }
+  .imp-fournisseur-actions {
+    display:flex; flex-direction:column; gap:5px; flex-shrink:0;
+  }
+  .imp-fournisseur-actions button {
+    background:white; border:1px solid #e0e0e0; border-radius:8px;
+    width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+    font-size:0.82rem; cursor:pointer; color:#666; transition:all 0.15s;
+  }
+  .imp-fournisseur-actions button:hover { background:var(--accent-light); color:var(--accent); border-color:var(--accent); transform:scale(1.08); }
+  .imp-fournisseur-actions button.danger:hover { background:#ffebee; color:#c62828; border-color:#ef9a9a; }

@@ -22,6 +22,7 @@
     await impChargerArchive();
     await impChargerRefDict();
     await impChargerStockArchive();
+    await impChargerFournisseursArchive();
     await impChargerRefCats();
     await impChargerCatOrder();
     await impChargerFournisseurs();
@@ -1544,53 +1545,71 @@
   };
 
   function impRenderFournisseurs() {
-    const container = document.getElementById('imp-fournisseurs-list');
+    var container = document.getElementById('imp-fournisseurs-list');
     if (!_impFournisseurs.length) {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:0.82rem;grid-column:1/-1;">Aucun fournisseur configuré</div>';
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:0.82rem;grid-column:1/-1;">Aucun fournisseur configure</div>';
       return;
     }
 
-    let html = '';
-    _impFournisseurs.forEach(f => {
-      const logoHtml = f.logoUrl
+    // Separer actifs et archives
+    var actifs = _impFournisseurs.filter(function(f) { return !_impFournisseursArchive.has(f.id); });
+    var archives = _impFournisseurs.filter(function(f) { return _impFournisseursArchive.has(f.id); });
+
+    var html = '';
+
+    function renderCard(f, isArchived) {
+      var logoHtml = f.logoUrl
         ? '<img src="' + escT(f.logoUrl) + '" class="imp-fournisseur-logo" alt="' + escT(f.nom) + '" onerror="this.style.display=\'none\'">'
-        : '<div class="imp-fournisseur-logo" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:#e3f2fd;">🏭</div>';
+        : '<div class="imp-fournisseur-logo" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🏭</div>';
 
-      // Stock depuis dernier import
-      const stockKey = impMatchFournisseurMarque(f.nom);
-      const stockItems = stockKey ? (_impStock[stockKey] || []) : [];
-      const stockCount = stockItems.reduce((s, item) => s + item.qty, 0);
-      const stockHtml = stockItems.length
-        ? '<div class="imp-fournisseur-stock">📦 Stock : ' + stockCount + ' pièces (' + stockItems.length + ' réf.)</div>'
-        : '';
+      // Stock
+      var stockKey = impMatchFournisseurMarque(f.nom);
+      var stockItems = stockKey ? (_impStock[stockKey] || []) : [];
+      var stockCount = stockItems.reduce(function(s, item) { return s + item.qty; }, 0);
 
-      // Boutons liens rapides
-      const nomEsc = escT(f.nom).replace(/'/g, "\\'");
-      const siteBtn = f.siteUrl
-        ? '<button onclick="window.open(\'' + escT(f.siteUrl).replace(/'/g, "\\'") + '\',\'_blank\')" style="color:#0277bd;" title="Ouvrir le shop">🛒</button>'
-        : '';
-      const catBtn = f.catalogueUrl
-        ? '<button onclick="impOuvrirCatalogue(\'' + f.id + '\')" style="color:#6a1b9a;" title="Voir le catalogue PDF">📖</button>'
-        : '';
+      // Tags compacts (email, stock, site)
+      var tags = '';
+      if (f.email) tags += '<span class="imp-fournisseur-tag email">✉ ' + escT(f.email) + '</span>';
+      if (stockItems.length) {
+        var stockClass = stockCount === 0 ? 'stock empty' : 'stock';
+        tags += '<span class="imp-fournisseur-tag ' + stockClass + '">📦 ' + stockCount + ' pc / ' + stockItems.length + ' ref</span>';
+      }
+      if (f.siteUrl) tags += '<span class="imp-fournisseur-tag site" onclick="window.open(\'' + escT(f.siteUrl).replace(/'/g, "\\'") + '\',\'_blank\')" title="' + escT(f.siteUrl) + '">🛒 Shop</span>';
 
-      html += '<div class="imp-fournisseur-card">' +
+      // Boutons verticaux
+      var nomEsc = escT(f.nom).replace(/'/g, "\\'");
+      var idEsc = escT(f.id).replace(/'/g, "\\'");
+      var btns = '';
+      btns += '<button onclick="impVoirStock(\'' + nomEsc + '\')" title="Voir stock">📦</button>';
+      if (f.catalogueUrl) btns += '<button onclick="impOuvrirCatalogue(\'' + idEsc + '\')" title="Catalogue PDF" style="color:#6a1b9a;">📖</button>';
+      btns += '<button onclick="impEditerFournisseur(\'' + idEsc + '\')" title="Modifier">✏️</button>';
+      if (isArchived) {
+        btns += '<button onclick="impDesarchiverFournisseur(\'' + idEsc + '\')" title="Desarchiver" style="color:#2e7d32;">↩</button>';
+      } else {
+        btns += '<button onclick="impArchiverFournisseur(\'' + idEsc + '\')" title="Archiver" style="color:#999;">📥</button>';
+      }
+      btns += '<button class="danger" onclick="impSupprimerFournisseur(\'' + idEsc + '\')" title="Supprimer">🗑</button>';
+
+      return '<div class="imp-fournisseur-card' + (isArchived ? ' archived' : '') + '">' +
         logoHtml +
-        '<div class="imp-fournisseur-info">' +
-          '<div class="imp-fournisseur-name">' + escT(f.nom) + '</div>' +
-          (f.email ? '<div class="imp-fournisseur-email">✉ ' + escT(f.email) + '</div>' : '') +
-          (f.siteUrl ? '<div style="font-size:0.68rem;color:#0277bd;margin-top:1px;">🔗 ' + escT(f.siteUrl.replace(/^https?:\/\//, '').slice(0, 35)) + '</div>' : '') +
-          stockHtml +
-          (f.notes ? '<div style="font-size:0.68rem;color:#999;margin-top:2px;">' + escT(f.notes) + '</div>' : '') +
-        '</div>' +
-        '<div class="imp-fournisseur-actions">' +
-          siteBtn +
-          catBtn +
-          '<button onclick="impVoirStock(\'' + nomEsc + '\')" style="color:#0277bd;" title="Voir stock">📦</button>' +
-          '<button onclick="impEditerFournisseur(\'' + f.id + '\')" title="Modifier">✏️</button>' +
-          '<button onclick="impSupprimerFournisseur(\'' + f.id + '\')" style="color:#c62828;" title="Supprimer">🗑</button>' +
+        '<div class="imp-fournisseur-body">' +
+          '<div class="imp-fournisseur-info">' +
+            '<div class="imp-fournisseur-name">' + escT(f.nom) + '</div>' +
+            (tags ? '<div class="imp-fournisseur-meta">' + tags + '</div>' : '') +
+            (f.notes ? '<div class="imp-fournisseur-notes">' + escT(f.notes) + '</div>' : '') +
+          '</div>' +
+          '<div class="imp-fournisseur-actions">' + btns + '</div>' +
         '</div>' +
       '</div>';
-    });
+    }
+
+    actifs.forEach(function(f) { html += renderCard(f, false); });
+
+    if (archives.length) {
+      html += '<div style="grid-column:1/-1;padding:10px 0 4px;border-top:2px solid #e0e0e0;margin-top:8px;">' +
+        '<span style="font-size:0.72rem;font-weight:700;color:#999;">📥 Archives (' + archives.length + ')</span></div>';
+      archives.forEach(function(f) { html += renderCard(f, true); });
+    }
 
     container.innerHTML = html;
   }
@@ -1693,6 +1712,36 @@
       await db.collection('meta').doc('implant_stock_archive').set({ refs: Array.from(_impStockArchive) });
     } catch(e) {}
   }
+
+  // Fournisseurs archives
+  var _impFournisseursArchive = new Set();
+
+  async function impChargerFournisseursArchive() {
+    try {
+      var db = window._db || firebase.firestore();
+      var doc = await db.collection('meta').doc('implant_fournisseurs_archive').get();
+      if (doc.exists) _impFournisseursArchive = new Set(doc.data().ids || []);
+    } catch(e) { _impFournisseursArchive = new Set(); }
+  }
+  async function impSauverFournisseursArchive() {
+    try {
+      var db = window._db || firebase.firestore();
+      await db.collection('meta').doc('implant_fournisseurs_archive').set({ ids: Array.from(_impFournisseursArchive) });
+    } catch(e) {}
+  }
+
+  window.impArchiverFournisseur = function(id) {
+    _impFournisseursArchive.add(id);
+    impSauverFournisseursArchive();
+    impRenderFournisseurs();
+    showToast('Fournisseur archive');
+  };
+  window.impDesarchiverFournisseur = function(id) {
+    _impFournisseursArchive.delete(id);
+    impSauverFournisseursArchive();
+    impRenderFournisseurs();
+    showToast('Fournisseur desarchive');
+  };
 
   window.impArchiverStockRef = function(ref) {
     _impStockArchive.add(ref);
@@ -1834,22 +1883,26 @@
   }
 
   function impStockRow(item, i, isArchived) {
-    const bg = i % 2 === 0 ? '' : ' style="background:#f8fbff;"';
-    const opacity = isArchived ? 'opacity:0.5;' : '';
-    const qtyStyle = item.qty === 0
-      ? 'color:#c62828; font-weight:700; background:#ffebee; padding:2px 8px; border-radius:4px;'
-      : item.qty <= 2
-        ? 'color:#e65100; font-weight:600;'
-        : 'color:#2e7d32; font-weight:600;';
-    const refEsc = escT(item.ref).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const archBtn = isArchived
-      ? '<button onclick="impDesarchiverStockRef(\'' + refEsc + '\')" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#2e7d32;" title="Désarchiver">↩</button>'
-      : '<button onclick="impArchiverStockRef(\'' + refEsc + '\')" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#999;" title="Archiver">📥</button>';
-    return '<tr' + bg + '>' +
-      '<td oncontextmenu="event.preventDefault();impShowCatMenu(event,\'' + refEsc + '\')" style="padding:4px 8px; border-bottom:1px solid #eee; width:28%;' + opacity + '"><span onclick="impEditStockCell(this.parentElement,\'' + refEsc + '\',\'ref\')" style="font-family:\'DM Mono\',monospace; font-size:0.74rem; font-weight:600; cursor:text; padding:1px 3px; border-radius:3px;" onmouseover="this.style.background=\'#e3f2fd\'" onmouseout="this.style.background=\'none\'">' + escT(item.ref) + '</span></td>' +
-      '<td style="padding:4px 8px; border-bottom:1px solid #eee; width:44%;' + opacity + '"><span onclick="impEditStockCell(this.parentElement,\'' + refEsc + '\',\'desc\')" style="font-size:0.72rem; color:#444; cursor:text; padding:1px 3px; border-radius:3px;" onmouseover="this.style.background=\'#e3f2fd\'" onmouseout="this.style.background=\'none\'">' + (item.description ? escT(item.description) : '<i style="color:#bbb;">(cliquer pour décrire)</i>') + '</span></td>' +
-      '<td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:center; width:18%;' + opacity + '"><span style="' + qtyStyle + '">' + item.qty + '</span></td>' +
-      '<td style="padding:2px 4px; border-bottom:1px solid #eee; width:10%; text-align:center;">' + archBtn + '</td>' +
+    var rowBg = i % 2 === 0 ? '' : ' background:#f8fbff;';
+    var opacity = isArchived ? 'opacity:0.45;' : '';
+    var qtyVal = item.qty;
+    var qtyBadge = '';
+    if (qtyVal === 0) {
+      qtyBadge = '<span style="color:#fff;font-weight:700;background:#c62828;padding:2px 10px;border-radius:20px;font-size:0.72rem;">0</span>';
+    } else if (qtyVal <= 2) {
+      qtyBadge = '<span style="color:#fff;font-weight:700;background:#e65100;padding:2px 10px;border-radius:20px;font-size:0.72rem;">' + qtyVal + '</span>';
+    } else {
+      qtyBadge = '<span style="color:#2e7d32;font-weight:700;font-size:0.78rem;">' + qtyVal + '</span>';
+    }
+    var refEsc = escT(item.ref).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    var archBtn = isArchived
+      ? '<button onclick="impDesarchiverStockRef(\'' + refEsc + '\')" style="background:none;border:1px solid #c8e6c9;border-radius:6px;cursor:pointer;font-size:0.72rem;color:#2e7d32;padding:3px 6px;" title="Desarchiver">↩</button>'
+      : '<button onclick="impArchiverStockRef(\'' + refEsc + '\')" style="background:none;border:1px solid #e0e0e0;border-radius:6px;cursor:pointer;font-size:0.72rem;color:#999;padding:3px 6px;" title="Archiver">📥</button>';
+    return '<tr style="' + rowBg + 'transition:background 0.1s;" onmouseover="this.style.background=\'#e3f2fd\'" onmouseout="this.style.background=\'' + (i % 2 === 0 ? '' : '#f8fbff') + '\'">' +
+      '<td oncontextmenu="event.preventDefault();impShowCatMenu(event,\'' + refEsc + '\')" style="padding:6px 10px; border-bottom:1px solid #eee; width:28%;' + opacity + '"><span onclick="impEditStockCell(this.parentElement,\'' + refEsc + '\',\'ref\')" style="font-family:\'DM Mono\',monospace; font-size:0.76rem; font-weight:700; cursor:text; padding:2px 4px; border-radius:4px; color:var(--accent);">' + escT(item.ref) + '</span></td>' +
+      '<td style="padding:6px 10px; border-bottom:1px solid #eee; width:44%;' + opacity + '"><span onclick="impEditStockCell(this.parentElement,\'' + refEsc + '\',\'desc\')" style="font-size:0.74rem; color:#444; cursor:text; padding:2px 4px; border-radius:4px;">' + (item.description ? escT(item.description) : '<i style="color:#bbb;">(cliquer pour decrire)</i>') + '</span></td>' +
+      '<td style="padding:6px 10px; border-bottom:1px solid #eee; text-align:center; width:18%;' + opacity + '">' + qtyBadge + '</td>' +
+      '<td style="padding:4px 6px; border-bottom:1px solid #eee; width:10%; text-align:center;">' + archBtn + '</td>' +
       '</tr>';
   }
 
