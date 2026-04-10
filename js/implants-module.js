@@ -2406,30 +2406,48 @@
 
     var marques = Object.keys(parMarque).sort();
 
-    // Si une seule marque, envoyer directement
+    // Si une seule marque, generer le mailto directement dans le handler (geste utilisateur preservé)
     if (marques.length === 1) {
-      _impGenererMailMarque(marques[0], parMarque[marques[0]]);
+      var url = _impBuildMailtoUrl(marques[0], parMarque[marques[0]]);
+      var a = document.createElement('a');
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Mail ' + marques[0] + ' ouvert');
       return;
     }
 
-    // Plusieurs marques : popup de choix
-    var choix = marques.map(function(m, i) { return (i + 1) + '. ' + m + ' (' + parMarque[m].length + ' lignes)'; }).join('\n');
-    var rep = prompt('Plusieurs marques detectees. Tapez le numero :\n\n' + choix + '\n\n(ou "tous" pour un mail par marque)');
-    if (!rep) return;
+    // Plusieurs marques : afficher un popup HTML avec boutons
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:16px;padding:24px;min-width:300px;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+    box.innerHTML = '<div style="font-weight:700;font-size:0.92rem;margin-bottom:12px;">Choisir la marque</div>';
 
-    if (rep.trim().toLowerCase() === 'tous') {
-      marques.forEach(function(m) { _impGenererMailMarque(m, parMarque[m]); });
-    } else {
-      var idx = parseInt(rep) - 1;
-      if (idx >= 0 && idx < marques.length) {
-        _impGenererMailMarque(marques[idx], parMarque[marques[idx]]);
-      } else {
-        showToast('Choix invalide.', true);
-      }
-    }
+    marques.forEach(function(m) {
+      var btn = document.createElement('a');
+      btn.href = _impBuildMailtoUrl(m, parMarque[m]);
+      btn.style.cssText = 'display:block;padding:10px 14px;margin:6px 0;background:#e3f2fd;border-radius:10px;color:#0277bd;font-weight:600;font-size:0.82rem;text-decoration:none;cursor:pointer;transition:background 0.15s;';
+      btn.textContent = '✉️ ' + m + ' (' + parMarque[m].length + ' lignes)';
+      btn.onmouseover = function() { this.style.background = '#bbdefb'; };
+      btn.onmouseout = function() { this.style.background = '#e3f2fd'; };
+      btn.onclick = function() { document.body.removeChild(overlay); showToast('Mail ' + m + ' ouvert'); };
+      box.appendChild(btn);
+    });
+
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Annuler';
+    closeBtn.style.cssText = 'margin-top:12px;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;background:white;color:#888;font-size:0.78rem;cursor:pointer;';
+    closeBtn.onclick = function() { document.body.removeChild(overlay); };
+    box.appendChild(closeBtn);
+
+    overlay.appendChild(box);
+    overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+    document.body.appendChild(overlay);
   };
 
-  function _impGenererMailMarque(marque, rows) {
+  function _impBuildMailtoUrl(marque, rows) {
     // Trouver le fournisseur correspondant (pour l'email)
     var fournisseur = _impFournisseurs.find(function(f) {
       return f.nom.toLowerCase().includes(marque.toLowerCase()) || marque.toLowerCase().includes(f.nom.toLowerCase());
@@ -2526,13 +2544,7 @@
       '?subject=' + encodeURIComponent(objet) +
       '&body=' + encodeURIComponent(body);
 
-    var a = document.createElement('a');
-    a.href = mailto;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('Mail ' + marque + ' ouvert' + (emailDest ? ' (' + emailDest + ')' : ' (ajoutez le destinataire)'));
+    return mailto;
   }
 
 })();
