@@ -1179,6 +1179,29 @@
   // BLOC 7 : EXPORT PDF
   // ══════════════════════════════════════
 
+  // Helper : dessiner cabinet + total fusionne a la position blockStartY
+  function _drawMergedCab(doc, FN, fs, lnH, mL, cols, block, blockStartY, wrap, wrapLongName) {
+    // Cabinet en haut a gauche
+    doc.setFont(FN, 'bold');
+    doc.setFontSize(fs);
+    doc.setTextColor(33, 33, 33);
+    var cabLines = wrap(wrapLongName(block.cab, 2), cols[0].w);
+    cabLines.forEach(function(ln, li) {
+      doc.text(ln, mL + 1, blockStartY + 3.2 + li * lnH);
+    });
+    // Total en haut a droite
+    if (block.total) {
+      doc.setFont(FN, 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(50, 50, 60);
+      var totalX = mL + cols[0].w + cols[1].w + cols[2].w + cols[3].w + cols[4].w;
+      var totalLines = wrap(block.total, cols[5].w);
+      totalLines.forEach(function(ln, li) {
+        doc.text(ln, totalX + 1, blockStartY + 3.2 + li * lnH);
+      });
+    }
+  }
+
   window.impExporterPDF = function() {
     if (!_impGrouped.length) { showToast('Aucune donnée à exporter', true); return; }
 
@@ -1398,12 +1421,17 @@
         }
       }
 
-      const blockStartY = y;
+      var blockStartY = y;
 
       block.rows.forEach((row, ri) => {
         const rh = rowHeights[ri];
         if (ri > 0 && y + rh > pageH - mB) {
+          // Saut de page au milieu d'un bloc fusionne : dessiner cabinet+total avant de changer de page
+          if (isMerged) {
+            _drawMergedCab(doc, FN, fs, lnH, mL, cols, block, blockStartY, wrap, wrapLongName);
+          }
           doc.addPage(); y = mT; drawHdr();
+          blockStartY = y; // Reset pour la nouvelle page
         }
 
         // Bordure bas de ligne (fine, bleu clair)
@@ -1445,28 +1473,9 @@
 
       const blockEndY = y;
 
-      // Cellules fusionnees : Cabinet en haut + Total en haut (seulement si bloc fusionne)
+      // Cellules fusionnees : Cabinet en haut + Total en haut (derniere page du bloc)
       if (isMerged) {
-        // Cabinet en haut a gauche
-        doc.setFont(FN, 'bold');
-        doc.setFontSize(fs);
-        doc.setTextColor(33, 33, 33);
-        const cabLines = wrap(wrapLongName(block.cab, 2), cols[0].w);
-        cabLines.forEach((ln, li) => {
-          doc.text(ln, mL + 1, blockStartY + 3.2 + li * lnH);
-        });
-
-        // Total en haut a droite
-        if (block.total) {
-          doc.setFont(FN, 'normal');
-          doc.setFontSize(6.5);
-          doc.setTextColor(50, 50, 60);
-          const totalX = mL + cols[0].w + cols[1].w + cols[2].w + cols[3].w + cols[4].w;
-          const totalLines = wrap(block.total, cols[5].w);
-          totalLines.forEach((ln, li) => {
-            doc.text(ln, totalX + 1, blockStartY + 3.2 + li * lnH);
-          });
-        }
+        _drawMergedCab(doc, FN, fs, lnH, mL, cols, block, blockStartY, wrap, wrapLongName);
       }
     });
 
