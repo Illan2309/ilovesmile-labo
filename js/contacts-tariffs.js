@@ -466,6 +466,67 @@ function gcSelectionner(cab) {
   else afficherTableauTarif();
 }
 
+function gcDupliquerCabinet() {
+  // Trouver le client source : celui selectionne ou demander lequel
+  var sourceNom = gcCabinetSelectionne || '';
+  if (!sourceNom) {
+    showToast('Selectionnez d\'abord un cabinet a dupliquer.', true);
+    return;
+  }
+
+  // Trouver les donnees du client source dans COGILOG_CLIENTS
+  var sourceCode = null;
+  var sourceData = null;
+  if (typeof COGILOG_CLIENTS !== 'undefined') {
+    Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
+      var nom = (entry[1][3] || '').trim().toUpperCase();
+      if (nom === sourceNom.toUpperCase()) {
+        sourceCode = entry[0];
+        sourceData = entry[1];
+      }
+    });
+  }
+
+  if (!sourceData) {
+    showToast('Client introuvable dans Cogilog.', true);
+    return;
+  }
+
+  // Ouvrir le formulaire de nouveau client
+  gcAjouterCabinet();
+
+  // Pre-remplir avec les donnees du client source (sauf code et nom)
+  setTimeout(function() {
+    // Code vide (a remplir)
+    document.getElementById('nc-code').value = '';
+    document.getElementById('nc-code').placeholder = 'Nouveau code (ex: ' + sourceCode + '_COPIE)';
+    // Nom vide (a modifier)
+    document.getElementById('nc-nom').value = (sourceData[3] || '') + ' (COPIE)';
+    // Remplir le reste
+    var catSelect = document.getElementById('nc-categorie');
+    if (catSelect) { for (var i = 0; i < catSelect.options.length; i++) { if (catSelect.options[i].value === (sourceData[0] || '')) catSelect.selectedIndex = i; } }
+    var prefSelect = document.getElementById('nc-prefixe');
+    if (prefSelect) { for (var i = 0; i < prefSelect.options.length; i++) { if (prefSelect.options[i].value === (sourceData[2] || '')) prefSelect.selectedIndex = i; } }
+    document.getElementById('nc-num-adresse').value = sourceData[4] || '';
+    document.getElementById('nc-voie').value = sourceData[5] || '';
+    document.getElementById('nc-complement').value = sourceData[6] || '';
+    document.getElementById('nc-cp').value = sourceData[8] || '';
+    document.getElementById('nc-ville').value = sourceData[9] || '';
+    document.getElementById('nc-pays').value = sourceData[11] || 'FRANCE';
+    var civSelect = document.getElementById('nc-civilite');
+    if (civSelect && sourceData[12]) { for (var i = 0; i < civSelect.options.length; i++) { if (civSelect.options[i].value === sourceData[12]) civSelect.selectedIndex = i; } }
+    document.getElementById('nc-tel').value = sourceData[17] || '';
+    document.getElementById('nc-tel2').value = sourceData[18] || '';
+    document.getElementById('nc-email').value = sourceData[20] || '';
+    var paiSelect = document.getElementById('nc-paiement');
+    if (paiSelect && sourceData[57]) { for (var i = 0; i < paiSelect.options.length; i++) { if (paiSelect.options[i].value === sourceData[57]) paiSelect.selectedIndex = i; } }
+    document.getElementById('nc-livraison').value = sourceData[58] || '';
+    // Focus sur le code
+    document.getElementById('nc-code').focus();
+    showToast('Copie de ' + sourceNom + ' — modifiez le code et le nom');
+  }, 100);
+}
+
 function gcAjouterCabinet() {
   // Popup formulaire complet pour ajouter un client Cogilog
   const existing = document.getElementById('popup-ajout-client');
