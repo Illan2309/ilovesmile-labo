@@ -2597,19 +2597,30 @@
     Object.keys(parCabinet).sort().forEach(function(cab) {
       var lignes = parCabinet[cab];
 
-      // Chercher les infos Cogilog du cabinet
+      // Chercher les infos Cogilog du cabinet — match exact d'abord, puis partiel
       var adresse = '';
       var tel = '';
       if (typeof COGILOG_CLIENTS !== 'undefined') {
-        // Chercher par nom de cabinet dans COGILOG_CLIENTS
         var found = null;
+        var cabUp = cab.toUpperCase();
+        // 1. Match exact
         Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
           var data = entry[1];
           var nomClient = (data[3] || '').trim().toUpperCase();
-          if (nomClient === cab.toUpperCase() || nomClient.includes(cab.toUpperCase()) || cab.toUpperCase().includes(nomClient)) {
-            found = data;
-          }
+          if (nomClient === cabUp) found = data;
         });
+        // 2. Si pas de match exact, match partiel (le plus court = le plus specifique)
+        if (!found) {
+          var bestLen = 99999;
+          Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
+            var data = entry[1];
+            var nomClient = (data[3] || '').trim().toUpperCase();
+            if ((nomClient.includes(cabUp) || cabUp.includes(nomClient)) && nomClient.length < bestLen) {
+              found = data;
+              bestLen = nomClient.length;
+            }
+          });
+        }
         if (found) {
           // Adresse : colonnes 4 (n), 5 (rue), 8 (CP), 9 (ville)
           var parts = [found[4], found[5], found[8], found[9]].filter(function(x) { return x && x.trim(); });
