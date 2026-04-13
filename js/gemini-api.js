@@ -99,6 +99,12 @@ SPÉCIFICITÉS HTML :
 • En cas de contradiction commentaire vs cases cochées : le commentaire gagne.
 • Le numéro de prescription est en haut à DROITE — peut être long (ex: 1573704891_20260311_1805_03_964), copier EN ENTIER.
 • Code labo : sur les fiches HTML, mettre UNIQUEMENT la lettre du jour (${codeLaboCtx.lettre} pour aujourd'hui), sans numéro. Le numéro sera complété manuellement.
+
+⚠️ PRATICIEN SUR FICHES HTML — EFFORT OBLIGATOIRE :
+Le nom du praticien peut apparaître PARTOUT dans la fiche HTML : en-tête, champ "Praticien", "Docteur", signature, ou même dans le commentaire.
+Tu DOIS chercher le praticien dans TOUTE la fiche et le matcher avec la BASE CLIENTS COGILOG ci-dessous.
+Même si le nom est abrégé ou mal écrit (ex: "Dr MAT" dans le commentaire → chercher "Dr MATIAS" dans les contacts du cabinet).
+Ne JAMAIS mettre "Dr ???" si un nom de docteur apparaît quelque part dans la fiche — fais l'effort de matcher.
 ${regleDates}
 
 Contenu de la fiche HTML :
