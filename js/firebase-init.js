@@ -1,19 +1,22 @@
-// Attendre que firebase soit disponible
+// Attendre que firebase soit disponible — appele par auth.js apres connexion
 function initFirebase() {
   if (typeof firebase === 'undefined') {
     setTimeout(initFirebase, 50);
     return;
   }
-  const firebaseConfig = {
-    apiKey: "AIzaSyCFEazX7KrxC4jfLCDuLiCT7ZJhcjDQpdM",
-    authDomain: "ilovesmile-labo-fd511.firebaseapp.com",
-    projectId: "ilovesmile-labo-fd511",
-    storageBucket: "ilovesmile-labo-fd511.firebasestorage.app",
-    messagingSenderId: "702662622870",
-    appId: "1:702662622870:web:dc9a1fbed329c7942f4cb7"
-  };
+  if (window._firebaseReady) return; // Deja initialise
 
-  firebase.initializeApp(firebaseConfig);
+  // initializeApp deja fait par auth.js, ne pas rappeler
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyCFEazX7KrxC4jfLCDuLiCT7ZJhcjDQpdM",
+      authDomain: "ilovesmile-labo-fd511.firebaseapp.com",
+      projectId: "ilovesmile-labo-fd511",
+      storageBucket: "ilovesmile-labo-fd511.firebasestorage.app",
+      messagingSenderId: "702662622870",
+      appId: "1:702662622870:web:dc9a1fbed329c7942f4cb7"
+    });
+  }
   const _db = firebase.firestore();
   window._db = _db; // Alimente le singleton getDB()
   const _prescriptionsCol = _db.collection('prescriptions');
@@ -412,5 +415,5 @@ function initFirebase() {
     }, 3000);
   }
 }
-initFirebase();
+// initFirebase() est appele par auth.js apres connexion
 
