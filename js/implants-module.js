@@ -286,7 +286,8 @@
       const data = _impRawRows.map(r => ({
         marque: r.marque || '', codeLabo: r.codeLabo || '', codeRX: r.codeRX || '',
         customer: r.customer || '', patient: r.patient || '', reference: r.reference || '',
-        quantite: r.quantite || 0, cabinet: r.cabinet || '', _dateMs: r._dateMs || 0
+        quantite: r.quantite || 0, cabinet: r.cabinet || '', _dateMs: r._dateMs || 0,
+        _manualCabinet: r._manualCabinet || false, _manualPatient: r._manualPatient || false
       }));
       await db.collection('meta').doc('implant_tracking_data').set({ rows: data, updatedAt: Date.now() });
     } catch (e) {
@@ -648,8 +649,8 @@
       }
 
       if (matched) {
-        // Enrichir cabinet
-        if (!row.cabinet && !row.customer) {
+        // Enrichir cabinet — sauf si edit manuel
+        if (!row._manualCabinet && !row.cabinet && !row.customer) {
           row.cabinet = matched.cabinet || '';
           // Enrichir avec COGILOG_CLIENTS pour un nom plus propre
           if (matched.code_cogilog && typeof COGILOG_CLIENTS !== 'undefined') {
@@ -657,8 +658,8 @@
             if (cog && cog[3]) row.cabinet = cog[3];
           }
         }
-        // Enrichir patient
-        if (!row.patient) {
+        // Enrichir patient — sauf si edit manuel
+        if (!row._manualPatient && !row.patient) {
           const pNom = matched.patient_nom || (matched.patient && matched.patient.nom) || '';
           if (pNom) row.patient = pNom;
         }
@@ -1113,8 +1114,8 @@
           const mk = r._dateMs ? new Date(r._dateMs).toISOString().slice(0, 7) : 'no-date';
           const rk = row.dateMs ? new Date(row.dateMs).toISOString().slice(0, 7) : 'no-date';
           if (mk === rk) {
-            if (field === 'cabinet') r.cabinet = newVal;
-            if (field === 'patient') r.patient = newVal;
+            if (field === 'cabinet') { r.cabinet = newVal; r._manualCabinet = true; }
+            if (field === 'patient') { r.patient = newVal; r._manualPatient = true; }
             if (field === 'reference') r.codeRX = newVal;
           }
         }
