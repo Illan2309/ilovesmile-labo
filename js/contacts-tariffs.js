@@ -1909,7 +1909,7 @@ function exporterTarifsPDF() {
   Object.entries(GROUPES_ACTES).forEach(function(entry) {
     var groupe = entry[0];
     var codes = entry[1];
-    var actesGroupe = codes.filter(function(c) { return grille[c] !== undefined; });
+    var actesGroupe = codes.filter(function(c) { return grille[c] !== undefined && _hiddenCodes.indexOf(c) < 0; });
     if (!actesGroupe.length) return;
     if (y + 8 + actesGroupe.length * 6 > 280) { doc.addPage(); y = mT; }
     doc.setFillColor(232, 244, 251);
