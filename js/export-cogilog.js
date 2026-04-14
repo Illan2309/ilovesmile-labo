@@ -529,9 +529,12 @@ function exportCogilogTSV() {
       lc[9]  = '0';              // prix achat
       lc[12] = '0'; lc[13] = '0'; lc[14] = '0'; lc[15] = '0';
       lc[16] = '0'; lc[17] = '0'; lc[18] = '0';
-      // Dents : utiliser le détail par acte si disponible, sinon dentsStr global
-      const detailActe = (p.dentsActes || {})[codeProd] || (p.dentsActes || {})[libelle] || '';
-      lc[23] = detailActe || '';  // dents uniquement depuis dentsActes, jamais le cadre bleu global
+      // Dents : utiliser rawD (deja resolu avec fallback implant)
+      var detailActe = rawD || '';
+      // Nettoyer : retirer position machoire, garder que les dents
+      if (detailActe.includes('|')) detailActe = detailActe.split('|').pop().trim();
+      if (['haut','bas','haut+bas'].includes(detailActe)) detailActe = '';
+      lc[23] = detailActe;  // dents uniquement depuis dentsActes
       lc[27] = teinte;           // teinte (Texte 9)
       lc[31] = '0'; lc[32] = '0';
       lc[33] = 'NON';
