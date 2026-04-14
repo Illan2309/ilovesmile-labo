@@ -1288,8 +1288,8 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
               } else { cur = test; }
             });
             if (cur) lines.push(cur);
-            var lineH = 5.5;
-            var badgeH = lines.length * lineH + 2;
+            var lineH = 4;
+            var badgeH = lines.length * lineH + 2.5;
             doc.setFillColor(...badgeBg);
             doc.roundedRect(bx2, acy-4, maxW, badgeH, 1.5, 1.5, 'F');
             doc.setTextColor(...badgeCol);
