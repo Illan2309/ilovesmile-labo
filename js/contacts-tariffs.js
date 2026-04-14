@@ -1518,6 +1518,15 @@ async function supprimerCabinetContact() {
   // Supprimer de CONTACTS (si présent)
   delete CONTACTS[cab];
 
+  // Supprimer de COGILOG_CLIENTS si c'est un client custom
+  var _codeToDelete = null;
+  if (typeof COGILOG_CLIENTS !== 'undefined') {
+    Object.entries(COGILOG_CLIENTS).forEach(function(entry) {
+      if ((entry[1][3] || '').trim().toUpperCase() === cab.toUpperCase()) _codeToDelete = entry[0];
+    });
+    if (_codeToDelete) delete COGILOG_CLIENTS[_codeToDelete];
+  }
+
   // Ajouter à la liste noire locale
   if (!window._gcClientsSupprimes) window._gcClientsSupprimes = new Set();
   window._gcClientsSupprimes.add(cab);
@@ -1538,7 +1547,18 @@ async function supprimerCabinetContact() {
     }
     // Persister la liste noire
     await db.collection('meta').doc('clients_supprimes').set({ liste: [...window._gcClientsSupprimes] });
-    showToast('✅ Cabinet "' + cab + '" masqué');
+    // Supprimer de cogilog_clients_custom si present
+    if (_codeToDelete) {
+      var customDoc = await db.collection('contacts').doc('cogilog_clients_custom').get();
+      if (customDoc.exists) {
+        var customData = customDoc.data();
+        if (customData[_codeToDelete]) {
+          delete customData[_codeToDelete];
+          await db.collection('contacts').doc('cogilog_clients_custom').set(customData);
+        }
+      }
+    }
+    showToast('✅ Cabinet "' + cab + '" supprimé');
   } catch(e) { showToast('Masqué localement (erreur cloud : ' + e.message + ')', true); }
 }
 
