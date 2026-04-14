@@ -376,7 +376,7 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
   {
     let resolvedCode = null;
     var _rawCode = (data.code_cogilog || '').trim().toUpperCase();
-    console.log('[SCAN] Gemini →', JSON.stringify({cab: data.cabinet, code: data.code_cogilog, prat: data.praticien, comm: (data.commentaires||'').substring(0,80)}));
+    console.log('[SCAN] Gemini →', JSON.stringify({cab: data.cabinet, code: data.code_cogilog, prat: data.praticien, comm: (data.commentaires||'').substring(0,80), raw_comm: (data.raw_commentaires||'').substring(0,150), conjointe: data.conjointe, adjointe: data.adjointe}));
     if (_rawCode && COGILOG_CLIENTS[_rawCode]) {
       resolvedCode = _rawCode;
     }
