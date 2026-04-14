@@ -1941,7 +1941,7 @@ function exporterTarifsPDF() {
       'Gouttières & Orthodontie': function(c) { return ['1-GORC','1GOAM','GOBO','DISORTH','4-PROORTHO','PDH','MED'].indexOf(c) >= 0; },
       'Attachements': function(c) { return ['4-ATTF','4-ATTZM'].indexOf(c) >= 0; },
       'Wax Up & Diagnostic': function(c) { return c.indexOf('WAXUP') >= 0 || c === 'MOND'; },
-      'Reparations & Adjonctions': function(c) { return ['RAR','REPE','ACRO','CRVALP'].indexOf(c) >= 0; },
+      '_hide_reparations': function(c) { return ['RAR','REPE','ACRO','CRVALP'].indexOf(c) >= 0; },
       'Fichiers & Scans': function(c) { return c === 'FS' || c === 'FSHB'; },
       'Divers': function(c) { return ['DIV','FG','PORT','FCR','3-DOR'].indexOf(c) >= 0; },
       '_hide_refaire': function(c) { return c.startsWith('9-'); },
