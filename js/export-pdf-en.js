@@ -1260,74 +1260,43 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
         const labelW2 = doc.getStringUnitWidth(item.label) * (item.bold?7.8:7.2) / doc.internal.scaleFactor;
         let bx2 = x + 5 + labelW2 + 3;
 
-        if (item.jaw) {
-          var jawText = item.jaw + (item.teeth ? ' : ' + item.teeth : '');
-          var jawCol = item.jaw.includes('+') ? [91,69,180] : (item.jaw==='UPPER'?[173,20,87]:[0,131,143]);
-          var jawBg  = item.jaw.includes('+') ? [237,233,254] : (item.jaw==='UPPER'?[252,228,236]:[224,247,250]);
-          var maxBadgeW = rx + halfW - bx2 - 4;
-          var tw3 = doc.getStringUnitWidth(jawText)*6.5/doc.internal.scaleFactor+8;
-          if (tw3 <= maxBadgeW) {
-            // Tient sur une ligne
-            doc.setFillColor(...jawBg);
-            doc.roundedRect(bx2, acy-4, tw3, 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-            doc.text(jawText, bx2+3, acy+0.5);
+        if (item.jaw || item.teeth) {
+          var fullText = item.jaw ? item.jaw + (item.teeth ? ' : ' + item.teeth : '') : item.teeth;
+          var badgeCol = item.jaw
+            ? (item.jaw.includes('+') ? [91,69,180] : (item.jaw==='UPPER'?[173,20,87]:[0,131,143]))
+            : [26,92,138];
+          var badgeBg = item.jaw
+            ? (item.jaw.includes('+') ? [237,233,254] : (item.jaw==='UPPER'?[252,228,236]:[224,247,250]))
+            : [240,245,255];
+          var maxW = rx + halfW - bx2 - 4;
+          doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+          var fullW = doc.getStringUnitWidth(fullText)*6.5/doc.internal.scaleFactor+8;
+          if (fullW <= maxW) {
+            // Tient sur 1 ligne : badge simple
+            doc.setFillColor(...badgeBg);
+            doc.roundedRect(bx2, acy-4, fullW, 6, 1.5, 1.5, 'F');
+            doc.setTextColor(...badgeCol);
+            doc.text(fullText, bx2+3, acy+0.5);
           } else {
-            // Trop long : 1ere ligne jaw + debut dents, 2eme ligne suite dents
-            var teethArr = (item.teeth || '').trim().split(/\s+/);
-            var line1 = item.jaw + ' : ';
-            var line2parts = [];
-            for (var ti = 0; ti < teethArr.length; ti++) {
-              var testLine = line1 + teethArr.slice(0, ti+1).join(' ');
-              var testW = doc.getStringUnitWidth(testLine)*6.5/doc.internal.scaleFactor+8;
-              if (testW > maxBadgeW && ti > 0) {
-                line2parts = teethArr.slice(ti);
-                break;
-              }
-              line1 = testLine;
-              if (ti === teethArr.length - 1) line1 = testLine;
-            }
-            // Ligne 1
-            var w1 = doc.getStringUnitWidth(line1)*6.5/doc.internal.scaleFactor+8;
-            doc.setFillColor(...jawBg);
-            doc.roundedRect(bx2, acy-4, Math.min(w1, maxBadgeW), 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-            doc.text(line1, bx2+3, acy+0.5);
-            // Ligne 2 si besoin
-            if (line2parts.length) {
-              acy += 7;
-              var line2 = line2parts.join(' ');
-              var w2 = doc.getStringUnitWidth(line2)*6.5/doc.internal.scaleFactor+8;
-              doc.setFillColor(...jawBg);
-              doc.roundedRect(rx+8, acy-4, Math.min(w2, halfW-12), 6, 1.5, 1.5, 'F');
-              doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-              doc.text(line2, rx+11, acy+0.5);
-            }
-          }
-        } else if (item.teeth) {
-          var tw4 = doc.getStringUnitWidth(item.teeth)*7/doc.internal.scaleFactor+6;
-          if (tw4 <= rx + halfW - bx2 - 4) {
-            doc.setFillColor(240,245,255);
-            doc.roundedRect(bx2, acy-4, tw4, 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
-            doc.text(item.teeth, bx2+tw4/2, acy+0.5, {align:'center'});
-          } else {
-            // Wrap : couper les dents en 2 lignes
-            var tArr = item.teeth.trim().split(/\s+/);
-            var half = Math.ceil(tArr.length / 2);
-            var l1 = tArr.slice(0, half).join(' ');
-            var l2 = tArr.slice(half).join(' ');
-            var tw41 = doc.getStringUnitWidth(l1)*7/doc.internal.scaleFactor+6;
-            doc.setFillColor(240,245,255);
-            doc.roundedRect(bx2, acy-4, tw41, 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
-            doc.text(l1, bx2+tw41/2, acy+0.5, {align:'center'});
-            acy += 7;
-            var tw42 = doc.getStringUnitWidth(l2)*7/doc.internal.scaleFactor+6;
-            doc.setFillColor(240,245,255);
-            doc.roundedRect(rx+8, acy-4, tw42, 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
-            doc.text(l2, rx+8+tw42/2, acy+0.5, {align:'center'});
+            // Trop long : badge multi-ligne (wrap les mots)
+            var words = fullText.split(' ');
+            var lines = []; var cur = '';
+            words.forEach(function(w) {
+              var test = cur ? cur + ' ' + w : w;
+              if (doc.getStringUnitWidth(test)*6.5/doc.internal.scaleFactor+8 > maxW && cur) {
+                lines.push(cur); cur = w;
+              } else { cur = test; }
+            });
+            if (cur) lines.push(cur);
+            var lineH = 7;
+            var badgeH = lines.length * lineH + 1;
+            doc.setFillColor(...badgeBg);
+            doc.roundedRect(bx2, acy-4, maxW, badgeH, 1.5, 1.5, 'F');
+            doc.setTextColor(...badgeCol);
+            lines.forEach(function(ln, li) {
+              doc.text(ln, bx2+3, acy+0.5 + li*lineH);
+            });
+            acy += (lines.length - 1) * lineH;
           }
         }
       }
