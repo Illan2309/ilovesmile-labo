@@ -709,34 +709,34 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
   doc.text(p.praticien || '—', margin + 4, y + 27, { maxWidth: col3W - 10 });
 
   const px2 = margin + col3W + 1;
-  sectionHeader('PATIENT', px2, y, col3W - 2, 7);
+  sectionHeader('DATES', px2, y, col3W - 2, 7);
   box(px2, y + 7, col3W - 2, rowH1 - 7, white);
+  const dateFmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
-  doc.text('NAME', px2 + 4, y + 14);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...dark);
-  doc.text(p.patient?.nom || '—', px2 + 4, y + 19, { maxWidth: col3W - 22 });
-  const age = p.patient?.age ? p.patient.age + ' y.' : '—';
-  const sexe = p.patient?.sexe ? (p.patient.sexe === 'homme' ? 'M' : 'F') : '—';
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
-  doc.text('AGE', px2 + 4, y + 24);
-  doc.text('SEX', px2 + 22, y + 24);
+  doc.text('IMPRINT DATE', px2 + 4, y + 14);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...dark);
-  doc.text(age, px2 + 4, y + 29);
-  doc.text(sexe, px2 + 22, y + 29);
+  doc.text(dateFmt(p.dates?.empreinte), px2 + 4, y + 19);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('DELIVERY DATE', px2 + 4, y + 24);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...dangerRed);
+  doc.text(dateFmt(p.dates?.livraison), px2 + 4, y + 29);
 
   const px3 = margin + col3W * 2 + 2;
   const col3Wr = secW - (col3W - 2) * 2 - 4;
-  sectionHeader('DATES', px3, y, col3Wr, 7);
+  sectionHeader('PATIENT', px3, y, col3Wr, 7);
   box(px3, y + 7, col3Wr, rowH1 - 7, white);
-  const dateFmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
-  doc.text('IMPRINT DATE', px3 + 4, y + 14);
+  doc.text('NAME', px3 + 4, y + 14);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...dark);
+  doc.text(p.patient?.nom || '—', px3 + 4, y + 19, { maxWidth: col3Wr - 10 });
+  const age = p.patient?.age ? p.patient.age + ' y.' : '—';
+  const sexe = p.patient?.sexe ? (p.patient.sexe === 'homme' ? 'M' : 'F') : '—';
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('AGE', px3 + 4, y + 24);
+  doc.text('SEX', px3 + 22, y + 24);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...dark);
-  doc.text(dateFmt(p.dates?.empreinte), px3 + 4, y + 19);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(...muted);
-  doc.text('DELIVERY DATE', px3 + 4, y + 24);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...dangerRed);
-  doc.text(dateFmt(p.dates?.livraison), px3 + 4, y + 29);
+  doc.text(age, px3 + 4, y + 29);
+  doc.text(sexe, px3 + 22, y + 29);
 
   y += rowH1 + 5;
 
