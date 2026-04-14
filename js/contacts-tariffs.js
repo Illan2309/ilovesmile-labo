@@ -1924,17 +1924,19 @@ function exporterTarifsPDF() {
       'Reparations & Adjonctions': function(c) { return ['RAR','REPE','ACRO','CRVALP','RA'].indexOf(c) >= 0; },
       'Fichiers & Scans': function(c) { return c === 'FS' || c === 'FSHB'; },
       'Divers & Forfaits': function(c) { return ['DIV','FG','PORT','DM','FCR','3-DOR','2-COMPSTEPN','1-PAP11A3','1-PEICIRE','2-PROVI','4-ATTF','4-ATTZM'].indexOf(c) >= 0; },
-      'Cas a refaire (9-xx)': function(c) { return c.startsWith('9-'); },
-      'Cas non factures (8-xx)': function(c) { return c.startsWith('8-'); },
-      'Gestion (7-xx)': function(c) { return c.startsWith('7-'); },
+      '_hide_refaire': function(c) { return c.startsWith('9-'); },
+      '_hide_nonfact': function(c) { return c.startsWith('8-'); },
+      '_hide_gestion': function(c) { return c.startsWith('7-'); },
     };
     var _classified = new Set();
     Object.entries(SOUS_CATS).forEach(function(entry) {
       var catName = entry[0];
       var matcher = entry[1];
       var codes = horsGroupe.filter(function(c) { return matcher(c) && !_classified.has(c); });
-      if (!codes.length) return;
       codes.forEach(function(c) { _classified.add(c); });
+      // Categories masquees (pas d'interet dans le PDF)
+      if (catName.startsWith('_hide')) return;
+      if (!codes.length) return;
       if (y + 8 + codes.length * 6 > 280) { doc.addPage(); y = mT; }
       doc.setFillColor(240, 240, 240);
       doc.rect(mL, y, W, 6, 'F');
