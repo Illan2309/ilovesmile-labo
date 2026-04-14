@@ -1884,7 +1884,8 @@ function exporterTarifsPDF() {
     doc.rect(mL, y, W, 5.5, 'F');
     doc.setDrawColor(230, 235, 240); doc.setLineWidth(0.1);
     doc.line(mL, y + 5.5, mL + W, y + 5.5);
-    var label = (typeof ACTE_LABELS !== 'undefined' && ACTE_LABELS[code]) ? ACTE_LABELS[code] : code;
+    var label = (typeof ACTE_LABELS !== 'undefined' && ACTE_LABELS[code]) ? ACTE_LABELS[code]
+      : (typeof COGILOG_LIBELLES !== 'undefined' && COGILOG_LIBELLES[code]) ? COGILOG_LIBELLES[code] : code;
     var prix = grille[code];
     var prixStr = prix !== undefined ? Number(prix).toFixed(2).replace('.', ',') + ' EUR' : '--';
     doc.setFont(FN, 'normal'); doc.setFontSize(6.5); doc.setTextColor(120, 140, 160);
@@ -1911,7 +1912,17 @@ function exporterTarifsPDF() {
     actesGroupe.forEach(drawRow);
   });
 
-  // Section "Autres" masquee dans le PDF tarifs
+  var tousGroupes = Object.values(GROUPES_ACTES).flat();
+  var horsGroupe = Object.keys(grille).filter(function(c) { return !tousGroupes.includes(c); });
+  if (horsGroupe.length) {
+    if (y + 8 > 280) { doc.addPage(); y = mT; }
+    doc.setFillColor(240, 240, 240);
+    doc.rect(mL, y, W, 6, 'F');
+    doc.setFont(FN, 'bold'); doc.setFontSize(6.5); doc.setTextColor(100, 100, 100);
+    doc.text('AUTRES', mL + 2, y + 4.2);
+    y += 6;
+    horsGroupe.forEach(drawRow);
+  }
 
   doc.setFont(FN, 'normal'); doc.setFontSize(6); doc.setTextColor(170, 170, 170);
   doc.text('I Love Smile - 23 Rue Boursault 75017 Paris', mL, 290);
