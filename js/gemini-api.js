@@ -87,6 +87,7 @@ Si le code est totalement illisible → mets "" (vide).`;
 - Une prise d'empreinte est toujours dans les 30 jours AVANT aujourd'hui (${aujourdhui}) ou aujourd'hui.
 - Une livraison est toujours dans les 60 jours APRÈS aujourd'hui.
 - Ne jamais inventer une date si elle n'est pas clairement lisible sur la fiche.
+- ⚠️ Si HÉSITATION entre 2 dates possibles pour la livraison (ex: "21" ou "27" manuscrit ambigu) → TOUJOURS choisir la date la PLUS PROCHE (la plus courte). Mieux vaut livrer trop tôt que trop tard.
 - FORMAT ISO SPÉCIAL : si tu vois "Creation date: 2026-03-18T17:47:47Z" → c'est la date d'empreinte, convertir en YYYY-MM-DD (ex: 2026-03-18). Si tu vois "Update date: 2026-03-18T17:47:47Z" → c'est la date de livraison, même conversion. Ne jamais laisser ces champs vides si ces dates sont présentes.`;
   let parts;
   if (isHTML) {
