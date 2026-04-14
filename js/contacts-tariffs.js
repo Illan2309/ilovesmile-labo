@@ -1924,8 +1924,16 @@ function exporterTarifsPDF() {
   var tousGroupes = Object.values(GROUPES_ACTES).flat();
   var horsGroupe = Object.keys(grille).filter(function(c) { return !tousGroupes.includes(c); });
   if (horsGroupe.length) {
+    // Ordre souhaite pour couronnes sur implant : provisoires, E-MAX, Zircon CCC, Full Zircon
+    var _implantOrder = [
+      '2-PROVI', '2-DPIS', '2-DPIT',                     // Provisoires
+      '2-CCEMAXIS', '2-CCEMAXIT',                         // E-MAX
+      '2-CCCIZ', '2-CCCIZT',                              // Zircon CCC
+      '2-CCCFULLIS', '2-CCCFULLIT',                       // Full Zircon
+      '2-CCMI', '2-CCMIT',                                // CCM (masques)
+    ];
     var SOUS_CATS = {
-      'Couronnes sur implant': function(c) { return ['2-CCMI','2-CCMIT','2-CCCIZ','2-CCCIZT','2-CCCFULLIS','2-CCCFULLIT','2-CCEMAXIS','2-CCEMAXIT','2-DPIS','2-DPIT','2-PROVI'].indexOf(c) >= 0; },
+      'Couronnes sur implant': function(c) { return _implantOrder.indexOf(c) >= 0; },
       'Piliers & Composants implant': function(c) { return ['GC','PIU','PITRANS','PIUZ','PLOC','5-ANALO'].indexOf(c) >= 0; },
       'Inlay Core + Couronne': function(c) { return ['1-ICCCM','1-ICCEREMAX','1-ICCFZI','1-ICCZI','2-ICCCCOU','ICDP','ICFZI','ICZI'].indexOf(c) >= 0; },
       'Protheses amovibles': function(c) { return ['1-PEICIRE','2-COMPSTEPN','PPA','DM'].indexOf(c) >= 0; },
@@ -1948,7 +1956,13 @@ function exporterTarifsPDF() {
       codes.forEach(function(c) { _classified.add(c); });
       // Categories masquees (pas d'interet dans le PDF)
       if (catName.startsWith('_hide')) return;
+      // Filtrer les codes masques
+      codes = codes.filter(function(c) { return _hiddenCodes.indexOf(c) < 0; });
       if (!codes.length) return;
+      // Trier par ordre defini si disponible (ex: couronnes implant)
+      if (catName === 'Couronnes sur implant') {
+        codes.sort(function(a, b) { return _implantOrder.indexOf(a) - _implantOrder.indexOf(b); });
+      }
       if (y + 8 + codes.length * 6 > 280) { doc.addPage(); y = mT; }
       doc.setFillColor(240, 240, 240);
       doc.rect(mL, y, W, 6, 'F');
