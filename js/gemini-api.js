@@ -333,12 +333,18 @@ function enforceGroupesExclusifs(conjointe) {
     ['Embrasure fermée', 'Embrasure ouverte'],
     ['Point de contact fort', 'Point de contact léger'],
     ['Occlusion sous occ', 'Occlusion légère', 'Occlusion forte'],
+    ['Inlay Core céramisé', 'Inlay Core'],          // ceramise prime sur metal
+    ['Inlay Onlay composite', 'Inlay Onlay céramique', 'Inlay Onlay métal'], // un seul type
+    ['Facette composite', 'Facette céramique'],       // un seul type
   ];
   let result = [...conjointe];
   groupes.forEach(groupe => {
     const trouves = result.filter(v => groupe.includes(v));
     if (trouves.length > 1) {
-      trouves.slice(1).forEach(v => { result = result.filter(x => x !== v); });
+      // Garder le plus specifique (le plus long) au lieu du premier
+      trouves.sort(function(a, b) { return b.length - a.length; });
+      var keeper = trouves[0]; // le plus long = le plus specifique
+      trouves.forEach(function(v) { if (v !== keeper) result = result.filter(function(x) { return x !== v; }); });
     }
   });
   return result;
@@ -374,14 +380,14 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
 
   // Map terme → case(s) a cocher
   var TERMES_CONJOINTE = {
-    'inlay core ceramise': ['Inlay Core', 'Inlay Core céramisé'],
-    'inlay core ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
-    'ic ceramise': ['Inlay Core', 'Inlay Core céramisé'],
-    'ic ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
-    'ic ceram': ['Inlay Core', 'Inlay Core céramisé'],
-    'icc': ['Inlay Core', 'Inlay Core céramisé'],
-    'inlay core clavette': ['Inlay Core', 'Inlay Core clavette'],
-    'ic clavette': ['Inlay Core', 'Inlay Core clavette'],
+    'inlay core ceramise': ['Inlay Core céramisé'],
+    'inlay core ceramisee': ['Inlay Core céramisé'],
+    'ic ceramise': ['Inlay Core céramisé'],
+    'ic ceramisee': ['Inlay Core céramisé'],
+    'ic ceram': ['Inlay Core céramisé'],
+    'icc': ['Inlay Core céramisé'],
+    'inlay core clavette': ['Inlay Core clavette'],
+    'ic clavette': ['Inlay Core clavette'],
     'inlay core': ['Inlay Core'],
     'ic': ['Inlay Core'],
     'full zircone': ['Full zirconium'],
