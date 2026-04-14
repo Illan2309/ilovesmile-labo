@@ -130,32 +130,36 @@ function getCogilogCompactIndex() {
 function standardizePraticien(rawPraticien, cabinetName) {
   if (!rawPraticien || !cabinetName) return 'Dr ???';
 
-  // Vérifier les alias contacts manuels en priorité
+  // Vérifier les alias contacts manuels — mais seulement si le contact appartient au cabinet
   var _contactAliases = {};
   try { _contactAliases = JSON.parse(localStorage.getItem('contact_aliases') || '{}'); } catch(e) {}
   var _rawNorm = rawPraticien.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/^dr\.?\s*/i, '').trim();
+
+  // Charger les contacts du cabinet pour valider l'alias
+  var _normSP = function(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); };
+  var _sourceAlias = (typeof CONTACTS !== 'undefined' && Object.keys(CONTACTS).length)
+    ? CONTACTS : (window.CONTACTS_DENTISTES || {});
+  var _cabKeyAlias = Object.keys(_sourceAlias).find(function(k) { return _normSP(k) === _normSP(cabinetName); });
+  if (!_cabKeyAlias) _cabKeyAlias = Object.keys(_sourceAlias).find(function(k) { return _normSP(cabinetName).includes(_normSP(k)) || _normSP(k).includes(_normSP(cabinetName)); });
+  var _cabContacts = _cabKeyAlias ? (_sourceAlias[_cabKeyAlias] || []) : [];
+
   for (var _caDr in _contactAliases) {
     var _caList = _contactAliases[_caDr] || [];
     for (var _cai = 0; _cai < _caList.length; _cai++) {
       if (_caList[_cai].toLowerCase() === _rawNorm || _rawNorm.includes(_caList[_cai].toLowerCase())) {
-        return _caDr; // Retourne le vrai nom du contact
+        // Alias matche — mais le contact doit appartenir au cabinet
+        if (_cabContacts.includes(_caDr)) {
+          return _caDr;
+        }
+        console.log('[PRATICIEN] Alias "' + _caList[_cai] + '" → "' + _caDr + '" ignore (pas dans cabinet "' + cabinetName + '")');
       }
     }
   }
 
-  // Source des contacts (Firebase CONTACTS ou CONTACTS_DENTISTES par défaut)
-  var source = (typeof CONTACTS !== 'undefined' && Object.keys(CONTACTS).length)
-    ? CONTACTS : (window.CONTACTS_DENTISTES || {});
-
-  // Trouver la clé du cabinet dans la source (normalisation accents + case)
-  var _normSP = function(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); };
+  // Source des contacts (deja chargee pour les alias)
+  var source = _sourceAlias;
   var nomUp = _normSP(cabinetName);
-  var matchKey = Object.keys(source).find(function(k) { return _normSP(k) === nomUp; });
-  if (!matchKey) {
-    matchKey = Object.keys(source).find(function(k) {
-      return nomUp.includes(_normSP(k)) || _normSP(k).includes(nomUp);
-    });
-  }
+  var matchKey = _cabKeyAlias;
   if (!matchKey) return 'Dr ???'; // Cabinet inconnu → pas de matching possible
   var contacts = source[matchKey];
   if (!contacts) {
@@ -169,7 +173,9 @@ function standardizePraticien(rawPraticien, cabinetName) {
 
   // Si le cabinet n'a qu'un seul vrai contact → retourner directement ce contact
   var _realContacts = contacts.filter(function(c) { return c !== 'Dr ???'; });
+  console.log('[PRATICIEN] Cabinet: "' + cabinetName + '" → matchKey: "' + matchKey + '" | contacts: ' + _realContacts.length + ' | raw: "' + rawPraticien + '"');
   if (_realContacts.length === 1) {
+    console.log('[PRATICIEN] Cabinet individuel → retour direct: ' + _realContacts[0]);
     return _realContacts[0];
   }
 
