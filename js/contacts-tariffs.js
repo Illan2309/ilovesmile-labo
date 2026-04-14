@@ -1801,3 +1801,112 @@ function gcValiderCopieGrille(dest) {
   if (ind) { ind.textContent = '⏳ Modification…'; ind.style.color = '#e65100'; ind.style.display = 'inline'; }
   _gcAutoSaveTarif();
 }
+
+// ── EXPORT PDF TARIFS ────────────────────────────────────────────────────────
+function exporterTarifsPDF() {
+  if (!gcCabinetSelectionne) { showToast('Selectionnez un cabinet.', true); return; }
+
+  var tarifKey = MAPPING_CONTACTS_TARIFS[gcCabinetSelectionne] || gcCabinetSelectionne;
+  var grille = TARIFS[gcCabinetSelectionne] || TARIFS[tarifKey] || TARIFS_BASE[tarifKey] || {};
+
+  if (!Object.keys(grille).length) { showToast('Aucun tarif trouve pour ce cabinet.', true); return; }
+
+  var jsPDFmod = window.jspdf;
+  var doc = new jsPDFmod.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var pageW = 210, mL = 12, mR = 12, mT = 20;
+  var W = pageW - mL - mR;
+  var y = mT;
+
+  if (window.INTER_REGULAR_B64) {
+    doc.addFileToVFS('Inter-Regular.ttf', window.INTER_REGULAR_B64);
+    doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+  }
+  if (window.INTER_BOLD_B64) {
+    doc.addFileToVFS('Inter-Bold.ttf', window.INTER_BOLD_B64);
+    doc.addFont('Inter-Bold.ttf', 'Inter', 'bold');
+  }
+  var FN = window.INTER_REGULAR_B64 ? 'Inter' : 'helvetica';
+
+  // Header
+  doc.setFont(FN, 'bold'); doc.setFontSize(14); doc.setTextColor(26, 92, 138);
+  doc.text('Grille Tarifaire', mL, y);
+  doc.setFont(FN, 'normal'); doc.setFontSize(9); doc.setTextColor(100, 100, 100);
+  doc.text(gcCabinetSelectionne, mL, y + 6);
+  doc.text('Grille : ' + tarifKey, mL, y + 11);
+  doc.text('Genere le ' + new Date().toLocaleDateString('fr-FR'), mL + W - 40, y);
+  y += 18;
+
+  // Degrade
+  for (var s = 0; s < 20; s++) {
+    var ratio = s / 20;
+    doc.setFillColor(Math.round(26 + 65 * ratio), Math.round(92 + 104 * ratio), Math.round(138 + 54 * ratio));
+    doc.rect(mL + (W / 20) * s, y, W / 20 + 0.5, 1, 'F');
+  }
+  y += 4;
+
+  var colCode = 35, colPrix = 30;
+  var colActe = W - colCode - colPrix;
+
+  // Header tableau
+  doc.setFillColor(26, 92, 138);
+  doc.rect(mL, y, W, 7, 'F');
+  doc.setFont(FN, 'bold'); doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+  doc.text('CODE', mL + 2, y + 5);
+  doc.text('ACTE', mL + colCode + 2, y + 5);
+  doc.text('PRIX', mL + colCode + colActe + 2, y + 5);
+  y += 7;
+
+  var idx = 0;
+  function drawRow(code) {
+    if (y > 280) { doc.addPage(); y = mT; }
+    var bg = idx % 2 === 0 ? [255, 255, 255] : [248, 251, 253];
+    doc.setFillColor(bg[0], bg[1], bg[2]);
+    doc.rect(mL, y, W, 5.5, 'F');
+    doc.setDrawColor(230, 235, 240); doc.setLineWidth(0.1);
+    doc.line(mL, y + 5.5, mL + W, y + 5.5);
+    var label = (typeof ACTE_LABELS !== 'undefined' && ACTE_LABELS[code]) ? ACTE_LABELS[code] : code;
+    var prix = grille[code];
+    var prixStr = prix !== undefined ? Number(prix).toFixed(2).replace('.', ',') + ' EUR' : '--';
+    doc.setFont(FN, 'normal'); doc.setFontSize(6.5); doc.setTextColor(120, 140, 160);
+    doc.text(code, mL + 2, y + 4);
+    doc.setFont(FN, 'normal'); doc.setFontSize(7); doc.setTextColor(50, 50, 60);
+    doc.text(label, mL + colCode + 2, y + 4);
+    doc.setFont(FN, 'bold'); doc.setFontSize(7.5); doc.setTextColor(26, 92, 138);
+    doc.text(prixStr, mL + colCode + colActe + 2, y + 4);
+    y += 5.5;
+    idx++;
+  }
+
+  Object.entries(GROUPES_ACTES).forEach(function(entry) {
+    var groupe = entry[0];
+    var codes = entry[1];
+    var actesGroupe = codes.filter(function(c) { return grille[c] !== undefined; });
+    if (!actesGroupe.length) return;
+    if (y + 8 + actesGroupe.length * 6 > 280) { doc.addPage(); y = mT; }
+    doc.setFillColor(232, 244, 251);
+    doc.rect(mL, y, W, 6, 'F');
+    doc.setFont(FN, 'bold'); doc.setFontSize(6.5); doc.setTextColor(26, 92, 138);
+    doc.text(groupe.toUpperCase(), mL + 2, y + 4.2);
+    y += 6;
+    actesGroupe.forEach(drawRow);
+  });
+
+  var tousGroupes = Object.values(GROUPES_ACTES).flat();
+  var horsGroupe = Object.keys(grille).filter(function(c) { return !tousGroupes.includes(c); });
+  if (horsGroupe.length) {
+    if (y + 8 > 280) { doc.addPage(); y = mT; }
+    doc.setFillColor(240, 240, 240);
+    doc.rect(mL, y, W, 6, 'F');
+    doc.setFont(FN, 'bold'); doc.setFontSize(6.5); doc.setTextColor(100, 100, 100);
+    doc.text('AUTRES', mL + 2, y + 4.2);
+    y += 6;
+    horsGroupe.forEach(drawRow);
+  }
+
+  doc.setFont(FN, 'normal'); doc.setFontSize(6); doc.setTextColor(170, 170, 170);
+  doc.text('I Love Smile - 23 Rue Boursault 75017 Paris', mL, 290);
+
+  var filename = 'Tarifs_' + gcCabinetSelectionne.replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
+  doc.save(filename);
+  showToast('PDF tarifs genere : ' + filename);
+}
