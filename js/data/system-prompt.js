@@ -253,6 +253,7 @@ Mission PRINCIPALE : trouver le bon client dans la BASE CLIENTS COGILOG.
 • "raw_cabinet" = recopie MOT POUR MOT ce qui est écrit sur la fiche pour le cabinet/centre (ex: "centre premie santé", "cab dez ar"). Même si illisible ou mal orthographié. JAMAIS vide.
 • "raw_praticien" = recopie MOT POUR MOT le nom du dentiste tel qu'il est écrit sur la fiche (ex: "Dr mtimet", "Dr mfkd"). Même si illisible. JAMAIS vide.
 • "raw_commentaires" = recopie MOT POUR MOT le commentaire/instructions du dentiste COMPLET tel qu'écrit sur la fiche. TOUT le texte manuscrit ou tapé, y compris les termes techniques (IC, CCC, full zircone, sous occ, etc.). Ne rien filtrer, ne rien raccourcir. Ce champ sert au post-traitement automatique.
+  ⚠️ LECTURE EXHAUSTIVE : lis CHAQUE MOT du commentaire manuscrit, même les petits mots abrégés (IC, CCC, CCM, PEI, etc.), même s'ils sont écrits en petit, en dessous d'une ligne, ou dans la marge. Un mot oublié = un acte non coché. Lis ligne par ligne, mot par mot.
 Ces champs servent à l'apprentissage automatique. Ne les corriger NI les matcher.
 
 CHAMPS MATCHÉS (après recherche dans la base) :
