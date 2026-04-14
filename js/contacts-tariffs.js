@@ -1927,10 +1927,10 @@ function exporterTarifsPDF() {
     // Ordre souhaite pour couronnes sur implant : provisoires, E-MAX, Zircon CCC, Full Zircon
     var _implantOrder = [
       '2-PROVI', '2-DPIS', '2-DPIT',                     // Provisoires
+      '2-CCMI', '2-CCMIT',                                // CCM
       '2-CCEMAXIS', '2-CCEMAXIT',                         // E-MAX
       '2-CCCIZ', '2-CCCIZT',                              // Zircon CCC
       '2-CCCFULLIS', '2-CCCFULLIT',                       // Full Zircon
-      '2-CCMI', '2-CCMIT',                                // CCM (masques)
     ];
     var SOUS_CATS = {
       'Couronnes sur implant': function(c) { return _implantOrder.indexOf(c) >= 0; },
