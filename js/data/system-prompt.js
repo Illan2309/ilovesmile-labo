@@ -291,6 +291,12 @@ Exemples :
 NE JAMAIS laisser un nom partiel si le contact complet existe dans la base.
 Si AUCUN contact ne correspond → mets "Dr ???". Le système corrigera manuellement.
 
+⛔ RÈGLE ABSOLUE : le praticien DOIT appartenir au cabinet sélectionné. JAMAIS de praticien d'un autre cabinet.
+Si tu trouves "Dr COHEN FANNY" mais que ce contact n'existe PAS dans le cabinet sélectionné → NE PAS le mettre.
+Cherche UNIQUEMENT parmi les contacts listés pour CE cabinet dans la BASE CLIENTS.
+Si le nom lu ne correspond à AUCUN contact de ce cabinet → mets "Dr ???", même si ce nom existe dans un autre cabinet.
+⚠️ CAS PARTICULIER : si le cabinet est un cabinet individuel (ex: "COHEN CARLA", "PETILA MAXENCE", "KRAIF EMILIE") et qu'il n'a qu'un seul contact (+ "Dr ???") → le praticien est FORCÉMENT ce contact. Pas besoin de chercher plus loin.
+
 ══════════════════════════════════════════
 COMMENTAIRES — RÈGLE STRICTE
 ══════════════════════════════════════════
