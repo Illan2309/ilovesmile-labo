@@ -112,12 +112,12 @@ function usRenderDents() {
   const ACTE_COURT = {
     'CCM':'CCM','Couronne coulée':'FCC','EMAX':'EMAX','Zirconium CCC':'CCC',
     'Full zirconium':'FULL ZIR','Dent provisoire':'PROV','Implant CCM':'IMP CCM',
-    'Implant CCC':'IMP CCC','Inlay Core':'IC','Inlay Onlay':'IO','Facette':'FAC','CIV':'CIV',
+    'Implant CCC':'IMP CCC','Inlay Onlay':'IO','Facette':'FAC','CIV':'CIV',
   };
   const _da = window._dentsActesCourant || {};
-  // Construire map dent → acte
+  // Construire map dent → acte (Inlay Core exclu : pas unitaire/solidaire)
   const dentActeMap = new Map();
-  const MAINS_ORDER = ['EMAX','Zirconium CCC','Full zirconium','Inlay Core','Inlay Onlay',
+  const MAINS_ORDER = ['EMAX','Zirconium CCC','Full zirconium','Inlay Onlay',
     'Facette','Implant CCM','Implant CCC','Dent provisoire','CCM','Couronne coulée','CIV'];
   MAINS_ORDER.forEach(acte => {
     const raw = _da[acte] || '';
