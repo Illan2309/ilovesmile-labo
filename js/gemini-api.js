@@ -356,6 +356,90 @@ function enforceFinitionParDefaut(adjointe, commentaires) {
 }
 
 
+// ── Conflits dents conjointe ──
+// Regle metier : sur une meme dent, seuls Inlay Core (+ sous-items),
+// Ceramic Rose Collet, Fraisage, scelle et transvisse peuvent coexister
+// avec d'autres actes. Les autres actes principaux sont exclusifs entre eux.
+function enforceConflitsDentsConjointe(conjointe, dentsActes) {
+  if (!dentsActes || typeof dentsActes !== 'object') return { conjointe: conjointe, dentsActes: dentsActes };
+
+  // Actes qui peuvent coexister sur une meme dent avec n'importe quoi
+  var COMPATIBLES = [
+    'Inlay Core', 'Inlay Core céramisé', 'Inlay Core clavette',
+    'Ceramic Rose Collet', 'Céram. Rose Collet', 'Fraisage',
+    'Implant scellé', 'Implant transvisé',
+    'Épaulement céram.',
+    'Unitaire', 'Solidaire',
+    'Maquillage sillon oui', 'Maquillage sillon non',
+    'Point de contact fort', 'Point de contact léger',
+    'Occlusion sous occ', 'Occlusion légère', 'Occlusion forte',
+    'Embrasure fermée', 'Embrasure ouverte', 'Limite sous gingival'
+  ];
+
+  // Actes exclusifs (ne peuvent pas partager une dent entre eux)
+  var EXCLUSIFS = [
+    'CCM', 'CIV', 'Couronne coulée', 'EMAX', 'Zirconium CCC', 'Full zirconium',
+    'Dent provisoire', 'Implant CCM', 'Implant CCC',
+    'Inlay Onlay composite', 'Inlay Onlay céramique', 'Inlay Onlay métal',
+    'Facette composite', 'Facette céramique', 'Richmond', 'Armature'
+  ];
+
+  // Construire un index : dent → [actes exclusifs presents]
+  var dentExclusifs = {};
+  EXCLUSIFS.forEach(function(acte) {
+    var val = dentsActes[acte];
+    if (!val) return;
+    // Parser les dents (ex: "14 15 16" ou "14-16")
+    var dents = [];
+    String(val).replace(/\d{2}/g, function(d) { dents.push(parseInt(d)); });
+    dents.forEach(function(d) {
+      if (!dentExclusifs[d]) dentExclusifs[d] = [];
+      dentExclusifs[d].push(acte);
+    });
+  });
+
+  // Pour chaque dent avec > 1 acte exclusif, garder le premier et retirer les autres
+  var actesARetirer = {};
+  Object.entries(dentExclusifs).forEach(function(entry) {
+    var dent = entry[0];
+    var actes = entry[1];
+    if (actes.length <= 1) return;
+    // Garder le premier, retirer les suivants de cette dent
+    for (var i = 1; i < actes.length; i++) {
+      var acte = actes[i];
+      if (!actesARetirer[acte]) actesARetirer[acte] = [];
+      actesARetirer[acte].push(parseInt(dent));
+      console.log('[CONFLIT DENT] Dent ' + dent + ' : retrait de "' + acte + '" (conflit avec "' + actes[0] + '")');
+    }
+  });
+
+  // Appliquer les retraits
+  var newDentsActes = Object.assign({}, dentsActes);
+  var newConjointe = conjointe.slice();
+
+  Object.entries(actesARetirer).forEach(function(entry) {
+    var acte = entry[0];
+    var dentsARetirer = entry[1];
+    var val = newDentsActes[acte];
+    if (!val) return;
+    // Retirer les dents en conflit de la valeur
+    var remaining = [];
+    String(val).replace(/\d{2}/g, function(d) {
+      if (!dentsARetirer.includes(parseInt(d))) remaining.push(d);
+    });
+    if (remaining.length === 0) {
+      // Plus aucune dent → retirer l'acte completement
+      delete newDentsActes[acte];
+      newConjointe = newConjointe.filter(function(c) { return c !== acte; });
+      console.log('[CONFLIT DENT] Acte "' + acte + '" retire completement (plus de dents)');
+    } else {
+      newDentsActes[acte] = remaining.join(' ');
+    }
+  });
+
+  return { conjointe: newConjointe, dentsActes: newDentsActes };
+}
+
 // ── Post-traitement scan IA ──
 // 1. Propager machoire globale aux items adjointe qui n'ont pas de position
 function _postTraiterDentsActes(dentsActes, adjointe, machoireGlobal) {

@@ -205,6 +205,13 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
       : null,
     scanIA: scanIA || null,
   };
+
+  // Post-traitement : retirer les conflits de dents en conjointe
+  var _conflitFix = enforceConflitsDentsConjointe(prescription.conjointe, prescription.dentsActes);
+  prescription.conjointe = _conflitFix.conjointe;
+  prescription.dentsActes = _conflitFix.dentsActes;
+
+  return prescription;
 }
 
 // ---- SCAN PRESCRIPTION (single) ----
@@ -499,10 +506,14 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
   }
 
   // Cases conjointe — correspondance exacte + groupes exclusifs enforced
-  const { conjointe: conjointeClean, adjointe: adjointeClean } = enforceParents(
+  var _epResult = enforceParents(
     enforceGroupesExclusifs(data.conjointe || []),
     enforceFinitionParDefaut(data.adjointe || [], data.commentaires)
   );
+  var _daFix = enforceConflitsDentsConjointe(_epResult.conjointe, data.dentsActes || {});
+  var conjointeClean = _daFix.conjointe;
+  var adjointeClean = _epResult.adjointe;
+  if (data.dentsActes) data.dentsActes = _daFix.dentsActes;
   // Reset complet — badges, groupes, sélection
   clearTimeout(window._dentsActesTimeout);
   window._dentsActesCourant = {};
