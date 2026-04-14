@@ -317,10 +317,19 @@ function exportCogilogTSV() {
   lignes.push(['#Catégorie','Code','Préfixe','Nom du client','Numéro (adresse)','Voie (adresse)','Complément (adresse)','Complément (adresse)','Code postal','Ville','Cedex','Pays','Contact principal sexe','Contact principal civilité','Contact principal nom','Contact principal prénom','Contact principal fonction','Téléphone 1','Téléphone 2','Fax','E-mail','Préfixe intracom','SIRET','Compte comptable','Préfixe (adresse facturation)','Nom (adresse facturation)','Complément 1 (adresse facturation)','Numéro (adresse facturation)','Voie (adresse facturation)','Complément 2 (adresse facturation)','Code Postal (adresse facturation)','Ville (adresse facturation)','Cedex (adresse facturation)','Pays (adresse facturation)','exonéré éco-contribution','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Vide','Nom de la banque 1','Code banque','Code guichet','N° de compte banque','Clé RIB','Mode de facturation','Mode de paiement (texte)','Remise type','Taux de remise générale','Délai','Nombre de jours','Paiement','Jour','Découvert autorisé','Avertir découvert','Relance 1','Relance 2','Relance 3','Relance 4','Nom du commercial','Prénom du commercial','Facture','Devis','Pro forma','Bon commande','Bon livraison','Conf. commande','Notation','Notes','Taux escompte','Nbre exemplaires factures','Texte 1','Texte 2','Texte 3','Texte 4','Texte 5','Texte 6','Texte 7','Texte 8','Texte 9','Nombre 1','Nombre 2','Nombre 3','Nombre 4','Nombre 5','Nombre 6','Nombre 7','Nombre 8','Nombre 9','Date 1','Date 2','Date 3','Date 4','Date 5','Date 6','Date 7','Date 8','Date 9','Pénalités','Client bloqué','IBAN 1','BIC 1','Date mandat prélèvements 1','Dossier attaché','Nom de la banque 2','IBAN 2','BIC 2','Date mandat prélèvements 2','Nom de la banque 3','IBAN 3','BIC 3','Date mandat prélèvements 3','Nom de la banque 4','IBAN 4','BIC 4','Date mandat prélèvements 4','Nbre exemplaires devis','Nbre exemplaires factures pro forma','Nbre exemplaires bons de commande','Nbre exemplaires bons de livraison','Nbre exemplaires confirmations de commandes','RUM 1','RUM 2','RUM 3','RUM 4','Site web',"Compte d'acompte",'Marqueur']);
   // Ajouter les vraies données clients pour chaque prescription exportée
   const clientsDejaAjoutes = new Set();
+  // Nombre attendu de colonnes dans le header (138 + Compte d'acompte + Marqueur = 140)
+  var _nbColsClient = 140;
+  // Colonnes qui doivent contenir "0" si vides (Nombre 1-9 = index 91-99)
+  var _zeroColsClient = [91,92,93,94,95,96,97,98,99];
   for (const p of selected) {
     const cc = (p.code_cogilog || '').trim();
     if (cc && !clientsDejaAjoutes.has(cc) && COGILOG_CLIENTS[cc]) {
-      lignes.push(COGILOG_CLIENTS[cc]);
+      // Normaliser le tableau client a 140 colonnes
+      var clientRow = COGILOG_CLIENTS[cc].slice();
+      while (clientRow.length < _nbColsClient) clientRow.push('');
+      // Forcer "0" sur les colonnes Nombre si vides
+      _zeroColsClient.forEach(function(ci) { if (!clientRow[ci]) clientRow[ci] = '0'; });
+      lignes.push(clientRow);
       clientsDejaAjoutes.add(cc);
     }
   }
