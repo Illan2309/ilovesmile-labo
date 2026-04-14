@@ -1216,11 +1216,18 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
       const x = rx + 4 + (item.indent ? 6 : 0);
       const isCutTeeth = item.label === 'CUT TEETH' || item.label === 'Dent à extraire';
 
-      // Sous-item (Ackers, grille, etc.) : petit, grisé, sans losange
+      // Sous-item (grille, contre plaque, crochet) : petit, grisé, sans losange
+      // Ackers : taille normale, sous-item indenté mais lisible
       if (item.isFinition) {
-        doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...muted);
-        doc.text('· ' + item.label, x, acy + 0.3);
-        acy += 5.5;
+        var isAckersItem = (item._v || '').startsWith('Ackers ');
+        if (isAckersItem) {
+          checkbox(item.label, false, x, acy);
+          acy += 6.5;
+        } else {
+          doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...muted);
+          doc.text('· ' + item.label, x, acy + 0.3);
+          acy += 5.5;
+        }
         return;
       }
 

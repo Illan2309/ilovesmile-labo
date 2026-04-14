@@ -59,7 +59,7 @@ function getCodeLaboContext() {
   return { jour, lettre, hier, demain };
 }
 
-async function callGemini(base64, mediaType, isHTML = false, useFallback = false, cropBase64 = null) {
+async function callGemini(base64, mediaType, isHTML = false, useFallback = false, cropBase64 = null, cropCommentBase64 = null) {
   const aujourdhui = new Date().toISOString().split('T')[0];
   const anneeActuelle = new Date().getFullYear();
   const codeLaboCtx = getCodeLaboContext();
@@ -68,8 +68,9 @@ async function callGemini(base64, mediaType, isHTML = false, useFallback = false
 Le code labo suit un format LETTRE + NOMBRE. La lettre correspond au JOUR DU MOIS de la prise d'empreinte :
 A=1, B=2, C=3, D=4, E=5, F=6, G=7, H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15, P=16, Q=17, R=18, S=19, T=20, U=21, V=22, W=23, X=24, Y=25, Z=26, AA=27, BB=28, YY=29, TT=30, XX=31.
 Le nombre indique le fournisseur : 1-99 = MERDENTAL, 101-199 = HUILE.
+⛔ ATTENTION AUX NOMBRES À 3 CHIFFRES : "130" ≠ "30". Le "1" devant peut être petit, collé à la lettre, ou écrit fin. Vérifie bien s'il y a un "1" devant les nombres 01-99 car 130 (HUILE) et 30 (MERDENTAL) sont des fournisseurs DIFFÉRENTS. Lis CHAQUE chiffre attentivement.
 Aujourd'hui on est le ${codeLaboCtx.jour}, donc la lettre du jour est "${codeLaboCtx.lettre}". Les lettres "${codeLaboCtx.hier}" (hier) et "${codeLaboCtx.demain}" (demain) sont aussi possibles.
-Exemples de codes valides : ${codeLaboCtx.lettre}1, ${codeLaboCtx.lettre}2, ${codeLaboCtx.lettre}3 (MERDENTAL) ou ${codeLaboCtx.lettre}101, ${codeLaboCtx.lettre}102 (HUILE).
+Exemples de codes valides : ${codeLaboCtx.lettre}1, ${codeLaboCtx.lettre}2, ${codeLaboCtx.lettre}30 (MERDENTAL) ou ${codeLaboCtx.lettre}101, ${codeLaboCtx.lettre}130 (HUILE).
 ⚠️ RÈGLE CRITIQUE : lis ce qui est écrit sur la fiche. La lettre du jour sert à DÉPARTAGER les caractères manuscrits ambigus :
 - C/G ressemblent → si jour 3 (C), choisir C. Si jour 7 (G), choisir G.
 - B/D ressemblent → si jour 2 (B), choisir B. Si jour 4 (D), choisir D.
@@ -120,7 +121,8 @@ ${getCogilogCompactIndex()}
 
 ALIAS PRODUITS — RÈGLE OBLIGATOIRE :
 Si un terme ci-dessous apparaît dans le commentaire du dentiste ou AILLEURS sur la fiche, tu DOIS cocher le(s) produit(s) associé(s). Ces alias sont PRIORITAIRES sur le mapping par défaut. Cherche-les activement dans TOUT le texte de la fiche :
-${getProductAliasesText()}` }];
+${getProductAliasesText()}
+${getCarnetsGlobalContext()}` }];
   } else if (mediaType === 'application/pdf') {
     // PDF → convertir en images JPEG via pdf.js (GPT ne supporte pas les PDF natifs)
     const pdfImages = await pdfToImages(base64);
@@ -144,7 +146,8 @@ ${getCogilogCompactIndex()}
 
 ALIAS PRODUITS — RÈGLE OBLIGATOIRE :
 Si un terme ci-dessous apparaît dans le commentaire du dentiste ou AILLEURS sur la fiche, tu DOIS cocher le(s) produit(s) associé(s). Ces alias sont PRIORITAIRES sur le mapping par défaut. Cherche-les activement dans TOUT le texte de la fiche :
-${getProductAliasesText()}` });
+${getProductAliasesText()}
+${getCarnetsGlobalContext()}` });
   } else {
     parts = [
       { inline_data: { mime_type: mediaType, data: base64 } },
@@ -153,6 +156,11 @@ ${getProductAliasesText()}` });
     if (cropBase64) {
       parts.push({ inline_data: { mime_type: 'image/jpeg', data: cropBase64 } });
       parts.push({ text: '⬆️ IMAGE 2 = ZOOM sur le haut de la fiche (code labo, cabinet, dentiste, patient, dates). Utilise ce zoom pour MIEUX LIRE ces champs.' });
+    }
+    // Ajouter le crop zoomé du bas (zone commentaire manuscrit)
+    if (cropCommentBase64) {
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: cropCommentBase64 } });
+      parts.push({ text: '⬆️ IMAGE 3 = ZOOM sur la zone commentaire/instructions du dentiste (bas de la fiche). Utilise ce zoom pour LIRE CHAQUE MOT du commentaire manuscrit, même les abréviations (IC, CCC, CCM, etc.).' });
     }
     parts.push({ text: `TYPE : Fiche image (photo ou scan).
 
@@ -182,6 +190,7 @@ ${getProductAliasesText()}
 
 ⛔ DENT À EXTRAIRE / ADJONCTION : numéros de dents UNIQUEMENT (jamais haut/bas).
 dentsActes["Dent à extraire"] = "26 44" / dentsActes["Adjonction dent"] = "37" / dentsActes["Adjonction crochet"] = "13 23"
+${getCarnetsGlobalContext()}
 ${getPromptApprentissage()}` });
   }
   const response = await fetch('https://gemini-proxy.cohenillan29.workers.dev/', {
@@ -352,9 +361,10 @@ function enforceGroupesExclusifs(conjointe) {
 
 // Finition par défaut pour stellite/résine/complet/valplast
 // Ne garde "montage" que si commentaire contient "essayage" ou "montage"
-function enforceFinitionParDefaut(adjointe, commentaires) {
-  const comm = commentaires || '';
-  const mentionMontage = /essayage|montage/i.test(comm);
+// Accepte commentaires filtré ET raw_commentaires brut pour ne rien rater
+function enforceFinitionParDefaut(adjointe, commentaires, rawCommentaires) {
+  const comm = (commentaires || '') + ' ' + (rawCommentaires || '');
+  const mentionMontage = /essayage|montage|mise en bouche|try.?in/i.test(comm);
   if (mentionMontage) return adjointe;
   const remplacements = {
     'Stellite montage stellite': 'Stellite finition stellite',
@@ -429,6 +439,9 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
     'epaulement': ['Épaulement céram.'],
   };
   var TERMES_ADJOINTE = {
+    'stellite valplast': ['Valplast finition'],
+    'stellite sup. valplast': ['Valplast finition'],
+    'stellite sup valplast': ['Valplast finition'],
     'stellite': ['Stellite finition stellite'],
     'valplast': ['Valplast finition'],
     'gouttiere souple': ['Gouttière souple'],
@@ -489,10 +502,23 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
   });
 
   // Scanner le commentaire pour les termes adjointe
+  // Les termes longs sont testés en premier (Object.entries préserve l'ordre d'insertion)
+  // On trace les termes matchés pour éviter qu'un terme court écrase un terme long
+  var _adjointeMatched = [];
   Object.entries(TERMES_ADJOINTE).forEach(function(e) {
     var terme = e[0];
     var cases = e[1];
     if (_matchTerme(comm, terme)) {
+      // Vérifier qu'un terme plus long contenant celui-ci n'a pas déjà matché
+      // Ex: "stellite valplast" matché → ne pas matcher "stellite" seul
+      var eclipseParLong = _adjointeMatched.some(function(prev) {
+        return prev.length > terme.length && prev.includes(terme);
+      });
+      if (eclipseParLong) {
+        console.log('[POST-TRAIT] "' + terme + '" ignoré (éclipsé par terme plus long)');
+        return;
+      }
+      _adjointeMatched.push(terme);
       cases.forEach(function(cs) {
         if (!a.includes(cs)) {
           a.push(cs);
@@ -601,6 +627,18 @@ function _postTraiterDentsActes(dentsActes, adjointe, machoireGlobal) {
   if (!machBase) return result;
   // Items qui ne doivent JAMAIS hériter de la mâchoire globale (dents seules)
   const ITEMS_SANS_MACHOIRE = ['Dent à extraire', 'Adjonction dent', 'Adjonction crochet'];
+  // Items qui ne prennent JAMAIS de dents — uniquement haut/bas/haut+bas
+  const ITEMS_MACHOIRE_SEULE = ['PEI', "Cire d'occlusion"];
+  ITEMS_MACHOIRE_SEULE.forEach(function(acte) {
+    if (!result[acte]) return;
+    var val = String(result[acte]);
+    // Retirer toute référence à des dents, garder uniquement la position
+    if (val.includes('haut') && val.includes('bas')) result[acte] = 'haut+bas';
+    else if (val.includes('haut')) result[acte] = 'haut';
+    else if (val.includes('bas')) result[acte] = 'bas';
+    else if (machBase) result[acte] = machBase;
+    else result[acte] = 'haut+bas';
+  });
   // Tous les actes adjointe sans position → héritent de machoire global
   adjointe.forEach(acte => {
     // Ne pas remplir les parents sans dents

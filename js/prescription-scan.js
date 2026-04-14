@@ -45,7 +45,12 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
   let _bCabinetName = data.cabinet || '';
   let _bPraticien = data.praticien || '';
   var _bRawCode = (data.code_cogilog || '').trim().toUpperCase();
-  if (_bRawCode && COGILOG_CLIENTS[_bRawCode]) {
+  var _bStatuts = window._gcStatuts || {};
+  var _bIsInactif = function(code) {
+    var nom = (COGILOG_CLIENTS[code] && COGILOG_CLIENTS[code][3] || '').trim();
+    return _bStatuts[nom] === 'inactif';
+  };
+  if (_bRawCode && COGILOG_CLIENTS[_bRawCode] && !_bIsInactif(_bRawCode)) {
     _bResolvedCode = _bRawCode;
   }
   // Fallback direct : nom cabinet exact
@@ -53,6 +58,7 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     var _bNorm = function(s) { return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim(); };
     var _bCabUp = _bNorm(data.cabinet);
     for (var _bk in COGILOG_CLIENTS) {
+      if (_bIsInactif(_bk)) continue; // Skip inactifs
       if (_bNorm(COGILOG_CLIENTS[_bk][3] || '') === _bCabUp) {
         _bResolvedCode = _bk; break;
       }
@@ -229,7 +235,7 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     scanPosition: ignoreCodeLabo ? _autoScanPos(data.dents || []) : '',
     dates: { empreinte: data.date_empreinte || '', livraison: data.date_livraison || '', sansDate: data.sans_date_livraison === true },
     dents: data.dents || [],
-    ...(() => { const p = enforceParents(enforceGroupesExclusifs(data.conjointe || []), enforceFinitionParDefaut(data.adjointe || [], data.commentaires)); return { conjointe: p.conjointe, adjointe: p.adjointe }; })(),
+    ...(() => { const p = enforceParents(enforceGroupesExclusifs(data.conjointe || []), enforceFinitionParDefaut(data.adjointe || [], data.commentaires, data.raw_commentaires)); return { conjointe: p.conjointe, adjointe: p.adjointe }; })(),
     fraisage: data.fraisage || '',
     machoire: data.machoire || '',
     dentsActes: _postTraiterDentsActes(data.dentsActes || {}, data.adjointe || [], data.machoire || ''),
@@ -256,7 +262,13 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
   prescription.conjointe = _commFix.conjointe;
   prescription.adjointe = _commFix.adjointe;
 
-  // Post-traitement : retirer les conflits de dents en conjointe
+  // Post-traitement : règles de cohérence métier (AVANT conflits dents — détecte les ambiguïtés)
+  var _coherenceCorrections = enforceCoherenceMetier(prescription);
+  if (_coherenceCorrections.length) {
+    prescription._coherenceCorrections = _coherenceCorrections;
+  }
+
+  // Post-traitement : retirer les conflits de dents en conjointe (APRÈS cohérence)
   var _conflitFix = enforceConflitsDentsConjointe(prescription.conjointe, prescription.dentsActes);
   prescription.conjointe = _conflitFix.conjointe;
   prescription.dentsActes = _conflitFix.dentsActes;
@@ -279,12 +291,25 @@ async function scanPrescription(input) {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const originalDataUrl = e.target.result;
-    const base64 = originalDataUrl.split(',')[1];
-    const mediaType = isPDF ? 'application/pdf' : (isHTML ? 'text/html' : file.type);
+    const isImage = !isPDF && !isHTML;
+
+    // Pré-traitement image : contraste adaptatif + deskew + crops multi-zones
+    let fileForScan = file;
+    let cropB64 = null;
+    let cropCommB64 = null;
+    if (isImage) {
+      fileForScan = await enhanceImageForScan(file);
+      cropB64 = await cropTopZone(file);
+      cropCommB64 = await cropCommentZone(file);
+    }
+
+    const scanDataUrl = isImage ? await fileToDataUrl(fileForScan) : originalDataUrl;
+    const base64 = scanDataUrl.split(',')[1];
+    const mediaType = isPDF ? 'application/pdf' : (isHTML ? 'text/html' : fileForScan.type);
 
     try {
-      // Utilise callGemini (prompt complet unifié)
-      const parsed = await callGemini(base64, mediaType, isHTML);
+      // Utilise callGemini avec crops multi-zones
+      const parsed = await callGemini(base64, mediaType, isHTML, false, cropB64, cropCommB64);
       lastScanIA = parsed;
       // Si HTML → convertir en image JPEG compressée pour le stockage
       if (isHTML) {
@@ -301,8 +326,12 @@ async function scanPrescription(input) {
       window._rescanData = { photoSrc: originalDataUrl, photoType: _rescanType, patientName: parsed.patient_nom || '', _editIdx: -1 };
       var _btnR = document.getElementById('btn-rescan');
       if (_btnR) _btnR.style.display = 'inline-block';
+      var _btnVE = document.getElementById('btn-validation-express');
+      if (_btnVE) _btnVE.style.display = 'inline-block';
       document.getElementById('scan-status').textContent = '✅ Formulaire rempli — vérifie et corrige si besoin';
       document.getElementById('correction-zone').style.display = 'block';
+      // Auto-activation des features selon préférences
+      _autoActiverPostScan();
       showToast('Fiche analysée ! Corrige les erreurs si besoin.');
 
     } catch (err) {
@@ -387,6 +416,9 @@ async function rescanCurrentPrescription() {
     updatePreviewPanel(dataUrl, { name: patientName || 'Rescan' });
 
     document.getElementById('correction-zone').style.display = 'block';
+    var _btnVE2 = document.getElementById('btn-validation-express');
+    if (_btnVE2) _btnVE2.style.display = 'inline-block';
+    _autoActiverPostScan();
     showToast('✅ Rescan terminé — vérifie les données et sauvegarde !');
 
   } catch (err) {
@@ -421,7 +453,12 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
     let resolvedCode = null;
     var _rawCode = (data.code_cogilog || '').trim().toUpperCase();
     console.log('[SCAN] Gemini →', JSON.stringify({cab: data.cabinet, code: data.code_cogilog, prat: data.praticien, comm: (data.commentaires||'').substring(0,80), raw_comm: (data.raw_commentaires||'').substring(0,150), conjointe: data.conjointe, adjointe: data.adjointe}));
-    if (_rawCode && COGILOG_CLIENTS[_rawCode]) {
+    var _inactifStatuts = window._gcStatuts || {};
+    var _isInactif = function(code) {
+      var nom = (COGILOG_CLIENTS[code] && COGILOG_CLIENTS[code][3] || '').trim();
+      return _inactifStatuts[nom] === 'inactif';
+    };
+    if (_rawCode && COGILOG_CLIENTS[_rawCode] && !_isInactif(_rawCode)) {
       resolvedCode = _rawCode;
     }
     // Fallback direct : si Gemini a retourné un cabinet qui correspond exactement à un nom Cogilog
@@ -429,6 +466,7 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
       var _fNorm = function(s) { return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim(); };
       var _cabUp = _fNorm(data.cabinet);
       for (var _ck in COGILOG_CLIENTS) {
+        if (_isInactif(_ck)) continue; // Skip inactifs
         if (_fNorm(COGILOG_CLIENTS[_ck][3] || '') === _cabUp) {
           resolvedCode = _ck;
           break;
@@ -558,15 +596,27 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
   // Cases conjointe — correspondance exacte + groupes exclusifs enforced
   var _epResult = enforceParents(
     enforceGroupesExclusifs(data.conjointe || []),
-    enforceFinitionParDefaut(data.adjointe || [], data.commentaires)
+    enforceFinitionParDefaut(data.adjointe || [], data.commentaires, data.raw_commentaires)
   );
   // Post-traitement : cocher cases depuis commentaire
   var _rawComm2 = data.raw_commentaires || data.commentaires || '';
   var _commFix2 = enforceCommentaireConjointe(_epResult.conjointe, _epResult.adjointe, _rawComm2);
   var _daFix = enforceConflitsDentsConjointe(_commFix2.conjointe, data.dentsActes || {});
-  var conjointeClean = _daFix.conjointe;
-  var adjointeClean = _commFix2.adjointe;
   if (data.dentsActes) data.dentsActes = _daFix.dentsActes;
+
+  // Appliquer les règles de cohérence métier (ambiguïté IO/couronne, etc.)
+  var _cohData = {
+    conjointe: _daFix.conjointe, adjointe: _commFix2.adjointe,
+    dentsActes: data.dentsActes || {}, solidGroups: data.solidGroups || [],
+    dents: data.dents || [], machoire: data.machoire || '',
+    commentaires: data.commentaires || '', raw_commentaires: data.raw_commentaires || ''
+  };
+  var _cohCorrections = enforceCoherenceMetier(_cohData);
+  var conjointeClean = _cohData.conjointe;
+  var adjointeClean = _cohData.adjointe;
+  data.dentsActes = _cohData.dentsActes;
+  data.solidGroups = _cohData.solidGroups;
+  data.dents = _cohData.dents;
   // Reset complet — badges, groupes, sélection
   clearTimeout(window._dentsActesTimeout);
   window._dentsActesCourant = {};
@@ -614,6 +664,83 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
     });
   }
 
+  // Afficher les scores de confiance IA (sauf si désactivé dans les préférences)
+  var _prefs = window._appPrefs || {};
+  if (_prefs.afficher_confiance !== false) {
+    var _conf = data._confidence;
+    if (!_conf || typeof _conf !== 'object' || Object.keys(_conf).length === 0) {
+      // Gemini n'a pas renvoyé de scores → calcul local basé sur la qualité des données
+      _conf = _calculerConfianceLocale(data);
+      console.log('[CONFIANCE] Scores calculés localement:', JSON.stringify(_conf));
+    } else {
+      console.log('[CONFIANCE] Scores Gemini:', JSON.stringify(_conf));
+    }
+    _afficherConfiance(_conf);
+  }
+
   // Scroll vers le formulaire
   document.querySelector('.card:last-of-type') && document.getElementById('prescription-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Calcul local de confiance quand Gemini ne renvoie pas de scores
+function _calculerConfianceLocale(data) {
+  var conf = {};
+
+  // Code labo : fiable si format lettre+nombre, douteux si vide
+  var cl = (data.code_labo || '').trim();
+  if (!cl) conf.code_labo = 0;
+  else if (/^[A-Z]{1,2}\d{1,3}$/.test(cl)) conf.code_labo = 85;
+  else conf.code_labo = 50;
+
+  // Cabinet : fiable si code Cogilog trouvé
+  if (data.code_cogilog && typeof COGILOG_CLIENTS !== 'undefined' && COGILOG_CLIENTS[data.code_cogilog]) {
+    conf.cabinet = 95;
+  } else if (data.cabinet) {
+    conf.cabinet = 60;
+  } else {
+    conf.cabinet = 20;
+  }
+
+  // Praticien : fiable si pas "Dr ???", douteux si partiel
+  var prat = (data.praticien || '').trim();
+  if (!prat || prat === 'Dr ???') conf.praticien = 20;
+  else if (prat.includes('???')) conf.praticien = 30;
+  else conf.praticien = 85;
+
+  // Patient : fiable si non vide
+  conf.patient_nom = data.patient_nom ? 90 : 15;
+
+  // Dents : fiable si présentes et valides
+  var dents = data.dents || [];
+  if (dents.length === 0) conf.dents = 30;
+  else if (dents.every(function(d) { return d >= 11 && d <= 48; })) conf.dents = 85;
+  else conf.dents = 50;
+
+  // Conjointe/Adjointe : fiable si au moins un acte
+  var conj = data.conjointe || [];
+  var adj = data.adjointe || [];
+  if (conj.length === 0 && adj.length === 0) conf.conjointe = 30;
+  else conf.conjointe = 80;
+  conf.adjointe = adj.length > 0 ? 80 : (conj.length > 0 ? 90 : 30);
+
+  // Teinte : fiable si reconnue, absente = pas forcément erreur
+  var teinte = (data.teinte || '').trim();
+  if (!teinte) conf.teinte = 50;
+  else if (/^[A-D]\d/.test(teinte) || /^BL\d/.test(teinte) || /^\d[LMR]/.test(teinte)) conf.teinte = 90;
+  else conf.teinte = 65;
+
+  // Commentaires : toujours un peu douteux (manuscrit)
+  conf.commentaires = data.raw_commentaires ? 70 : (data.commentaires ? 75 : 90);
+
+  return conf;
+}
+
+// Auto-activation des features post-scan selon les préférences
+function _autoActiverPostScan() {
+  var prefs = window._appPrefs || {};
+  // Validation express automatique
+  if (prefs.auto_validation_express && !_validationExpressActive) {
+    setTimeout(function() { toggleValidationExpress(); }, 300);
+  }
+  // Comparaison visuelle automatique
 }

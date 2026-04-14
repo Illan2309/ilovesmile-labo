@@ -287,10 +287,13 @@ function matchCabinetLocal(scannedText) {
     if (n) _nomToCode[n] = code;
   });
 
-  // 3. Recherche dans COGILOG_CLIENTS
+  // 3. Recherche dans COGILOG_CLIENTS (exclure les inactifs)
+  var _statuts = window._gcStatuts || {};
   var bestCode = null;
   var bestScore = 0;
   Object.entries(COGILOG_CLIENTS).forEach(function([code, d]) {
+    var _nom = (d[3] || '').trim();
+    if (_statuts[_nom] === 'inactif') return; // SKIP inactifs
     var nom   = _nAccAlias(d[3] || '');
     var ville = _nAccAlias(d[9] || '');
     var adr   = _nAccAlias(d[6] || '');

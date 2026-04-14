@@ -300,15 +300,17 @@ async function lancerScanDossiers() {
         if (_rateLimitUntil > now) await new Promise(r => setTimeout(r, _rateLimitUntil - now));
 
         try {
-          const _fileForScan = (!isPDF && !isHTML) ? await enhanceImageForScan(file) : file;
-          const _cropB64 = (!isPDF && !isHTML) ? await cropTopZone(file) : null;
+          const _isImage = !isPDF && !isHTML;
+          const _fileForScan = _isImage ? await enhanceImageForScan(file) : file;
+          const _cropB64 = _isImage ? await cropTopZone(file) : null;
+          const _cropCommB64 = _isImage ? await cropCommentZone(file) : null;
           const dataUrlDisplay = await fileToDataUrl(file);
           const base64  = (await fileToDataUrl(_fileForScan)).split(',')[1];
           const mediaType = isPDF ? 'application/pdf' : (isHTML ? 'text/html' : _fileForScan.type);
           const _useFallback = attempts >= 5;
           if (_useFallback && attempts === 5) console.log('[SCAN] ' + file.name + ' → fallback 2.5 Pro');
           document.getElementById('folder-status').textContent = '🤖 [' + dirName + '] ' + file.name + (attempts > 0 ? ' (retry ' + attempts + (_useFallback ? ' · 2.5' : '') + ')' : '');
-          const data = await callGemini(base64, mediaType, isHTML, _useFallback, _cropB64);
+          const data = await callGemini(base64, mediaType, isHTML, _useFallback, _cropB64, _cropCommB64);
           const prescription = await buildPrescriptionFromScan(data, dataUrlDisplay, data, isHTML || isPDF);
           prescription._id = _fileId;
           if (!data.numero_prescription) {
@@ -575,15 +577,17 @@ async function scanMultiple(input) {
       try {
         const now = Date.now();
         if (_rateLimitUntil > now) await new Promise(r => setTimeout(r, _rateLimitUntil - now));
-        const _fileForScan = (!isPDF && !isHTML) ? await enhanceImageForScan(file) : file;
-        const _cropB64 = (!isPDF && !isHTML) ? await cropTopZone(file) : null;
+        const _isImage = !isPDF && !isHTML;
+        const _fileForScan = _isImage ? await enhanceImageForScan(file) : file;
+        const _cropB64 = _isImage ? await cropTopZone(file) : null;
+        const _cropCommB64 = _isImage ? await cropCommentZone(file) : null;
         const dataUrlOriginal = await fileToDataUrl(file); // Original pour l'affichage
         const dataUrlScan = await fileToDataUrl(_fileForScan); // Amélioré pour GPT
         const base64 = dataUrlScan.split(',')[1];
         const mediaType = isPDF ? 'application/pdf' : (isHTML ? 'text/html' : _fileForScan.type);
         const _useFallback = attempts >= 5; // après 5 échecs → passer sur 2.5
         if (_useFallback && attempts === 5) console.log('[SCAN] ' + file.name + ' → fallback 2.5 Pro');
-        const data = await callGemini(base64, mediaType, isHTML, _useFallback, _cropB64);
+        const data = await callGemini(base64, mediaType, isHTML, _useFallback, _cropB64, _cropCommB64);
         document.getElementById('multi-status').textContent = '🌐 Traduction : ' + file.name;
         let photoUrl = dataUrlOriginal;
         if (isHTML) {
