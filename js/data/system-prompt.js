@@ -203,6 +203,24 @@ Le commentaire du dentiste est ta SOURCE PRIORITAIRE pour identifier les actes, 
 Mais le champ "commentaires" du JSON ne doit contenir que l'INFO UTILE RÉSIDUELLE pour le technicien.
 Voir la section "COMMENTAIRES — RÈGLE STRICTE" plus bas pour les règles exactes.
 
+⚠️ HIÉRARCHIE DE DÉCISION POUR LES ACTES — RÈGLE ABSOLUE :
+1. COMMENTAIRE DU DENTISTE (manuscrit ou tapé) → PRIORITÉ MAXIMALE
+2. Cases cochées / imprimées sur la fiche → SECONDAIRE
+3. Déduction logique → EN DERNIER RECOURS
+
+Si le commentaire du dentiste mentionne un acte précis, c'est CET ACTE qui prime, même si une case cochée sur la fiche indique autre chose.
+
+EXEMPLES CRITIQUES :
+• La fiche coche "Zircone Multilayer" MAIS le commentaire dit "CCC" ou "ccc" → mettre "Zirconium CCC" (PAS "Full zirconium"). CCC = Zirconium CCC (stratifié), Multilayer/Full/Monolithique = Full zirconium.
+• La fiche coche "Céramo-métallique" MAIS le commentaire dit "emax" → mettre "EMAX"
+• La fiche imprime "couronne" sans précision MAIS le commentaire dit "full zircone" → mettre "Full zirconium"
+• Si le commentaire ne mentionne RIEN sur le type de couronne → suivre les cases cochées de la fiche
+
+DISTINCTION CCC vs FULL ZIRCONIUM :
+"CCC", "ccc", "zircone CCC", "zircon stratifié", "zircone 5 couches" → "Zirconium CCC"
+"full zircone", "full zircon", "monolithique", "multilayer", "zircone pleine" → "Full zirconium"
+En cas de doute et SANS indication dans le commentaire → suivre la case cochée sur la fiche.
+
 ══════════════════════════════════════════
 CHAMPS SPÉCIAUX (a_refaire, urgent, call_me, cas_esthetique)
 ══════════════════════════════════════════
