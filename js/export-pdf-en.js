@@ -1261,40 +1261,74 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
         let bx2 = x + 5 + labelW2 + 3;
 
         if (item.jaw) {
+          var jawText = item.jaw + (item.teeth ? ' : ' + item.teeth : '');
           var jawCol = item.jaw.includes('+') ? [91,69,180] : (item.jaw==='UPPER'?[173,20,87]:[0,131,143]);
           var jawBg  = item.jaw.includes('+') ? [237,233,254] : (item.jaw==='UPPER'?[252,228,236]:[224,247,250]);
-          // Badge jaw seul d'abord
-          var jawOnly = item.jaw;
-          var jawW = doc.getStringUnitWidth(jawOnly)*6.5/doc.internal.scaleFactor+8;
-          doc.setFillColor(...jawBg);
-          doc.roundedRect(bx2, acy-4, jawW, 6, 1.5, 1.5, 'F');
-          doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-          doc.text(jawOnly, bx2+3, acy+0.5);
-          bx2 += jawW + 2;
-          // Badges dents individuels avec wrap
-          if (item.teeth) {
-            var teethArr = item.teeth.trim().split(/\s+/);
-            teethArr.forEach(function(d) {
-              var dw = doc.getStringUnitWidth(d)*6.5/doc.internal.scaleFactor+6;
-              if (bx2 + dw >= rx + halfW - 2) { bx2 = rx + 8; acy += 6.5; }
+          var maxBadgeW = rx + halfW - bx2 - 4;
+          var tw3 = doc.getStringUnitWidth(jawText)*6.5/doc.internal.scaleFactor+8;
+          if (tw3 <= maxBadgeW) {
+            // Tient sur une ligne
+            doc.setFillColor(...jawBg);
+            doc.roundedRect(bx2, acy-4, tw3, 6, 1.5, 1.5, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
+            doc.text(jawText, bx2+3, acy+0.5);
+          } else {
+            // Trop long : 1ere ligne jaw + debut dents, 2eme ligne suite dents
+            var teethArr = (item.teeth || '').trim().split(/\s+/);
+            var line1 = item.jaw + ' : ';
+            var line2parts = [];
+            for (var ti = 0; ti < teethArr.length; ti++) {
+              var testLine = line1 + teethArr.slice(0, ti+1).join(' ');
+              var testW = doc.getStringUnitWidth(testLine)*6.5/doc.internal.scaleFactor+8;
+              if (testW > maxBadgeW && ti > 0) {
+                line2parts = teethArr.slice(ti);
+                break;
+              }
+              line1 = testLine;
+              if (ti === teethArr.length - 1) line1 = testLine;
+            }
+            // Ligne 1
+            var w1 = doc.getStringUnitWidth(line1)*6.5/doc.internal.scaleFactor+8;
+            doc.setFillColor(...jawBg);
+            doc.roundedRect(bx2, acy-4, Math.min(w1, maxBadgeW), 6, 1.5, 1.5, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
+            doc.text(line1, bx2+3, acy+0.5);
+            // Ligne 2 si besoin
+            if (line2parts.length) {
+              acy += 7;
+              var line2 = line2parts.join(' ');
+              var w2 = doc.getStringUnitWidth(line2)*6.5/doc.internal.scaleFactor+8;
               doc.setFillColor(...jawBg);
-              doc.roundedRect(bx2, acy-4, dw, 6, 1.5, 1.5, 'F');
+              doc.roundedRect(rx+8, acy-4, Math.min(w2, halfW-12), 6, 1.5, 1.5, 'F');
               doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-              doc.text(d, bx2+dw/2, acy+0.5, {align:'center'});
-              bx2 += dw + 2;
-            });
+              doc.text(line2, rx+11, acy+0.5);
+            }
           }
         } else if (item.teeth) {
-          var teethArr2 = item.teeth.trim().split(/\s+/);
-          teethArr2.forEach(function(d) {
-            var dw2 = doc.getStringUnitWidth(d)*7/doc.internal.scaleFactor+6;
-            if (bx2 + dw2 >= rx + halfW - 2) { bx2 = rx + 8; acy += 6.5; }
+          var tw4 = doc.getStringUnitWidth(item.teeth)*7/doc.internal.scaleFactor+6;
+          if (tw4 <= rx + halfW - bx2 - 4) {
             doc.setFillColor(240,245,255);
-            doc.roundedRect(bx2, acy-4, dw2, 6, 1.5, 1.5, 'F');
+            doc.roundedRect(bx2, acy-4, tw4, 6, 1.5, 1.5, 'F');
             doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
-            doc.text(d, bx2+dw2/2, acy+0.5, {align:'center'});
-            bx2 += dw2 + 2;
-          });
+            doc.text(item.teeth, bx2+tw4/2, acy+0.5, {align:'center'});
+          } else {
+            // Wrap : couper les dents en 2 lignes
+            var tArr = item.teeth.trim().split(/\s+/);
+            var half = Math.ceil(tArr.length / 2);
+            var l1 = tArr.slice(0, half).join(' ');
+            var l2 = tArr.slice(half).join(' ');
+            var tw41 = doc.getStringUnitWidth(l1)*7/doc.internal.scaleFactor+6;
+            doc.setFillColor(240,245,255);
+            doc.roundedRect(bx2, acy-4, tw41, 6, 1.5, 1.5, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
+            doc.text(l1, bx2+tw41/2, acy+0.5, {align:'center'});
+            acy += 7;
+            var tw42 = doc.getStringUnitWidth(l2)*7/doc.internal.scaleFactor+6;
+            doc.setFillColor(240,245,255);
+            doc.roundedRect(rx+8, acy-4, tw42, 6, 1.5, 1.5, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
+            doc.text(l2, rx+8+tw42/2, acy+0.5, {align:'center'});
+          }
         }
       }
 
