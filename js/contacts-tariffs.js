@@ -666,8 +666,9 @@ function gcValiderAjoutClient() {
   const livraison = document.getElementById('nc-livraison').value.trim().toUpperCase();
   const notes = document.getElementById('nc-notes').value.trim();
 
-  // Construire le tableau client au format COGILOG_CLIENTS (138 colonnes)
-  const client = new Array(138).fill('');
+  // Construire le tableau client au format COGILOG_CLIENTS (140 colonnes)
+  // Index exacts du header TSV Cogilog
+  const client = new Array(140).fill('');
   client[0]  = cat;             // Catégorie
   client[1]  = code;            // Code
   client[2]  = prefixe;         // Préfixe
@@ -687,12 +688,16 @@ function gcValiderAjoutClient() {
   client[56] = '5';             // Mode facturation
   client[57] = paiement;        // Mode paiement
   client[58] = livraison;       // Nom livraison
-  client[64] = '0,00';          // Taux remise
-  client[65] = 'NON';           // Découvert
-  client[66] = '30';            // Délai
-  client[67] = '15';            // Nombre jours
-  client[68] = '10';            // Paiement
-  client[69] = '7';             // Jour
+  client[60] = '0';             // Délai
+  client[61] = '0';             // Nombre de jours
+  client[62] = '0';             // Paiement
+  client[63] = '10';            // Jour
+  client[64] = '0,00';          // Taux remise générale
+  client[65] = 'NON';           // Découvert autorisé
+  client[66] = '30';            // Avertir découvert
+  client[67] = '15';            // Relance 1
+  client[68] = '10';            // Relance 2
+  client[69] = '7';             // Relance 3
   client[70] = 'Sabbah';        // Commercial nom
   client[71] = 'David';         // Commercial prénom
   client[72] = '0Facture ILS 2023';
@@ -704,11 +709,18 @@ function gcValiderAjoutClient() {
   client[78] = '0';             // Notation
   client[79] = notes;           // Notes
   client[80] = '0,00';          // Taux escompte
-  client[81] = '2';             // Nbre exemplaires
-  client[100] = 'OUI';          // Pénalités
-  client[101] = 'NON';          // Client bloqué
-  client[122] = '1'; client[123] = '1'; client[124] = '1'; client[125] = '1'; client[126] = '1';
-  client[136] = '419' + code;   // Compte acompte
+  client[81] = '2';             // Nbre exemplaires factures
+  // Nombre 1-9 (cols 91-99) = "0"
+  for (var _ni = 91; _ni <= 99; _ni++) client[_ni] = '0';
+  // Date 1-9 (cols 100-108) = vide (déjà vide par défaut)
+  client[109] = 'OUI';          // Pénalités
+  client[110] = 'NON';          // Client bloqué
+  client[127] = '1';            // Nbre exemplaires devis
+  client[128] = '1';            // Nbre exemplaires factures pro forma
+  client[129] = '1';            // Nbre exemplaires bons de commande
+  client[130] = '1';            // Nbre exemplaires bons de livraison
+  client[131] = '1';            // Nbre exemplaires confirmations
+  client[137] = '419' + code;   // Compte d'acompte
 
   // Sauvegarder dans COGILOG_CLIENTS
   if (!window.COGILOG_CLIENTS) window.COGILOG_CLIENTS = {};
