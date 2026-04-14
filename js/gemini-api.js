@@ -378,11 +378,12 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
     'inlay core ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
     'ic ceramise': ['Inlay Core', 'Inlay Core céramisé'],
     'ic ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
+    'ic ceram': ['Inlay Core', 'Inlay Core céramisé'],
     'icc': ['Inlay Core', 'Inlay Core céramisé'],
     'inlay core clavette': ['Inlay Core', 'Inlay Core clavette'],
     'ic clavette': ['Inlay Core', 'Inlay Core clavette'],
     'inlay core': ['Inlay Core'],
-    ' ic ': ['Inlay Core'],
+    'ic': ['Inlay Core'],
     'full zircone': ['Full zirconium'],
     'full zircon': ['Full zirconium'],
     'monolithique': ['Full zirconium'],
@@ -440,7 +441,7 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
   Object.entries(aliases).forEach(function(e) {
     var terme = e[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     var produits = e[1] || [];
-    if (comm.includes(terme)) {
+    if (_matchTerme(comm, terme)) {
       produits.forEach(function(p) {
         if (!c.includes(p) && !a.includes(p)) {
           // Determiner si c'est conjointe ou adjointe
@@ -454,11 +455,21 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
     }
   });
 
+  // Helper : matcher un terme dans le commentaire (word boundary pour termes courts)
+  function _matchTerme(commentaire, terme) {
+    if (terme.length <= 3) {
+      // Termes courts (IC, CCC, CCM) : word boundary pour eviter faux positifs
+      var re = new RegExp('(?:^|[^a-z])' + terme.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:$|[^a-z])', 'i');
+      return re.test(commentaire);
+    }
+    return commentaire.includes(terme);
+  }
+
   // Scanner le commentaire pour les termes conjointe
   Object.entries(TERMES_CONJOINTE).forEach(function(e) {
     var terme = e[0];
     var cases = e[1];
-    if (comm.includes(terme)) {
+    if (_matchTerme(comm, terme)) {
       cases.forEach(function(cs) {
         if (!c.includes(cs)) {
           c.push(cs);
@@ -472,7 +483,7 @@ function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
   Object.entries(TERMES_ADJOINTE).forEach(function(e) {
     var terme = e[0];
     var cases = e[1];
-    if (comm.includes(terme)) {
+    if (_matchTerme(comm, terme)) {
       cases.forEach(function(cs) {
         if (!a.includes(cs)) {
           a.push(cs);
