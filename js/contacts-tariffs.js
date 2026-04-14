@@ -1876,8 +1876,12 @@ function exporterTarifsPDF() {
   doc.text('PRIX', mL + colCode + colActe + 2, y + 5);
   y += 7;
 
+  // Codes a masquer du PDF tarifs
+  var _hiddenCodes = ['1-PAP1', '9-10D', '1-PAP11A3', '9-ANCIENS'];
+
   var idx = 0;
   function drawRow(code) {
+    if (_hiddenCodes.indexOf(code) >= 0) return;
     if (y > 280) { doc.addPage(); y = mT; }
     var bg = idx % 2 === 0 ? [255, 255, 255] : [248, 251, 253];
     doc.setFillColor(bg[0], bg[1], bg[2]);
@@ -1921,7 +1925,7 @@ function exporterTarifsPDF() {
       'Piliers & Composants implant': function(c) { return ['GC','PIU','PITRANS','PIUZ','PLOC','5-ANALO'].indexOf(c) >= 0; },
       'Inlay Core + Couronne': function(c) { return ['1-ICCCM','1-ICCEREMAX','1-ICCFZI','1-ICCZI','2-ICCCCOU','ICDP','ICFZI','ICZI'].indexOf(c) >= 0; },
       'Protheses amovibles': function(c) { return ['1-PEICIRE','2-COMPSTEPN','PPA','DM'].indexOf(c) >= 0; },
-      '_hide_pap1a3': function(c) { return c === '1-PAP11A3'; },
+      '_hide_divers': function(c) { return ['1-PAP11A3'].indexOf(c) >= 0; },
       'Gouttières & Orthodontie': function(c) { return ['1-GORC','1GOAM','GOBO','DISORTH','4-PROORTHO','PDH','MED'].indexOf(c) >= 0; },
       'Attachements': function(c) { return ['4-ATTF','4-ATTZM'].indexOf(c) >= 0; },
       'Wax Up & Diagnostic': function(c) { return c.indexOf('WAXUP') >= 0 || c === 'MOND'; },
