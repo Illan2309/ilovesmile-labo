@@ -206,8 +206,9 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     scanIA: scanIA || null,
   };
 
-  // Post-traitement : cocher les cases manquantes depuis le commentaire
-  var _commFix = enforceCommentaireConjointe(prescription.conjointe, prescription.adjointe, prescription.commentaires);
+  // Post-traitement : cocher les cases manquantes depuis le commentaire BRUT du dentiste
+  var _rawComm = data.raw_commentaires || data.commentaires || '';
+  var _commFix = enforceCommentaireConjointe(prescription.conjointe, prescription.adjointe, _rawComm);
   prescription.conjointe = _commFix.conjointe;
   prescription.adjointe = _commFix.adjointe;
 
@@ -516,7 +517,8 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
     enforceFinitionParDefaut(data.adjointe || [], data.commentaires)
   );
   // Post-traitement : cocher cases depuis commentaire
-  var _commFix2 = enforceCommentaireConjointe(_epResult.conjointe, _epResult.adjointe, data.commentaires || '');
+  var _rawComm2 = data.raw_commentaires || data.commentaires || '';
+  var _commFix2 = enforceCommentaireConjointe(_epResult.conjointe, _epResult.adjointe, _rawComm2);
   var _daFix = enforceConflitsDentsConjointe(_commFix2.conjointe, data.dentsActes || {});
   var conjointeClean = _daFix.conjointe;
   var adjointeClean = _commFix2.adjointe;

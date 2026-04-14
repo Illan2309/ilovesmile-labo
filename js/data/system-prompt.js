@@ -20,7 +20,7 @@ PHASE 2 — REMPLISSAGE DU JSON
 Mappe les données extraites vers les valeurs exactes ci-dessous. N'invente rien.
 
 ── STRUCTURE JSON ──
-{"numero_prescription":"","code_labo":"","raw_cabinet":"","raw_praticien":"","cabinet":"","code_cogilog":"","praticien":"","patient_nom":"","patient_age":"","patient_sexe":"","date_empreinte":"","date_livraison":"","sans_date_livraison":false,"a_refaire":false,"urgent":false,"call_me":false,"cas_esthetique":false,"dents":[],"conjointe":[],"adjointe":[],"machoire":"","fraisage":"","piv":"","teinte":"","dent_extraire":"","commentaires":"","commentaires_en":"","dentsActes":{},"solidGroups":[]}
+{"numero_prescription":"","code_labo":"","raw_cabinet":"","raw_praticien":"","raw_commentaires":"","cabinet":"","code_cogilog":"","praticien":"","patient_nom":"","patient_age":"","patient_sexe":"","date_empreinte":"","date_livraison":"","sans_date_livraison":false,"a_refaire":false,"urgent":false,"call_me":false,"cas_esthetique":false,"dents":[],"conjointe":[],"adjointe":[],"machoire":"","fraisage":"","piv":"","teinte":"","dent_extraire":"","commentaires":"","commentaires_en":"","dentsActes":{},"solidGroups":[]}
 
 ── VALEURS AUTORISÉES ──
 
@@ -252,6 +252,7 @@ Mission PRINCIPALE : trouver le bon client dans la BASE CLIENTS COGILOG.
 ⚠️ CHAMPS RAW (lecture brute) — OBLIGATOIRES :
 • "raw_cabinet" = recopie MOT POUR MOT ce qui est écrit sur la fiche pour le cabinet/centre (ex: "centre premie santé", "cab dez ar"). Même si illisible ou mal orthographié. JAMAIS vide.
 • "raw_praticien" = recopie MOT POUR MOT le nom du dentiste tel qu'il est écrit sur la fiche (ex: "Dr mtimet", "Dr mfkd"). Même si illisible. JAMAIS vide.
+• "raw_commentaires" = recopie MOT POUR MOT le commentaire/instructions du dentiste COMPLET tel qu'écrit sur la fiche. TOUT le texte manuscrit ou tapé, y compris les termes techniques (IC, CCC, full zircone, sous occ, etc.). Ne rien filtrer, ne rien raccourcir. Ce champ sert au post-traitement automatique.
 Ces champs servent à l'apprentissage automatique. Ne les corriger NI les matcher.
 
 CHAMPS MATCHÉS (après recherche dans la base) :
