@@ -118,7 +118,8 @@ ${getAliasesText()}
 BASE CLIENTS COGILOG :
 ${getCogilogCompactIndex()}
 
-ALIAS PRODUITS (PRIORITAIRES sur le mapping par défaut) :
+ALIAS PRODUITS — RÈGLE OBLIGATOIRE :
+Si un terme ci-dessous apparaît dans le commentaire du dentiste ou AILLEURS sur la fiche, tu DOIS cocher le(s) produit(s) associé(s). Ces alias sont PRIORITAIRES sur le mapping par défaut. Cherche-les activement dans TOUT le texte de la fiche :
 ${getProductAliasesText()}` }];
   } else if (mediaType === 'application/pdf') {
     // PDF → convertir en images JPEG via pdf.js (GPT ne supporte pas les PDF natifs)
@@ -141,7 +142,8 @@ ${getAliasesText()}
 BASE CLIENTS COGILOG :
 ${getCogilogCompactIndex()}
 
-ALIAS PRODUITS (PRIORITAIRES sur le mapping par défaut) :
+ALIAS PRODUITS — RÈGLE OBLIGATOIRE :
+Si un terme ci-dessous apparaît dans le commentaire du dentiste ou AILLEURS sur la fiche, tu DOIS cocher le(s) produit(s) associé(s). Ces alias sont PRIORITAIRES sur le mapping par défaut. Cherche-les activement dans TOUT le texte de la fiche :
 ${getProductAliasesText()}` });
   } else {
     parts = [
@@ -174,7 +176,8 @@ ${getAliasesText()}
 BASE CLIENTS COGILOG :
 ${getCogilogCompactIndex()}
 
-ALIAS PRODUITS (PRIORITAIRES sur le mapping par défaut) :
+ALIAS PRODUITS — RÈGLE OBLIGATOIRE :
+Si un terme ci-dessous apparaît dans le commentaire du dentiste ou AILLEURS sur la fiche, tu DOIS cocher le(s) produit(s) associé(s). Ces alias sont PRIORITAIRES sur le mapping par défaut. Cherche-les activement dans TOUT le texte de la fiche :
 ${getProductAliasesText()}
 
 ⛔ DENT À EXTRAIRE / ADJONCTION : numéros de dents UNIQUEMENT (jamais haut/bas).
