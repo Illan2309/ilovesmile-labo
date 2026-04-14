@@ -1917,13 +1917,16 @@ function exporterTarifsPDF() {
   var horsGroupe = Object.keys(grille).filter(function(c) { return !tousGroupes.includes(c); });
   if (horsGroupe.length) {
     var SOUS_CATS = {
-      'Implants sur mesure': function(c) { return c.startsWith('2-') || ['GC','PIU','PITRANS','PIUZ','PLOC','5-ANALO'].indexOf(c) >= 0; },
-      'Inlay Core combos': function(c) { return c.indexOf('IC') >= 0 && c.startsWith('1-') || ['ICDP','ICFZI','ICZI','2-ICCCCOU'].indexOf(c) >= 0; },
-      'Gouttières & Orthodontie': function(c) { return c.indexOf('GO') >= 0 || ['1-GORC','1GOAM','GOBO','DISORTH','4-PROORTHO','PDH','PPA','MED'].indexOf(c) >= 0; },
+      'Couronnes sur implant': function(c) { return ['2-CCMI','2-CCMIT','2-CCCIZ','2-CCCIZT','2-CCCFULLIS','2-CCCFULLIT','2-CCEMAXIS','2-CCEMAXIT','2-DPIS','2-DPIT','2-PROVI'].indexOf(c) >= 0; },
+      'Piliers & Composants implant': function(c) { return ['GC','PIU','PITRANS','PIUZ','PLOC','5-ANALO'].indexOf(c) >= 0; },
+      'Inlay Core + Couronne': function(c) { return ['1-ICCCM','1-ICCEREMAX','1-ICCFZI','1-ICCZI','2-ICCCCOU','ICDP','ICFZI','ICZI'].indexOf(c) >= 0; },
+      'Protheses amovibles': function(c) { return ['1-PAP11A3','1-PEICIRE','2-COMPSTEPN','PPA','DM'].indexOf(c) >= 0; },
+      'Gouttières & Orthodontie': function(c) { return ['1-GORC','1GOAM','GOBO','DISORTH','4-PROORTHO','PDH','MED'].indexOf(c) >= 0; },
+      'Attachements': function(c) { return ['4-ATTF','4-ATTZM'].indexOf(c) >= 0; },
       'Wax Up & Diagnostic': function(c) { return c.indexOf('WAXUP') >= 0 || c === 'MOND'; },
-      'Reparations & Adjonctions': function(c) { return ['RAR','REPE','ACRO','CRVALP','RA'].indexOf(c) >= 0; },
+      'Reparations & Adjonctions': function(c) { return ['RAR','REPE','ACRO','CRVALP'].indexOf(c) >= 0; },
       'Fichiers & Scans': function(c) { return c === 'FS' || c === 'FSHB'; },
-      'Divers & Forfaits': function(c) { return ['DIV','FG','PORT','DM','FCR','3-DOR','2-COMPSTEPN','1-PAP11A3','1-PEICIRE','2-PROVI','4-ATTF','4-ATTZM'].indexOf(c) >= 0; },
+      'Divers': function(c) { return ['DIV','FG','PORT','FCR','3-DOR'].indexOf(c) >= 0; },
       '_hide_refaire': function(c) { return c.startsWith('9-'); },
       '_hide_nonfact': function(c) { return c.startsWith('8-'); },
       '_hide_gestion': function(c) { return c.startsWith('7-'); },
