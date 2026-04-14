@@ -449,34 +449,78 @@ function rechercherNumFiche(query) {
 // ---- SAISIE CONTINUE ----
 function _trouverProchainePrescription(vientDeSauver) {
   var all = window.prescriptions || [];
+  var sortMode = window._sortMode || 'recent';
 
-  // Natural sort key (même logique que le tri N° croissant)
   function naturalKey(s) {
     return (s || '').trim().replace(/(\d+)/g, function(_, n) { return n.padStart(10, '0'); });
   }
+  function parseDate(d) {
+    if (!d) return 0;
+    var p = (d || '').split('/');
+    if (p.length === 3) return new Date(p[2] < 100 ? '20'+p[2] : p[2], p[1]-1, p[0]).getTime();
+    return new Date(d).getTime() || 0;
+  }
 
-  // Clé de la prescription sauvée
-  var savedKey = naturalKey(vientDeSauver.code_labo);
-
-  // Toutes les prescriptions en attente, triées par code labo croissant
-  var enAttente = all.map(function(p, i) { return Object.assign({}, p, { _index: i }); })
-    .filter(function(p) {
-      var s = p.statut || 'attente';
-      return (s === 'attente' || s === 'en-cours') && p._id !== vientDeSauver._id;
-    })
-    .sort(function(a, b) {
-      return naturalKey(a.code_labo).localeCompare(naturalKey(b.code_labo), 'fr');
-    });
+  // Toutes les prescriptions en attente
+  var enAttente = all.filter(function(p) {
+    var s = p.statut || 'attente';
+    return (s === 'attente' || s === 'en-cours') && p._id !== vientDeSauver._id;
+  });
 
   if (!enAttente.length) return null;
 
-  // Chercher la prochaine dans l'ordre croissant (code labo > saved)
-  var prochaine = enAttente.find(function(p) {
-    return naturalKey(p.code_labo).localeCompare(savedKey, 'fr') > 0;
+  // Trier avec le meme tri que la liste affichee
+  enAttente.sort(function(a, b) {
+    if (sortMode === 'creation_desc') return parseDate(b.createdAt) - parseDate(a.createdAt);
+    if (sortMode === 'recent')        return (b._ts || 0) - (a._ts || 0);
+    if (sortMode === 'ancien')        return (a._ts || 0) - (b._ts || 0);
+    if (sortMode === 'code_asc' || sortMode === 'code_desc') {
+      var ka = naturalKey(a.code_labo), kb = naturalKey(b.code_labo);
+      var cmp = ka.localeCompare(kb, 'fr');
+      return sortMode === 'code_asc' ? cmp : -cmp;
+    }
+    if (sortMode === 'livraison_asc')  return (a.dates?.livraison || '').localeCompare(b.dates?.livraison || '');
+    if (sortMode === 'livraison_desc') return (b.dates?.livraison || '').localeCompare(a.dates?.livraison || '');
+    return 0;
   });
 
-  // Si pas de suivant dans l'ordre → prendre le premier (boucle)
-  return prochaine || enAttente[0];
+  // Trouver la position de la prescription sauvee dans cet ordre
+  // Chercher la prochaine apres elle
+  var savedId = vientDeSauver._id;
+  // Reconstruire la liste complete (attente + non-attente) triee pour trouver la position
+  var allTrie = all.slice().sort(function(a, b) {
+    if (sortMode === 'creation_desc') return parseDate(b.createdAt) - parseDate(a.createdAt);
+    if (sortMode === 'recent')        return (b._ts || 0) - (a._ts || 0);
+    if (sortMode === 'ancien')        return (a._ts || 0) - (b._ts || 0);
+    if (sortMode === 'code_asc' || sortMode === 'code_desc') {
+      var ka = naturalKey(a.code_labo), kb = naturalKey(b.code_labo);
+      var cmp = ka.localeCompare(kb, 'fr');
+      return sortMode === 'code_asc' ? cmp : -cmp;
+    }
+    if (sortMode === 'livraison_asc')  return (a.dates?.livraison || '').localeCompare(b.dates?.livraison || '');
+    if (sortMode === 'livraison_desc') return (b.dates?.livraison || '').localeCompare(a.dates?.livraison || '');
+    return 0;
+  });
+
+  // Position de la sauvee dans la liste triee complete
+  var savedIdx = allTrie.findIndex(function(p) { return p._id === savedId; });
+
+  // Chercher la prochaine en attente apres cette position
+  for (var i = savedIdx + 1; i < allTrie.length; i++) {
+    var s = allTrie[i].statut || 'attente';
+    if ((s === 'attente' || s === 'en-cours') && allTrie[i]._id !== savedId) {
+      return allTrie[i];
+    }
+  }
+  // Boucle : reprendre du debut
+  for (var j = 0; j < savedIdx; j++) {
+    var s2 = allTrie[j].statut || 'attente';
+    if ((s2 === 'attente' || s2 === 'en-cours') && allTrie[j]._id !== savedId) {
+      return allTrie[j];
+    }
+  }
+
+  return enAttente[0];
 }
 
 // ---- RESET ----
