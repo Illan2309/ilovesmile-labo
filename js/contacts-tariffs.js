@@ -5,7 +5,8 @@
 
 var GROUPES_ACTES = {
   'Prothèses Fixes':['1-CCM','1-CCEMAX','1-CCZI','1-CCZIF','3-CCCOULE','CCCP','3-CCRICH','CIV','1-OE','1-OCO','FE'],
-  'Accessoires Fixes':['3-AIEMAX','3-AIZIR','3-AIR','3-AIME','3-CERG','3-DP','DPROV','DM','EC','1-ICCER','1-IC','CL','2-CCMI','2-CCMIT','5-ANALO','PIU','1-PEI','1-CIRE','TAQUET','2-CHR','CP'],
+  'Couronnes sur Implant':['2-DPIS','2-DPIT','2-CCMI','2-CCMIT','2-CCEMAXIS','2-CCEMAXIT','2-CCCIZ','2-CCCIZT','2-CCCFULLIS','2-CCCFULLIT','2-PROVI'],
+  'Accessoires Fixes':['3-AIEMAX','3-AIZIR','3-AIR','3-AIME','3-CERG','3-DP','DPROV','DM','EC','1-ICCER','1-IC','CL','5-ANALO','PIU','1-PEI','1-CIRE','TAQUET','2-CHR','CP'],
   'Prothèses Mobiles':['STPN','1-STFDC','STVAL','2-COMPL','2-COMPLV','1-VALPLAST','1-PAP1','9-10D','4-BACK','PDH','MED'],
   'Gouttières':['1-GOB','1-GOBL','1-GORD','1-GORC','1GORO','1GOAM','GOBO','CLER','CLES','CLEP'],
   'Crochets & Renforts':['CRAC','CRM','GM','4-ATTM'],
@@ -1933,7 +1934,6 @@ function exporterTarifsPDF() {
       '2-CCCFULLIS', '2-CCCFULLIT',                       // Full Zircon
     ];
     var SOUS_CATS = {
-      'Couronnes sur implant': function(c) { return _implantOrder.indexOf(c) >= 0; },
       'Piliers & Composants implant': function(c) { return ['GC','PIU','PITRANS','PIUZ','PLOC','5-ANALO'].indexOf(c) >= 0; },
       'Inlay Core + Couronne': function(c) { return ['1-ICCCM','1-ICCEREMAX','1-ICCFZI','1-ICCZI','2-ICCCCOU','ICDP','ICFZI','ICZI'].indexOf(c) >= 0; },
       'Protheses amovibles': function(c) { return ['1-PEICIRE','2-COMPSTEPN','PPA','DM'].indexOf(c) >= 0; },
