@@ -1879,7 +1879,7 @@ function exporterTarifsPDF() {
   // Codes a masquer du PDF tarifs
   var _hiddenCodes = ['1-PAP1', '9-10D', '1-PAP11A3', '9-ANCIENS',
     '1-ICCFZI', 'ICDP', '1-ICCCM', '2-ICCCCOU', 'ICZI', '1-ICCZI', 'ICFZI', '1-ICCEREMAX',
-    '1-PEICIRE', '2-COMPSTEPN', '4-ATTF', '4-ATTZM'];
+    '1-PEICIRE', '2-COMPSTEPN', '4-ATTF', '4-ATTZM', 'REPE'];
 
   var idx = 0;
   function drawRow(code) {
