@@ -1004,14 +1004,16 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     _pivEstimateH = _pivEntries.length * 5 + 8;
   }
   if (p.fraisage) _pivEstimateH += 8;
-  const fixedH  = Math.max(fixedItems.length, 1) * 6.5 + 14 + _pivEstimateH;
-  const removH  = Math.max(removItems.length + (showGlobalJaw ? 1 : 0), 1) * 6.5 + 14;
-  const sect3BodyH = Math.max(fixedH, removH);
+  // Estimation initiale — sera ajustee apres rendu
+  var _estFixedH  = Math.max(fixedItems.length, 1) * 8 + 14 + _pivEstimateH;
+  var _estRemovH  = Math.max(removItems.length + (showGlobalJaw ? 1 : 0), 1) * 8 + 14;
+  var sect3BodyH = Math.max(_estFixedH, _estRemovH);
   const halfW = (secW - 3) / 2;
 
   // ── Render FIXED PROSTHETICS ──
   sectionHeader('FIXED PROSTHETICS', margin, y, halfW, 7);
-  box(margin, y + 7, halfW, sect3BodyH, white);
+  var _fixedBoxY = y + 7;
+  box(margin, _fixedBoxY, halfW, sect3BodyH, white);
 
   var _fixedCy = y + 13;
   if (fixedItems.length === 0) {
@@ -1070,6 +1072,7 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
       if (item.teeth) {
         const labelW = doc.getStringUnitWidth(item.label) * (item.bold ? 7.8 : 7.2) / doc.internal.scaleFactor;
         let bx = x + 5 + labelW + 3;
+        var _bxStart = bx; // pour wrap
 
         // Parser les dents de cet acte
         const dentsList = parseDentsString(item.teeth); // gère espaces ET plages FDI ex: 16-14
@@ -1116,34 +1119,33 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
           if (isSolid && grp.dents.length > 1) {
             // Badge fusionné pour les solidaires
             const dArr = [...grp.dents].sort((a,b)=>a-b);
-            // Compacter en plage si consécutifs
             const label = _compactDents(dArr);
             const tw2 = doc.getStringUnitWidth(label) * 7 / doc.internal.scaleFactor + 8;
-            if (bx + tw2 < margin + halfW - 2) {
-              doc.setFillColor(...tBg);
-              doc.roundedRect(bx, cy-4, tw2, 6.5, 2, 2, 'F');
-              doc.setDrawColor(...tBdr); doc.setLineWidth(0.35);
-              doc.roundedRect(bx, cy-4, tw2, 6.5, 2, 2, 'S');
-              doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...tCol);
-              doc.text(label, bx + tw2/2, cy+0.6, {align:'center'});
-              bx += tw2 + 3;
-            }
+            // Wrap si depasse
+            if (bx + tw2 >= margin + halfW - 2) { bx = margin + 8; cy += 6.5; }
+            doc.setFillColor(...tBg);
+            doc.roundedRect(bx, cy-4, tw2, 6.5, 2, 2, 'F');
+            doc.setDrawColor(...tBdr); doc.setLineWidth(0.35);
+            doc.roundedRect(bx, cy-4, tw2, 6.5, 2, 2, 'S');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...tCol);
+            doc.text(label, bx + tw2/2, cy+0.6, {align:'center'});
+            bx += tw2 + 3;
           } else {
             // Badge individuel pour chaque dent
             grp.dents.forEach(d => {
               const lbl = String(d);
               const tw2 = doc.getStringUnitWidth(lbl) * 7 / doc.internal.scaleFactor + 6;
-              if (bx + tw2 < margin + halfW - 2) {
-                doc.setFillColor(...tBg);
-                doc.roundedRect(bx, cy-4, tw2, 6, 1.5, 1.5, 'F');
-                if (isUnit) {
-                  doc.setDrawColor(...tBdr); doc.setLineWidth(0.35);
-                  doc.roundedRect(bx, cy-4, tw2, 6, 1.5, 1.5, 'S');
-                }
-                doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...tCol);
-                doc.text(lbl, bx + tw2/2, cy+0.5, {align:'center'});
-                bx += tw2 + 2;
+              // Wrap si depasse
+              if (bx + tw2 >= margin + halfW - 2) { bx = margin + 8; cy += 6.5; }
+              doc.setFillColor(...tBg);
+              doc.roundedRect(bx, cy-4, tw2, 6, 1.5, 1.5, 'F');
+              if (isUnit) {
+                doc.setDrawColor(...tBdr); doc.setLineWidth(0.35);
+                doc.roundedRect(bx, cy-4, tw2, 6, 1.5, 1.5, 'S');
               }
+              doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...tCol);
+              doc.text(lbl, bx + tw2/2, cy+0.5, {align:'center'});
+              bx += tw2 + 2;
             });
           }
         });
@@ -1283,7 +1285,21 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
   }
 
 
-    y += sect3BodyH + 7 + 5;
+  // Recalculer la vraie hauteur apres rendu (les badges peuvent avoir wrappe)
+  var _realFixedH = (_fixedCy - (_fixedBoxY)) + 4;
+  var _realRemovH = (acy - (_fixedBoxY)) + 4;
+  var _realSect3H = Math.max(_realFixedH, _realRemovH, sect3BodyH);
+
+  // Redessiner les boxes avec la vraie hauteur (fond blanc par-dessus rien, c'est juste le cadre)
+  // On dessine les boxes APRES le contenu pour couvrir la bonne hauteur
+  doc.setFillColor(255,255,255); doc.setDrawColor(210,220,230); doc.setLineWidth(0.3);
+  // Effacer et redessiner fixed box
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(margin, _fixedBoxY, halfW, _realSect3H, 2, 2, 'S');
+  // Effacer et redessiner removable box
+  doc.roundedRect(rx, _fixedBoxY, halfW, _realSect3H, 2, 2, 'S');
+
+  y += _realSect3H + 7 + 5;
 
   // ─── SECTION 4 : SHADE + COMMENTS ────────────────────────────────────────
   const shadeW = 38;
