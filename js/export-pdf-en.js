@@ -1261,22 +1261,40 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
         let bx2 = x + 5 + labelW2 + 3;
 
         if (item.jaw) {
-          const jawText = item.jaw + (item.teeth ? ' : ' + item.teeth : '');
-          const jawCol = item.jaw.includes('+') ? [91,69,180] : (item.jaw==='UPPER'?[173,20,87]:[0,131,143]);
-          const jawBg  = item.jaw.includes('+') ? [237,233,254] : (item.jaw==='UPPER'?[252,228,236]:[224,247,250]);
-          const tw3 = Math.min(doc.getStringUnitWidth(jawText)*6.5/doc.internal.scaleFactor+8, rx+halfW-bx2-4);
-          if (tw3 > 5) {
-            doc.setFillColor(...jawBg);
-            doc.roundedRect(bx2, acy-4, tw3, 6, 1.5, 1.5, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
-            doc.text(jawText, bx2+3, acy+0.5);
+          var jawCol = item.jaw.includes('+') ? [91,69,180] : (item.jaw==='UPPER'?[173,20,87]:[0,131,143]);
+          var jawBg  = item.jaw.includes('+') ? [237,233,254] : (item.jaw==='UPPER'?[252,228,236]:[224,247,250]);
+          // Badge jaw seul d'abord
+          var jawOnly = item.jaw;
+          var jawW = doc.getStringUnitWidth(jawOnly)*6.5/doc.internal.scaleFactor+8;
+          doc.setFillColor(...jawBg);
+          doc.roundedRect(bx2, acy-4, jawW, 6, 1.5, 1.5, 'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
+          doc.text(jawOnly, bx2+3, acy+0.5);
+          bx2 += jawW + 2;
+          // Badges dents individuels avec wrap
+          if (item.teeth) {
+            var teethArr = item.teeth.trim().split(/\s+/);
+            teethArr.forEach(function(d) {
+              var dw = doc.getStringUnitWidth(d)*6.5/doc.internal.scaleFactor+6;
+              if (bx2 + dw >= rx + halfW - 2) { bx2 = rx + 8; acy += 6.5; }
+              doc.setFillColor(...jawBg);
+              doc.roundedRect(bx2, acy-4, dw, 6, 1.5, 1.5, 'F');
+              doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...jawCol);
+              doc.text(d, bx2+dw/2, acy+0.5, {align:'center'});
+              bx2 += dw + 2;
+            });
           }
         } else if (item.teeth) {
-          const tw4 = doc.getStringUnitWidth(item.teeth)*7/doc.internal.scaleFactor+6;
-          doc.setFillColor(240,245,255);
-          doc.roundedRect(bx2, acy-4, tw4, 6, 1.5, 1.5, 'F');
-          doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
-          doc.text(item.teeth, bx2+tw4/2, acy+0.5, {align:'center'});
+          var teethArr2 = item.teeth.trim().split(/\s+/);
+          teethArr2.forEach(function(d) {
+            var dw2 = doc.getStringUnitWidth(d)*7/doc.internal.scaleFactor+6;
+            if (bx2 + dw2 >= rx + halfW - 2) { bx2 = rx + 8; acy += 6.5; }
+            doc.setFillColor(240,245,255);
+            doc.roundedRect(bx2, acy-4, dw2, 6, 1.5, 1.5, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(26,92,138);
+            doc.text(d, bx2+dw2/2, acy+0.5, {align:'center'});
+            bx2 += dw2 + 2;
+          });
         }
       }
 
