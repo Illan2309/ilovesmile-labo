@@ -1827,13 +1827,33 @@ function exporterTarifsPDF() {
   }
   var FN = window.INTER_REGULAR_B64 ? 'Inter' : 'helvetica';
 
-  // Header
+  // Logo "I love smile" en Dancing Script (meme style que PDF anglais)
+  var dScale = 4, dW = 200, dH = 40;
+  var dCanvas = document.createElement('canvas');
+  dCanvas.width = dW * dScale; dCanvas.height = dH * dScale;
+  var dCtx = dCanvas.getContext('2d');
+  dCtx.scale(dScale, dScale);
+  dCtx.clearRect(0, 0, dW, dH);
+  dCtx.font = "bold 28px 'Dancing Script', cursive";
+  var tm = dCtx.measureText('I love smile');
+  var tg = dCtx.createLinearGradient(0, 0, tm.width, 0);
+  tg.addColorStop(0, '#1a5c8a');
+  tg.addColorStop(0.6, '#5bc4c0');
+  tg.addColorStop(1, '#4ab0ac');
+  dCtx.fillStyle = 'rgba(195,218,238,0.5)';
+  dCtx.fillText('I love smile', 1.5, 28);
+  dCtx.fillStyle = tg;
+  dCtx.fillText('I love smile', 0, 26);
+  var imgData = dCanvas.toDataURL('image/png');
+  var imgW = 52, imgH = imgW * (dH / dW);
+  doc.addImage(imgData, 'PNG', mL + W - imgW - 2, y - 2, imgW, imgH);
+
+  // Header texte
   doc.setFont(FN, 'bold'); doc.setFontSize(14); doc.setTextColor(26, 92, 138);
   doc.text('Grille Tarifaire', mL, y);
   doc.setFont(FN, 'normal'); doc.setFontSize(9); doc.setTextColor(100, 100, 100);
   doc.text(gcCabinetSelectionne, mL, y + 6);
   doc.text('Grille : ' + tarifKey, mL, y + 11);
-  doc.text('Genere le ' + new Date().toLocaleDateString('fr-FR'), mL + W - 40, y);
   y += 18;
 
   // Degrade
@@ -1891,17 +1911,7 @@ function exporterTarifsPDF() {
     actesGroupe.forEach(drawRow);
   });
 
-  var tousGroupes = Object.values(GROUPES_ACTES).flat();
-  var horsGroupe = Object.keys(grille).filter(function(c) { return !tousGroupes.includes(c); });
-  if (horsGroupe.length) {
-    if (y + 8 > 280) { doc.addPage(); y = mT; }
-    doc.setFillColor(240, 240, 240);
-    doc.rect(mL, y, W, 6, 'F');
-    doc.setFont(FN, 'bold'); doc.setFontSize(6.5); doc.setTextColor(100, 100, 100);
-    doc.text('AUTRES', mL + 2, y + 4.2);
-    y += 6;
-    horsGroupe.forEach(drawRow);
-  }
+  // Section "Autres" masquee dans le PDF tarifs
 
   doc.setFont(FN, 'normal'); doc.setFontSize(6); doc.setTextColor(170, 170, 170);
   doc.text('I Love Smile - 23 Rue Boursault 75017 Paris', mL, 290);
