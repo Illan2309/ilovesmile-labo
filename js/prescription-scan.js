@@ -1,3 +1,35 @@
+// Chercher un nom de praticien dans un texte libre en le comparant aux contacts du cabinet
+function _chercherPraticienDansTexte(texte, cabinetName) {
+  if (!texte || !cabinetName) return null;
+  var source = (typeof CONTACTS !== 'undefined' && Object.keys(CONTACTS).length)
+    ? CONTACTS : (window.CONTACTS_DENTISTES || {});
+  var _norm = function(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); };
+  var cabKey = Object.keys(source).find(function(k) { return _norm(k) === _norm(cabinetName); });
+  if (!cabKey) cabKey = Object.keys(source).find(function(k) { return _norm(cabinetName).includes(_norm(k)) || _norm(k).includes(_norm(cabinetName)); });
+  if (!cabKey) return null;
+  var contacts = (source[cabKey] || []).filter(function(c) { return c !== 'Dr ???'; });
+  if (!contacts.length) return null;
+
+  var texteUp = _norm(texte);
+  var bestMatch = null;
+  var bestScore = 0;
+
+  contacts.forEach(function(contact) {
+    var contactClean = _norm(contact).replace(/^DR\.?\s*/i, '').trim();
+    var words = contactClean.split(/[\s\-]+/).filter(function(w) { return w.length >= 3; });
+    var score = 0;
+    words.forEach(function(w) {
+      if (texteUp.includes(w)) score += w.length;
+    });
+    // Le nom de famille (premier mot) pese plus
+    if (words.length > 0 && texteUp.includes(words[0])) score += 20;
+    if (score > bestScore) { bestScore = score; bestMatch = contact; }
+  });
+
+  // Seuil : au moins le nom de famille (>= 23 : 20 bonus + 3 chars min)
+  return bestScore >= 23 ? bestMatch : null;
+}
+
 async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = null, ignoreCodeLabo = false) {
   const fr = data.commentaires || '';
   let commentairesFinal = fr;
@@ -38,6 +70,18 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     var _bClientData = COGILOG_CLIENTS[_bResolvedCode] || [];
     _bCabinetName = _bClientData[3] || _bCabinetName;
     _bPraticien = data.praticien ? standardizePraticien(data.praticien, _bCabinetName) : 'Dr ???';
+    // Fallback : si Dr ???, chercher dans raw_praticien, raw_commentaires et commentaires
+    if (_bPraticien === 'Dr ???') {
+      var _fallbackTexts = [data.raw_praticien, data.raw_commentaires, data.commentaires].filter(Boolean);
+      for (var _fi = 0; _fi < _fallbackTexts.length; _fi++) {
+        var _fbResult = _chercherPraticienDansTexte(_fallbackTexts[_fi], _bCabinetName);
+        if (_fbResult && _fbResult !== 'Dr ???') {
+          _bPraticien = _fbResult;
+          console.log('[PRATICIEN] Fallback trouvé dans texte: ' + _bPraticien);
+          break;
+        }
+      }
+    }
     // Cabinet trouvé → on le garde. Si praticien pas trouvé dans ce cabinet :
     // Garder le nom brut SEULEMENT s'il ressemble à un nom de docteur (contient "Dr" ou au moins 2 mots-noms)
     // Sinon c'est probablement un nom de cabinet/logiciel → "Dr ???"
