@@ -7,7 +7,7 @@ var GROUPES_ACTES = {
   'Prothèses Fixes':['1-CCM','1-CCEMAX','1-CCZI','1-CCZIF','3-CCCOULE','CCCP','3-CCRICH','CIV','1-OE','1-OCO','FE'],
   'Accessoires Fixes':['3-AIEMAX','3-AIZIR','3-AIR','3-AIME','3-CERG','3-DP','DPROV','DM','EC','1-ICCER','1-IC','CL','2-CCMI','2-CCMIT','5-ANALO','PIU','1-PEI','1-CIRE','TAQUET','2-CHR','CP'],
   'Prothèses Mobiles':['STPN','1-STFDC','STVAL','2-COMPL','2-COMPLV','1-VALPLAST','1-PAP1','9-10D','4-BACK','PDH','MED'],
-  'Gouttières':['1-GOB','1-GOBL','1-GORD','1GORO','GOBO','CLER','CLES','CLEP'],
+  'Gouttières':['1-GOB','1-GOBL','1-GORD','1-GORC','1GORO','1GOAM','GOBO','CLER','CLES','CLEP'],
   'Crochets & Renforts':['CRAC','CRM','GM','4-ATTM'],
   'Prestations':['6-WAXUP','FS','CM','FR','SDRE','RE','REP','RM','RA','GCH','FILC'],
 };
