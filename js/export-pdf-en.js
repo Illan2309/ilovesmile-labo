@@ -1288,13 +1288,13 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
               } else { cur = test; }
             });
             if (cur) lines.push(cur);
-            var lineH = 7;
-            var badgeH = lines.length * lineH + 1;
+            var lineH = 5.5;
+            var badgeH = lines.length * lineH + 2;
             doc.setFillColor(...badgeBg);
             doc.roundedRect(bx2, acy-4, maxW, badgeH, 1.5, 1.5, 'F');
             doc.setTextColor(...badgeCol);
             lines.forEach(function(ln, li) {
-              doc.text(ln, bx2+3, acy+0.5 + li*lineH);
+              doc.text(ln, bx2+3, acy+0.3 + li*lineH);
             });
             acy += (lines.length - 1) * lineH;
           }
