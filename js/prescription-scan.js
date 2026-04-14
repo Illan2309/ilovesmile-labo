@@ -206,6 +206,11 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     scanIA: scanIA || null,
   };
 
+  // Post-traitement : cocher les cases manquantes depuis le commentaire
+  var _commFix = enforceCommentaireConjointe(prescription.conjointe, prescription.adjointe, prescription.commentaires);
+  prescription.conjointe = _commFix.conjointe;
+  prescription.adjointe = _commFix.adjointe;
+
   // Post-traitement : retirer les conflits de dents en conjointe
   var _conflitFix = enforceConflitsDentsConjointe(prescription.conjointe, prescription.dentsActes);
   prescription.conjointe = _conflitFix.conjointe;
@@ -510,9 +515,11 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
     enforceGroupesExclusifs(data.conjointe || []),
     enforceFinitionParDefaut(data.adjointe || [], data.commentaires)
   );
-  var _daFix = enforceConflitsDentsConjointe(_epResult.conjointe, data.dentsActes || {});
+  // Post-traitement : cocher cases depuis commentaire
+  var _commFix2 = enforceCommentaireConjointe(_epResult.conjointe, _epResult.adjointe, data.commentaires || '');
+  var _daFix = enforceConflitsDentsConjointe(_commFix2.conjointe, data.dentsActes || {});
   var conjointeClean = _daFix.conjointe;
-  var adjointeClean = _epResult.adjointe;
+  var adjointeClean = _commFix2.adjointe;
   if (data.dentsActes) data.dentsActes = _daFix.dentsActes;
   // Reset complet — badges, groupes, sélection
   clearTimeout(window._dentsActesTimeout);

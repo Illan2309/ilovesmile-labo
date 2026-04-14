@@ -360,6 +360,131 @@ function enforceFinitionParDefaut(adjointe, commentaires) {
 }
 
 
+// ── Post-traitement : cocher les cases depuis le commentaire ──
+// L'IA lit bien le commentaire mais oublie parfois de cocher les cases correspondantes
+function enforceCommentaireConjointe(conjointe, adjointe, commentaires) {
+  if (!commentaires) return { conjointe: conjointe, adjointe: adjointe };
+  var c = conjointe.slice();
+  var a = adjointe.slice();
+  var comm = commentaires.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Aussi verifier les alias produits
+  var aliases = {};
+  try { aliases = JSON.parse(localStorage.getItem('product_aliases') || '{}'); } catch(e) {}
+
+  // Map terme → case(s) a cocher
+  var TERMES_CONJOINTE = {
+    'inlay core ceramise': ['Inlay Core', 'Inlay Core céramisé'],
+    'inlay core ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
+    'ic ceramise': ['Inlay Core', 'Inlay Core céramisé'],
+    'ic ceramisee': ['Inlay Core', 'Inlay Core céramisé'],
+    'icc': ['Inlay Core', 'Inlay Core céramisé'],
+    'inlay core clavette': ['Inlay Core', 'Inlay Core clavette'],
+    'ic clavette': ['Inlay Core', 'Inlay Core clavette'],
+    'inlay core': ['Inlay Core'],
+    ' ic ': ['Inlay Core'],
+    'full zircone': ['Full zirconium'],
+    'full zircon': ['Full zirconium'],
+    'monolithique': ['Full zirconium'],
+    'ccc': ['Zirconium CCC'],
+    'zircon ccc': ['Zirconium CCC'],
+    'zircone stratifie': ['Zirconium CCC'],
+    'ccm': ['CCM'],
+    'ceramo metalique': ['CCM'],
+    'ceramo-metalique': ['CCM'],
+    'emax': ['EMAX'],
+    'e-max': ['EMAX'],
+    'e.max': ['EMAX'],
+    'dent provisoire': ['Dent provisoire'],
+    'provisoire': ['Dent provisoire'],
+    'richmond': ['Richmond'],
+    'facette ceramique': ['Facette céramique'],
+    'facette composite': ['Facette composite'],
+    'onlay ceramique': ['Inlay Onlay céramique'],
+    'onlay composite': ['Inlay Onlay composite'],
+    'inlay onlay': ['Inlay Onlay céramique'],
+    'ceramique rose': ['Ceramic Rose Collet'],
+    'rose collet': ['Ceramic Rose Collet'],
+    'sous occ': ['Occlusion sous occ'],
+    'sous occlusion': ['Occlusion sous occ'],
+    'occlusion legere': ['Occlusion légère'],
+    'occlusion forte': ['Occlusion forte'],
+    'maquillage sillon': ['Maquillage sillon oui'],
+    'embrasure fermee': ['Embrasure fermée'],
+    'embrasure ouverte': ['Embrasure ouverte'],
+    'point de contact fort': ['Point de contact fort'],
+    'point de contact leger': ['Point de contact léger'],
+    'limite sous gingival': ['Limite sous gingival'],
+    'fraisage': ['Fraisage'],
+    'epaulement': ['Épaulement céram.'],
+  };
+  var TERMES_ADJOINTE = {
+    'stellite': ['Stellite finition stellite'],
+    'valplast': ['Valplast finition'],
+    'gouttiere souple': ['Gouttière souple'],
+    'gouttiere dure': ['Gouttière dur résine'],
+    'gouttiere resine': ['Gouttière dur résine'],
+    'blanchiment': ['Blanchissement'],
+    'pei': ['PEI'],
+    'cire d\'occlusion': ['Cire d\'occlusion'],
+    'cire occlusion': ['Cire d\'occlusion'],
+    'reparation': ['Réparation'],
+    'rebasage': ['Rebasage'],
+    'app resine': ['App résine finition'],
+    'complet': ['Complet finition'],
+    'adjonction dent': ['Adjonction dent'],
+    'adjonction crochet': ['Adjonction crochet'],
+  };
+
+  // Verifier aussi les alias produits
+  Object.entries(aliases).forEach(function(e) {
+    var terme = e[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var produits = e[1] || [];
+    if (comm.includes(terme)) {
+      produits.forEach(function(p) {
+        if (!c.includes(p) && !a.includes(p)) {
+          // Determiner si c'est conjointe ou adjointe
+          if (Object.values(TERMES_ADJOINTE).some(function(arr) { return arr.includes(p); })) {
+            if (!a.includes(p)) { a.push(p); console.log('[POST-TRAIT] Alias produit "' + terme + '" → coche adjointe: ' + p); }
+          } else {
+            if (!c.includes(p)) { c.push(p); console.log('[POST-TRAIT] Alias produit "' + terme + '" → coche conjointe: ' + p); }
+          }
+        }
+      });
+    }
+  });
+
+  // Scanner le commentaire pour les termes conjointe
+  Object.entries(TERMES_CONJOINTE).forEach(function(e) {
+    var terme = e[0];
+    var cases = e[1];
+    if (comm.includes(terme)) {
+      cases.forEach(function(cs) {
+        if (!c.includes(cs)) {
+          c.push(cs);
+          console.log('[POST-TRAIT] Commentaire contient "' + terme + '" → coche: ' + cs);
+        }
+      });
+    }
+  });
+
+  // Scanner le commentaire pour les termes adjointe
+  Object.entries(TERMES_ADJOINTE).forEach(function(e) {
+    var terme = e[0];
+    var cases = e[1];
+    if (comm.includes(terme)) {
+      cases.forEach(function(cs) {
+        if (!a.includes(cs)) {
+          a.push(cs);
+          console.log('[POST-TRAIT] Commentaire contient "' + terme + '" → coche adjointe: ' + cs);
+        }
+      });
+    }
+  });
+
+  return { conjointe: c, adjointe: a };
+}
+
 // ── Conflits dents conjointe ──
 // Regle metier : sur une meme dent, seuls Inlay Core (+ sous-items),
 // Ceramic Rose Collet, Fraisage, scelle et transvisse peuvent coexister
