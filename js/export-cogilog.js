@@ -458,6 +458,8 @@ function exportCogilogTSV() {
       'GM','REP','RE','RM','CRAC','CRM','CRVALP','RA','ACRO',
       '8-000ESSST','8-000ESSPAP','8-000ESSCO','8-000ESSVA','8-000',
       '1GORO','GOBO','1-GORC','1GOAM','PDH','MED','4-PROORTHO',
+      // Codes "a refaire" des articles amovibles (quantite = 1, pas par dent)
+      '9-00STE','9-00STEVAL','9-00VAL','9-00COMP','9-00PAP1','9-00GOU','9-00GOUD',
     ]);
 
     // COGILOG_LIBELLES : utilise la version globale (ligne 5465) qui contient tous les codes avec les bons noms
