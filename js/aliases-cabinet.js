@@ -167,6 +167,12 @@ function standardizePraticien(rawPraticien, cabinetName) {
   if (!contacts) return 'Dr ???';
   // contacts ex: ["Dr MIRGHANI HASSAN", "Dr BENCHEIKH IMENE", ..., "Dr ???"]
 
+  // Si le cabinet n'a qu'un seul vrai contact → retourner directement ce contact
+  var _realContacts = contacts.filter(function(c) { return c !== 'Dr ???'; });
+  if (_realContacts.length === 1) {
+    return _realContacts[0];
+  }
+
   // Normaliser le praticien brut
   var raw = rawPraticien.toUpperCase().replace(/\s+/g, ' ').trim();
   // Retirer le préfixe "Dr " / "DR " pour la comparaison
@@ -237,9 +243,8 @@ function standardizePraticien(rawPraticien, cabinetName) {
     }
   }
 
-  // Seuil minimum : 50 en général, 30 si le cabinet n'a qu'un seul contact (plus souple)
-  var _realContacts = contacts.filter(function(c) { return c !== 'Dr ???'; });
-  var _seuil = _realContacts.length === 1 ? 30 : 50;
+  // Seuil minimum pour valider le match
+  var _seuil = 50;
   if (bestScore >= _seuil) return bestMatch;
 
   // Pas de fallback global — si le praticien n'est pas trouvé dans ce cabinet, retourner Dr ???
