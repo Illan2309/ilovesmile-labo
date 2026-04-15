@@ -123,7 +123,7 @@ async function handleDigilabProxy(request, env, url, path) {
 
   // Proxy fichier binaire (ZIP, STL, etc.)
   if (path === '/v1/digilab/proxy-file') {
-    return proxyDigilabFile(url, env);
+    return proxyDigilabFile(url, env, request);
   }
 
   // Proxy API REST Digilab
@@ -159,8 +159,15 @@ async function proxyDigilabApi(request, env, apiPath, queryString) {
   }
 }
 
-async function proxyDigilabFile(url, env) {
-  const fileUrl = url.searchParams.get('url');
+async function proxyDigilabFile(url, env, request) {
+  // Accepter l'URL en query param OU en body POST (pour les URLs longues avec &)
+  let fileUrl = url.searchParams.get('url');
+  if (!fileUrl && request && request.method === 'POST') {
+    try {
+      const body = await request.json();
+      fileUrl = body.url;
+    } catch (e) {}
+  }
   if (!fileUrl) {
     return jsonResponse({ error: 'Missing url parameter' }, 400);
   }

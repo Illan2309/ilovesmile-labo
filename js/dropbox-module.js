@@ -227,7 +227,10 @@
       if (name.endsWith('.zip') && files.some(function(ff) { return ff.name && /\.(ply|stl|obj|dcm)$/i.test(ff.name); })) continue;
 
       try {
-        var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY + '&url=' + encodeURIComponent(f.url));
+        var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: f.url })
+            });
         if (resp.ok) {
           var blob = await resp.blob();
           zipFolder.file(name, blob);

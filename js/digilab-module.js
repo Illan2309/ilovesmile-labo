@@ -302,7 +302,21 @@
 
       // Si 1 seul fichier ZIP et pas de filtrage → télécharger directement via proxy
       if (files.length === 1 && !needsFilter) {
-        _downloadUrl(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY + '&url=' + encodeURIComponent(files[0].url), patient + '_files.zip');
+        // Télécharger via POST pour éviter les problèmes d'URL longues
+        try {
+          var _dlResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: files[0].url })
+          });
+          if (_dlResp.ok) {
+            var _dlBlob = await _dlResp.blob();
+            var _dlA = document.createElement('a');
+            _dlA.href = URL.createObjectURL(_dlBlob);
+            _dlA.download = patient + '_files.zip';
+            _dlA.click();
+            URL.revokeObjectURL(_dlA.href);
+          }
+        } catch(e) { console.error('[DIGILAB] Download error', e); }
         showToast('Téléchargement lancé : ' + patient);
         return;
       }
@@ -318,7 +332,11 @@
         showToast('Téléchargement ' + (i + 1) + '/' + files.length + ' : ' + fileName);
 
         try {
-          var fileResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY + '&url=' + encodeURIComponent(f.url));
+          var fileResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: f.url })
+          });
           if (!fileResp.ok) throw new Error('HTTP ' + fileResp.status);
           var blob = await fileResp.blob();
 
