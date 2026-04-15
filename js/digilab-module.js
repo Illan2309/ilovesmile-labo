@@ -221,14 +221,13 @@
     html += '</div>';
     html += '<div class="dlb-detail-grid">';
     html += '  <div class="dlb-detail-field"><label>Service</label><span>' + _esc(service) + '</span></div>';
-    html += '  <div class="dlb-detail-field"><label>Reçu le</label><span>' + date + '</span></div>';
+    html += '  <div class="dlb-detail-field"><label>Recu le</label><span>' + date + '</span></div>';
     if (deadline) html += '  <div class="dlb-detail-field"><label>Deadline</label><span>' + deadline + '</span></div>';
+    var cabinet = (c.dentistCreator && c.dentistCreator.name) || c.realDentist || '';
+    if (cabinet) html += '  <div class="dlb-detail-field"><label>Cabinet</label><span>' + _esc(cabinet) + '</span></div>';
     html += '</div>';
     if (comment) {
       html += '<div class="dlb-detail-comment"><label>Commentaire dentiste</label><div>' + _esc(comment) + '</div></div>';
-    }
-    if (linkCase) {
-      html += '<a href="' + _esc(linkCase) + '" target="_blank" class="dlb-btn" style="margin-top:12px;display:inline-block;">Voir sur Digilab</a>';
     }
     html += '<div class="dlb-detail-actions">';
     html += '  <button class="dlb-btn dlb-btn-primary" onclick="dlbDownloadFiles(\'' + _esc(caseId) + '\')">Telecharger fichiers</button>';
@@ -237,8 +236,15 @@
     html += '  <button class="dlb-btn dlb-btn-accent" onclick="dlbProcessCase(\'' + _esc(caseId) + '\')">Tout traiter</button>';
     html += '</div>';
 
-    // Zone fichiers (chargée en async)
-    html += '<div id="dlb-files-list" style="margin-top:16px;"><em style="color:#999;">Chargement des fichiers...</em></div>';
+    // Viewer 3D Digilab intégré
+    var viewerUrl = linkCase || ('https://app.digilab.dental/case2/' + caseId);
+    html += '<div style="margin-top:16px;border:1px solid #e0e8ee;border-radius:10px;overflow:hidden;flex:1;min-height:300px;">';
+    html += '  <div style="padding:6px 12px;background:#fafbfd;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">';
+    html += '    <span style="font-size:0.72rem;font-weight:600;color:var(--accent);">Visionneuse 3D</span>';
+    html += '    <a href="' + _esc(viewerUrl) + '" target="_blank" style="font-size:0.68rem;color:var(--teal);text-decoration:none;">Ouvrir en grand</a>';
+    html += '  </div>';
+    html += '  <iframe src="' + _esc(viewerUrl) + '" style="width:100%;height:400px;border:none;"></iframe>';
+    html += '</div>';
 
     detail.innerHTML = html;
 
