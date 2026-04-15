@@ -116,18 +116,38 @@ function _autoLearnAliases(ancienne, corrigee) {
   // 1. CABINET : raw_cabinet (lecture brute) → code_cogilog corrigé
   var rawCab = _norm(scanIA.raw_cabinet || '');
   var codeCorrige = corrigee.code_cogilog || '';
-  if (rawCab && rawCab.length >= 3 && codeCorrige) {
+  if (rawCab && rawCab.length >= 4 && codeCorrige) {
     // Ne pas créer d'alias si le raw correspond déjà au bon cabinet
     var cabinetCorrige = _norm(corrigee.cabinet || '');
     if (rawCab !== cabinetCorrige) {
-      // Sécurité : ne PAS créer l'alias si le raw correspond à un cabinet EXISTANT dans la base
-      var _isExistingCab = false;
+      // Sécurité : vérifier que l'alias ne crée pas de confusion
+      var _aliasBlocked = false;
+      var _aliasBlockReason = '';
       if (typeof COGILOG_CLIENTS !== 'undefined') {
-        Object.values(COGILOG_CLIENTS).forEach(function(d) {
-          if (_norm(d[3] || '') === rawCab) _isExistingCab = true;
+        Object.entries(COGILOG_CLIENTS).forEach(function([code, d]) {
+          var nomCab = _norm(d[3] || '');
+          if (!nomCab) return;
+          // Match exact → c'est un cabinet existant, pas un alias
+          if (nomCab === rawCab) {
+            _aliasBlocked = true;
+            _aliasBlockReason = 'cabinet existant exact "' + d[3] + '"';
+          }
+          // Match partiel → le raw est un sous-ensemble d'un AUTRE cabinet
+          // (ex: "asniere" matche "ASNIERES MAIRIE" mais on cible ROUAH)
+          if (!_aliasBlocked && code !== codeCorrige) {
+            if ((nomCab.includes(rawCab) || rawCab.includes(nomCab)) && rawCab.length >= 4) {
+              _aliasBlocked = true;
+              _aliasBlockReason = 'ambigu avec "' + d[3] + '" (code ' + code + ')';
+            }
+          }
         });
       }
-      if (!_isExistingCab) {
+      // Bloquer aussi si le raw ressemble à un nom de praticien
+      if (!_aliasBlocked && /^dr[\s.]/.test(rawCab)) {
+        _aliasBlocked = true;
+        _aliasBlockReason = 'ressemble à un nom de praticien';
+      }
+      if (!_aliasBlocked) {
         var aliases = JSON.parse(localStorage.getItem('cabinet_aliases') || '{}');
         if (!aliases[rawCab]) {
           aliases[rawCab] = codeCorrige;
@@ -137,7 +157,7 @@ function _autoLearnAliases(ancienne, corrigee) {
           console.log('[🧠 Auto-alias cabinet] "' + rawCab + '" → ' + codeCorrige);
         }
       } else {
-        console.log('[🧠 Auto-alias cabinet] IGNORÉ "' + rawCab + '" — cabinet existant dans la base');
+        console.log('[🧠 Auto-alias cabinet] BLOQUÉ "' + rawCab + '" → ' + codeCorrige + ' — ' + _aliasBlockReason);
       }
     }
   }
