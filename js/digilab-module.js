@@ -147,19 +147,19 @@
     var html = '';
     // En-tête tableau
     html += '<table class="dlb-table"><thead><tr>';
-    html += '<th>Date</th><th>Patient</th><th>Statut</th><th>Labo</th><th>Service</th><th></th>';
+    html += '<th>Date de creation</th><th>Patient</th><th>Statut</th><th>Cabinet</th><th>Service</th><th>Id du cas</th><th></th>';
     html += '</tr></thead><tbody>';
 
     _cases.forEach(function(c) {
       var id = c._digilabId || c._firebaseId || c._id || '';
       var patient = c.patient_name || c.patientName || 'Patient inconnu';
       var service = (c.service || '').toLowerCase();
-      var date = _formatDate(c._receivedAt || c.creation_date || '');
-      var time = _formatTime(c._receivedAt || c.creation_date || '');
+      var dateRaw = c.creation_date || c._receivedAt || '';
+      var dateStr = _formatDate(dateRaw);
+      var timeStr = _formatTime(dateRaw);
       var status = c._status || 'nouveau';
-      var comment = (c.comment || '').substring(0, 60);
       var isSelected = id === _selectedCaseId;
-      var lab = c.lab || 'ilovesmile';
+      var cabinet = (c.dentistCreator && c.dentistCreator.name) || c.realDentist || '';
 
       var serviceClass = 'other';
       if (service.includes('medit')) serviceClass = 'medit';
@@ -168,18 +168,17 @@
       else if (service.includes('dscore')) serviceClass = 'dscore';
       else if (service.includes('itero')) serviceClass = 'itero';
 
-      var statusLabel = status === 'nouveau' ? 'En attente' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
-      if (status.startsWith('envoye_')) statusLabel = 'Envoyé ' + status.replace('envoye_', '').toUpperCase();
+      var statusLabel = status === 'nouveau' ? 'En attente' : status === 'traite' ? 'Traite' : status === 'en_cours' ? 'En cours' : status;
+      if (status.startsWith('envoye_')) statusLabel = 'Envoye ' + status.replace('envoye_', '').toUpperCase();
       var statusClass = status.startsWith('envoye') ? 'envoye' : status;
 
       html += '<tr class="dlb-table-row ' + (isSelected ? 'selected' : '') + '" onclick="dlbSelectCase(\'' + _esc(id) + '\')">';
-      html += '  <td class="dlb-td-date"><div>' + date + '</div><div class="dlb-td-time">' + time + '</div></td>';
-      html += '  <td class="dlb-td-patient"><div class="dlb-td-name">' + _esc(patient) + '</div>';
-      if (comment) html += '<div class="dlb-td-comment">' + _esc(comment) + '</div>';
-      html += '</td>';
+      html += '  <td class="dlb-td-date">' + dateStr + ' ' + timeStr + '</td>';
+      html += '  <td class="dlb-td-patient"><div class="dlb-td-name">' + _esc(patient) + '</div></td>';
       html += '  <td><span class="dlb-badge dlb-status-' + statusClass + '">' + statusLabel + '</span></td>';
-      html += '  <td class="dlb-td-lab">' + _esc(lab) + '</td>';
+      html += '  <td class="dlb-td-cabinet">' + _esc(cabinet) + '</td>';
       html += '  <td><span class="dlb-badge dlb-service-' + serviceClass + '">' + _esc(service || '?') + '</span></td>';
+      html += '  <td class="dlb-td-caseid">' + _esc(id) + '</td>';
       html += '  <td class="dlb-td-actions">';
       html += '    <button class="dlb-btn dlb-btn-dl" onclick="event.stopPropagation();dlbDownloadFiles(\'' + _esc(id) + '\')" title="Telecharger">&#11015;</button>';
       html += '    <button class="dlb-btn dlb-btn-scan" onclick="event.stopPropagation();dlbScanFiche(\'' + _esc(id) + '\')" title="Scanner">&#9881;</button>';
