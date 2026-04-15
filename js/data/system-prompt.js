@@ -20,7 +20,7 @@ PHASE 2 — REMPLISSAGE DU JSON
 Mappe les données extraites vers les valeurs exactes ci-dessous. N'invente rien.
 
 ── STRUCTURE JSON ──
-{"numero_prescription":"","code_labo":"","raw_cabinet":"","raw_praticien":"","raw_commentaires":"","cabinet":"","code_cogilog":"","praticien":"","patient_nom":"","patient_age":"","patient_sexe":"","date_empreinte":"","date_livraison":"","sans_date_livraison":false,"a_refaire":false,"urgent":false,"call_me":false,"cas_esthetique":false,"dents":[],"conjointe":[],"adjointe":[],"machoire":"","fraisage":"","piv":"","teinte":"","dent_extraire":"","commentaires":"","commentaires_en":"","dentsActes":{},"solidGroups":[]}
+{"numero_prescription":"","code_labo":"","raw_cabinet":"","raw_praticien":"","raw_commentaires":"","cabinet":"","code_cogilog":"","praticien":"","patient_nom":"","patient_age":"","patient_sexe":"","date_empreinte":"","date_livraison":"","sans_date_livraison":false,"a_refaire":false,"urgent":false,"call_me":false,"cas_esthetique":false,"dents":[],"conjointe":[],"adjointe":[],"produits_annexes":[],"machoire":"","fraisage":"","piv":"","teinte":"","dent_extraire":"","commentaires":"","commentaires_en":"","dentsActes":{},"solidGroups":[]}
 
 ── VALEURS AUTORISÉES ──
 
@@ -39,7 +39,7 @@ CONJOINTE (valeurs exactes, copie-colle) :
 
 ADJOINTE (valeurs exactes, copie-colle) :
 "PEI", "Ackers stellite", "Stellite montage stellite", "Stellite finition stellite", "Stellite sup. valplast",
-"Ackers résine", "Cire d'occlusion", "Crochet valplast", "Contre plaque",
+"Ackers résine", "Cire d'occlusion", "Crochet valplast",
 "App résine montage", "App résine finition", "App résine grille de renfort",
 "Complet montage", "Complet finition", "Complet grille de renfort",
 "Valplast montage", "Valplast finition", "Valplast grille de renfort",
@@ -47,6 +47,11 @@ ADJOINTE (valeurs exactes, copie-colle) :
 "Réparation", "Rebasage",
 "Gouttière souple", "Gouttière dur résine", "Gouttière souple intra dur extra", "Blanchissement",
 "Dent à extraire", "Adjonction dent", "Adjonction crochet"
+
+PRODUITS ANNEXES (champ "produits_annexes", codes exacts) :
+"6-WAXUP" (wax up / cire de diagnostic), "CP" (contre plaque), "GCH" (guide chirurgical),
+"FILC" (fil de contention), "CM" (modèle d'étude / modèle de travail)
+→ Si le commentaire mentionne un de ces produits, ajoute le CODE dans produits_annexes.
 
 ══════════════════════════════════════════
 MAPPING TEXTE → VALEURS
@@ -307,7 +312,7 @@ RAPPELS CRITIQUES (erreurs fréquentes à éviter)
 • Fraisage → UNIQUEMENT avec des couronnes
 • Grille de renfort → JAMAIS seule, toujours avec app résine/complet/valplast
 • Deux types de couronnes différents sur la même dent = impossible
-• Contre plaque → ne PAS cocher automatiquement (décision manuelle)
+• Contre plaque → va dans "produits_annexes" avec le code "CP" (pas dans adjointe)
 • Crochet valplast → ne PAS cocher automatiquement (trop spécifique)
 • RATURES : si une dent, une case ou un texte est raturé/barré/rayé sur la fiche, cela signifie que le dentiste a ANNULÉ cette information. Ne PAS sélectionner une dent raturée, ne PAS cocher une case raturée. Une rature = suppression.
 

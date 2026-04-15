@@ -543,6 +543,11 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
   highlightCasEsthetique();
   highlightScan();
   highlightARefaire();
+  // Produits annexes — détection depuis le commentaire brut
+  window._produitsAnnexes = data.produits_annexes || [];
+  window._produitsAnnexesDents = {};
+  detecterAnnexesDepuisCommentaire(data.raw_commentaires || data.commentaires);
+  highlightAnnexes();
   if (data.fraisage) {
     document.getElementById('fraisage').value = data.fraisage;
     // Auto-cocher la checkbox Fraisage si elle existe

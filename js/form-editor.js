@@ -277,6 +277,8 @@ function savePrescription() {
     dentExtraireVal: '',
     dentsActes: Object.assign({}, window._dentsActesCourant || {}),
     solidGroups: JSON.parse(JSON.stringify(window._solidGroups || [])),
+    produitsAnnexes: (window._produitsAnnexes || []).slice(),
+    produitsAnnexesDents: Object.assign({}, window._produitsAnnexesDents || {}),
     commentaires: document.getElementById('commentaires').value,
     statut: _anciennePresc
       ? (_anciennePresc.statut === 'importe' ? 'importe' : 'verifie')
@@ -554,8 +556,11 @@ function resetForm() {
   document.getElementById('cas-esthetique').checked = false;
   document.getElementById('scan-check').checked = false;
   window._scanPosition = '';
+  window._produitsAnnexes = [];
+  window._produitsAnnexesDents = {};
   highlightCasEsthetique();
   highlightScan();
+  highlightAnnexes();
   highlightPivField();
   highlightDentExtraire();
   const _sdcb = document.getElementById('sans-date-livraison');
@@ -628,8 +633,11 @@ function editPrescription(i) {
   document.getElementById('scan-check').checked = p.scan || false;
   window._scanPosition = p.scanPosition || '';
   setScanPosition(window._scanPosition);
+  window._produitsAnnexes = (p.produitsAnnexes || []).slice();
+  window._produitsAnnexesDents = Object.assign({}, p.produitsAnnexesDents || {});
   highlightScan();
   highlightCasEsthetique();
+  highlightAnnexes();
   document.getElementById('date-empreinte').value = dateFromISO(p.dates?.empreinte || '');
   document.getElementById('date-livraison').value = dateFromISO(p.dates?.livraison || '');
   const sansDateCb = document.getElementById('sans-date-livraison');

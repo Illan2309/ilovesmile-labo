@@ -599,13 +599,9 @@ function exportCogilogTSV() {
       'STVAL': '9-00STEVAL', '1-VALPLAST': '9-00VAL', '2-COMPL': '9-00COMP',
     };
 
-    // 5. Détection commentaires pour FILC, 6-WAXUP, GCH, CM (partie FR uniquement, avant --- EN ---)
-    const comm = ((p.commentaires || '').split('--- EN ---')[0] || '').toLowerCase();
-    const actesCommentaires = [];
-    if (comm.includes('fil de contention')) actesCommentaires.push('FILC');
-    if (comm.includes('wax up') || comm.includes('waxup')) actesCommentaires.push('6-WAXUP');
-    if (comm.includes('guide chirurgical')) actesCommentaires.push('GCH');
-    if (comm.includes('modèle d') || comm.includes('modele d')) actesCommentaires.push('CM');
+    // 5. Produits annexes (depuis les cases cochées dans la popup Annexes)
+    const produitsAnnexes = (p.produitsAnnexes || []).slice();
+    const produitsAnnexesDents = p.produitsAnnexesDents || {};
 
     // 6. Filtrer les parents si sous-articles présents, et articles vides
     const actesAvecCodeFiltres = actesNormalises.filter(acte => {
@@ -737,9 +733,13 @@ function exportCogilogTSV() {
       lignes.push(buildLigneProd('0', tousActes.join(' / ')));
     }
 
-    // 11. Articles détectés dans les commentaires
-    for (const code of actesCommentaires) {
-      lignes.push(buildLigneProd(code, code));
+    // 11. Produits annexes (cases cochées dans la popup Annexes)
+    for (const code of produitsAnnexes) {
+      const lc = buildLigneProd(code, COGILOG_LIBELLES[code] || code);
+      // Appliquer les dents/mâchoire si renseignées
+      const dentVal = produitsAnnexesDents[code] || '';
+      if (dentVal) lc[23] = dentVal;
+      lignes.push(lc);
     }
 
     // 12. Scan → ligne produit FS (position depuis scanPosition ou détection auto par dents)
