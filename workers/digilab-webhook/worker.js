@@ -20,7 +20,7 @@ const CORS_HEADERS = {
 const DIGILAB_API_BASE = 'https://europe-west9-digital-adf.cloudfunctions.net/digilab-inbox-server/public/v1';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
@@ -30,7 +30,7 @@ export default {
 
     // ── Webhook : POST /v1/order/add ──
     if (request.method === 'POST' && path === '/v1/order/add') {
-      return handleOrderAdd(request, env);
+      return handleOrderAdd(request, env, ctx);
     }
 
     // ── Proxy API Digilab ──
@@ -65,7 +65,7 @@ export default {
 // WEBHOOK — Recevoir une commande Digilab
 // ═══════════════════════════════════════════
 
-async function handleOrderAdd(request, env) {
+async function handleOrderAdd(request, env, ctx) {
   const authHeader = request.headers.get('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
 
@@ -86,6 +86,8 @@ async function handleOrderAdd(request, env) {
 
   const now = new Date().toISOString();
   const orderId = orderData._id || orderData.id || ('dlb_' + Date.now());
+  const patientName = (orderData.patient_name || 'patient').toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_');
+  const stagingPath = '/ILoveSmile/STAGING/' + orderId + '_' + patientName;
 
   const orderDoc = {
     ...orderData,
@@ -93,60 +95,11 @@ async function handleOrderAdd(request, env) {
     _receivedAt: now,
     _status: 'nouveau',
     _processed: false,
+    _dropboxStagingPath: stagingPath,
+    _dropboxFiles: [],
   };
 
-  // Sauvegarder les fichiers sur Dropbox IMMÉDIATEMENT (URLs fraîches)
-  const dropboxPaths = [];
-  if (env.DROPBOX_TOKEN && orderData.files && orderData.files.length) {
-    const patientName = (orderData.patient_name || 'patient').toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_');
-    const service = (orderData.service || '').toLowerCase();
-    const needsFilter = ['medit', 'dscore2', 'shining3d'].some(s => service.includes(s));
-    const stagingPath = '/ILoveSmile/STAGING/' + orderId + '_' + patientName;
-
-    try {
-      // Créer le dossier staging
-      await fetch('https://api.dropboxapi.com/2/files/create_folder_v2', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + env.DROPBOX_TOKEN, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: stagingPath, autorename: false }),
-      });
-
-      // Uploader chaque fichier
-      for (const file of orderData.files) {
-        const fileName = (file.name || '').split('/').pop();
-        if (!fileName || !file.url) continue;
-        // Filtrer POF pour medit/dscore/shining
-        if (needsFilter && /^(POF_|FULL_POF_)/i.test(fileName)) continue;
-
-        try {
-          const fileResp = await fetch(file.url);
-          if (!fileResp.ok) continue;
-          const fileBuffer = await fileResp.arrayBuffer();
-
-          await fetch('https://content.dropboxapi.com/2/files/upload', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + env.DROPBOX_TOKEN,
-              'Dropbox-API-Arg': JSON.stringify({ path: stagingPath + '/' + fileName, mode: 'add', autorename: true, mute: true }),
-              'Content-Type': 'application/octet-stream',
-            },
-            body: fileBuffer,
-          });
-          dropboxPaths.push(stagingPath + '/' + fileName);
-        } catch (e) {
-          console.error('Dropbox upload error for', fileName, e);
-        }
-      }
-      console.log('Uploaded', dropboxPaths.length, 'files to Dropbox staging for', orderId);
-    } catch (e) {
-      console.error('Dropbox staging error:', e);
-    }
-  }
-
-  // Stocker les chemins Dropbox dans les métadonnées Firebase
-  orderDoc._dropboxStagingPath = dropboxPaths.length > 0 ? '/ILoveSmile/STAGING/' + orderId + '_' + ((orderData.patient_name || 'patient').toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_')) : '';
-  orderDoc._dropboxFiles = dropboxPaths;
-
+  // 1. Sauvegarder dans Firebase IMMÉDIATEMENT (rapide)
   try {
     await firestoreSet(env, 'digilab_orders', orderId, orderDoc);
   } catch (e) {
@@ -154,13 +107,75 @@ async function handleOrderAdd(request, env) {
     return jsonResponse({ error: 'Storage error', message: 'Failed to store order.' }, 500);
   }
 
-  return jsonResponse({
+  // 2. Répondre à Digilab IMMÉDIATEMENT (pas de timeout)
+  const response = jsonResponse({
     result: 'ok',
     mode: orderData._existingId ? 'update' : 'add',
     id: orderId,
     updatedAt: now,
-    dropboxFiles: dropboxPaths.length,
   }, 200);
+
+  // 3. Upload Dropbox EN ARRIÈRE-PLAN (via waitUntil, pas de timeout pour Digilab)
+  if (ctx && env.DROPBOX_TOKEN && orderData.files && orderData.files.length) {
+    ctx.waitUntil(_uploadToDropboxStaging(env, orderData, orderId, patientName, stagingPath));
+  }
+
+  return response;
+}
+
+// Upload fichiers vers Dropbox staging en arrière-plan
+async function _uploadToDropboxStaging(env, orderData, orderId, patientName, stagingPath) {
+  const service = (orderData.service || '').toLowerCase();
+  const needsFilter = ['medit', 'dscore2', 'shining3d'].some(s => service.includes(s));
+  const dropboxPaths = [];
+
+  try {
+    // Créer le dossier staging
+    await fetch('https://api.dropboxapi.com/2/files/create_folder_v2', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + env.DROPBOX_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: stagingPath, autorename: false }),
+    });
+
+    // Uploader chaque fichier
+    for (const file of orderData.files) {
+      const fileName = (file.name || '').split('/').pop();
+      if (!fileName || !file.url) continue;
+      if (needsFilter && /^(POF_|FULL_POF_)/i.test(fileName)) continue;
+
+      try {
+        const fileResp = await fetch(file.url);
+        if (!fileResp.ok) continue;
+        const fileBuffer = await fileResp.arrayBuffer();
+
+        await fetch('https://content.dropboxapi.com/2/files/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + env.DROPBOX_TOKEN,
+            'Dropbox-API-Arg': JSON.stringify({ path: stagingPath + '/' + fileName, mode: 'add', autorename: true, mute: true }),
+            'Content-Type': 'application/octet-stream',
+          },
+          body: fileBuffer,
+        });
+        dropboxPaths.push(stagingPath + '/' + fileName);
+      } catch (e) {
+        console.error('Dropbox upload error for', fileName, e);
+      }
+    }
+
+    // Mettre à jour Firebase avec les chemins Dropbox
+    if (dropboxPaths.length > 0) {
+      await firestoreSet(env, 'digilab_orders', orderId, {
+        _dropboxFiles: dropboxPaths,
+        _dropboxStagingPath: stagingPath,
+        _dropboxUploadedAt: new Date().toISOString(),
+      });
+    }
+
+    console.log('Background: uploaded', dropboxPaths.length, 'files for', orderId);
+  } catch (e) {
+    console.error('Background Dropbox error:', e);
+  }
 }
 
 // ═══════════════════════════════════════════
