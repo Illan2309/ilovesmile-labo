@@ -622,7 +622,6 @@
     _processing = true;
 
     try {
-      await window.dlbDownloadFiles(caseId);
       await window.dlbScanFiche(caseId);
     } catch (e) {
       console.error('[DIGILAB] Process error:', e);
@@ -657,7 +656,6 @@
       if (status) status.textContent = (i + 1) + '/' + nouveaux.length + ' — ' + patient;
 
       try {
-        await window.dlbDownloadFiles(id);
         await window.dlbScanFiche(id);
         success++;
       } catch (e) {
