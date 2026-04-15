@@ -437,7 +437,7 @@ async function handleDropboxProxy(request, env, url, path) {
         shared_folder_id: folderId,
         members: [{ member: { '.tag': 'email', email: email }, access_level: { '.tag': 'viewer' } }],
         quiet: false,
-        custom_message: 'Fichiers scan - I Love Smile',
+        custom_message: 'Scan files for your order - I Love Smile Dental Lab',
       }),
     });
     const addData = await addResp.text();
