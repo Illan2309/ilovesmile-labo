@@ -352,6 +352,12 @@ function initFirebase() {
         photo_type: p.photo_type || null,
         photo_html: p.photo_html || null,
         cogilog_exporte: p.cogilog_exporte || null,
+        _digilabCaseId: p._digilabCaseId || null,
+        _digilabService: p._digilabService || null,
+        dropbox_envoye: p.dropbox_envoye || null,
+        dropbox_date: p.dropbox_date || null,
+        dropbox_fournisseur: p.dropbox_fournisseur || null,
+        dropbox_lien: p.dropbox_lien || null,
       };
       // Nettoyer les undefined (Firebase les refuse)
       Object.keys(pSans).forEach(k => { if (pSans[k] === undefined) pSans[k] = null; });

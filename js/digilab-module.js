@@ -440,6 +440,7 @@
       prescription._digilabCaseId = caseId;
       prescription._digilabService = c.service || '';
       prescription.scan = true;
+      console.log('[DIGILAB] Prescription créée avec _digilabCaseId:', caseId, 'patient:', prescription.patient?.nom || mapped.patient_nom);
 
       // 6. Sauvegarder
       if (window.sauvegarderUnePrescription) {

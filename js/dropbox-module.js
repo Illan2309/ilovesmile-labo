@@ -162,9 +162,10 @@
           }
 
           // Fichiers scan Digilab (si disponibles)
-          if (p._digilabCaseId) {
+          var digilabId = p._digilabCaseId;
+          if (digilabId) {
             try {
-              await _addDigilabFilesToZip(p._digilabCaseId, sub);
+              await _addDigilabFilesToZip(digilabId, sub);
               _dbxStatus('Scan files ' + patient + '...');
             } catch (e) {
               console.error('[DROPBOX] Scan files error', e);
@@ -339,9 +340,10 @@
           }
 
           // Upload fichiers scan Digilab
-          if (p._digilabCaseId) {
+          var digilabId2 = p._digilabCaseId;
+          if (digilabId2) {
             try {
-              await _dbxUploadDigilabFiles(p._digilabCaseId, subPath, fournisseur);
+              await _dbxUploadDigilabFiles(digilabId2, subPath, fournisseur);
             } catch (e) {
               console.error('[DROPBOX] Scan upload error', e);
             }
