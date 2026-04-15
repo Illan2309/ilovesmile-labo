@@ -680,6 +680,10 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
 
   // Scroll vers le formulaire
   document.querySelector('.card:last-of-type') && document.getElementById('prescription-form').scrollIntoView({ behavior: 'smooth' });
+
+  // Capturer le snapshot du formulaire APRÈS toutes les auto-corrections
+  // Délai pour laisser la traduction EN terminer avant de capturer
+  setTimeout(function() { capturerSnapshotFormulaire(); }, 2000);
 }
 
 // Calcul local de confiance quand Gemini ne renvoie pas de scores

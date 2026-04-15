@@ -521,6 +521,8 @@ function _trouverProchainePrescription(vientDeSauver) {
 
 // ---- RESET ----
 function resetForm() {
+  // Reset le snapshot correction-log (pas de log si formulaire rempli manuellement)
+  window._snapshotAvantCorrection = null;
   // Déclencher le renderList différé si des onSnapshot étaient bloqués
   if (window._renderAfterEdit) {
     window._renderAfterEdit = false;
