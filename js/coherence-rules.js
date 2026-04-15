@@ -364,6 +364,45 @@ function enforceCoherenceMetier(prescription) {
     }
   });
 
+  // ── RÈGLE 19 : Gouttière / Blanchissement → pas de dents individuelles ──
+  // Une gouttière ou blanchissement couvre une arcade entière, jamais des dents isolées.
+  // Si l'IA a mis des dents (ex: 38-48 interprété comme dent 38 et 48), on les retire.
+  var ACTES_ARCADE_ENTIERE = [
+    'Gouttière souple', 'Gouttière dur résine', 'Gouttière souple intra dur extra',
+    'Blanchissement', 'Cire d\'occlusion', 'PEI',
+    'Complet finition', 'Complet montage', 'Complet grille de renfort'
+  ];
+  var hasActeArcade = adjointe.some(function(a) { return ACTES_ARCADE_ENTIERE.includes(a); });
+  // Seulement si AUCUN acte conjointe (qui lui nécessite des dents)
+  if (hasActeArcade && conjointe.length === 0) {
+    var dentsBefore = prescription.dents || [];
+    if (dentsBefore.length > 0) {
+      prescription.dents = [];
+      // Vider aussi les dents dans dentsActes pour les actes arcade
+      ACTES_ARCADE_ENTIERE.forEach(function(acte) {
+        if (dentsActes[acte]) {
+          // Garder la mâchoire si présente (ex: "bas" ou "haut|21")
+          var val = dentsActes[acte].toString();
+          var machPart = val.match(/^(haut|bas)(\+.+)?/);
+          if (machPart) dentsActes[acte] = machPart[0];
+        }
+      });
+      corrections.push({ champ: 'dents', regle: 'arcade-entiere-pas-de-dents', message: 'Acte sur arcade entière → dents individuelles retirées (' + dentsBefore.join(', ') + ')' });
+    }
+  }
+
+  // ── RÈGLE 20 : "Cire d\'occlusion" jamais seule sans mention explicite ──
+  // L'IA coche parfois "Cire d'occlusion" sans raison. On la retire si le
+  // commentaire ne mentionne pas explicitement "cire" ou "occlusion".
+  if (adjointe.includes('Cire d\'occlusion')) {
+    var _rawCire = rawComm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (!/cire|occlusion|mordu|articul/i.test(_rawCire)) {
+      adjointe = adjointe.filter(function(a) { return a !== 'Cire d\'occlusion'; });
+      delete dentsActes['Cire d\'occlusion'];
+      corrections.push({ champ: 'adjointe', regle: 'cire-occlusion-non-mentionnee', message: 'Cire d\'occlusion retirée (pas mentionnée dans le commentaire)' });
+    }
+  }
+
   // ── RÈGLE 10 : Vérifier cohérence dents sélectionnées vs dentsActes ──
   var dentsDeclared = prescription.dents || [];
   var dentsFromActes = [];

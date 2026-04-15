@@ -199,10 +199,14 @@ Casse standard : lettre(s) MAJUSCULE + chiffre(s) (ex: A2, BL1, 3M2). Si aucune 
 ══════════════════════════════════════════
 SCANBODY (champ "piv")
 ══════════════════════════════════════════
-Note TOUTES les références PIV, PL1, PL2, PN3 trouvées PARTOUT sur la fiche.
+Note TOUTES les références PIV, PL1, PL2, PN3, IOTER trouvées PARTOUT sur la fiche.
+⚠️ ATTENTION : "IOTER" ou "ioter" est une MARQUE de scanbody — PAS un acte ni un numéro de dent !
+"ioter 1.3 long" = scanbody IOTER diamètre 1.3mm taille long → va dans le champ "piv", PAS dans "dents".
+Ne JAMAIS confondre "1.3" ou "1,3" après IOTER avec la dent 13.
 Regroupe les dents ayant la même référence.
 Format : "DENTS (RÉFÉRENCE)" séparées par " / ".
 Ex: "34 44 45 (PN3-D120L-174-SP) / 35 (PN3-D120-155-SF)"
+Ex: "17 25 (IOTER 1.3 long)"
 
 ══════════════════════════════════════════
 IDENTIFICATION CLIENT COGILOG
