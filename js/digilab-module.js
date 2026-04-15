@@ -172,6 +172,7 @@
       html += '  <div class="dlb-case-actions">';
       html += '    <button class="dlb-btn dlb-btn-dl" onclick="event.stopPropagation();dlbDownloadFiles(\'' + _esc(id) + '\')" title="Télécharger les fichiers">&#11015;</button>';
       html += '    <button class="dlb-btn dlb-btn-scan" onclick="event.stopPropagation();dlbScanFiche(\'' + _esc(id) + '\')" title="Scanner la fiche">&#9881;</button>';
+      html += '    <button class="dlb-btn" onclick="event.stopPropagation();dlbDeleteCase(\'' + _esc(id) + '\')" title="Supprimer" style="background:#ffebee;color:#c62828;font-size:0.8rem;padding:6px 8px;">&#10005;</button>';
       html += '  </div>';
       html += '</div>';
     });
@@ -677,6 +678,23 @@
   // ═══════════════════════════════════════════
   // HELPERS
   // ═══════════════════════════════════════════
+
+  window.dlbDeleteCase = function(caseId) {
+    if (!confirm('Supprimer ce cas Digilab ?')) return;
+    var db = window.getDB ? window.getDB() : null;
+    if (db) {
+      db.collection('digilab_orders').doc(caseId).delete()
+        .then(function() { showToast('Cas supprime'); })
+        .catch(function(e) { showToast('Erreur suppression : ' + e.message, true); });
+    }
+    _cases = _cases.filter(function(c) { return (c._digilabId || c._firebaseId || c._id) !== caseId; });
+    _renderListe();
+    if (_selectedCaseId === caseId) {
+      _selectedCaseId = null;
+      var detail = document.getElementById('dlb-detail');
+      if (detail) detail.innerHTML = '<div style="color:#999;text-align:center;padding:60px;">Selectionnez un cas</div>';
+    }
+  };
 
   function _findCase(caseId) {
     return _cases.find(function(c) {
