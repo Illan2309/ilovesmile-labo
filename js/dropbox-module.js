@@ -345,7 +345,9 @@
     try {
       for (var fournisseur in byFournisseur) {
         var prescriptions = byFournisseur[fournisseur];
-        var basePath = '/ILoveSmile/ENVOIS/' + dateStr + '_' + fournisseur;
+        var fCodes = prescriptions.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
+        var folderName = fCodes.length >= 2 ? fCodes[0] + '-' + fCodes[fCodes.length - 1] : (fCodes[0] || dateStr + '_' + fournisseur);
+        var basePath = '/ILoveSmile/ENVOIS/' + folderName;
         var email = prefs['email_fournisseur_' + fournisseur.toLowerCase()] || EMAILS_FOURNISSEURS[fournisseur] || '';
 
         _dbxStatus('Creation dossier ' + fournisseur + '...');
