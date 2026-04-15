@@ -163,9 +163,9 @@ async function _uploadToDropboxStaging(env, orderData, orderId, patientName, sta
       }
     }
 
-    // Mettre à jour Firebase avec les chemins Dropbox
+    // Mettre à jour Firebase avec les chemins Dropbox (MERGE, pas écrasement)
     if (dropboxPaths.length > 0) {
-      await firestoreSet(env, 'digilab_orders', orderId, {
+      await firestoreUpdate(env, 'digilab_orders', orderId, {
         _dropboxFiles: dropboxPaths,
         _dropboxStagingPath: stagingPath,
         _dropboxUploadedAt: new Date().toISOString(),
@@ -517,6 +517,21 @@ async function firestoreSet(env, collection, docId, data) {
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Firestore PATCH failed (${res.status}): ${errText}`);
+  }
+}
+
+async function firestoreUpdate(env, collection, docId, data) {
+  const fields = Object.keys(data);
+  const mask = fields.map(f => 'updateMask.fieldPaths=' + encodeURIComponent(f)).join('&');
+  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${env.FIREBASE_API_KEY}&${mask}`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toFirestoreDocument(data) }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Firestore UPDATE failed (${res.status}): ${errText}`);
   }
 }
 
