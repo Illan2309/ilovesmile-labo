@@ -397,6 +397,53 @@ async function handleDropboxProxy(request, env, url, path) {
     });
   }
 
+  // POST /v1/dropbox/share-email — partager un dossier par email via Dropbox
+  if (path === '/v1/dropbox/share-email' && request.method === 'POST') {
+    const body = await request.json();
+    const folderPath = body.path;
+    const email = body.email;
+    if (!folderPath || !email) return jsonResponse({ error: 'Missing path or email' }, 400);
+
+    // Étape 1 : partager le dossier (shared folder)
+    const shareResp = await fetch('https://api.dropboxapi.com/2/sharing/share_folder', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: folderPath, force_async: false }),
+    });
+    const shareData = await shareResp.json();
+    const sharedFolderId = shareData.shared_folder_id || (shareData['.tag'] === 'complete' ? shareData.shared_folder_id : null);
+
+    // Si déjà partagé (409), récupérer l'ID
+    let folderId = sharedFolderId;
+    if (!folderId && shareData.error_summary && shareData.error_summary.includes('already_shared')) {
+      const metaResp = await fetch('https://api.dropboxapi.com/2/sharing/get_folder_metadata', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared_folder_id: shareData.error?.shared_folder_id || '' }),
+      });
+      const metaData = await metaResp.json();
+      folderId = metaData.shared_folder_id;
+    }
+
+    if (!folderId) {
+      return jsonResponse({ error: 'Could not share folder', detail: shareData }, 400);
+    }
+
+    // Étape 2 : ajouter le fournisseur comme viewer
+    const addResp = await fetch('https://api.dropboxapi.com/2/sharing/add_folder_member', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shared_folder_id: folderId,
+        members: [{ member: { '.tag': 'email', email: email }, access_level: { '.tag': 'viewer' } }],
+        quiet: false,
+        custom_message: 'Fichiers scan - I Love Smile',
+      }),
+    });
+    const addData = await addResp.text();
+    return new Response(addData || '{"ok":true}', { status: addResp.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+  }
+
   // POST /v1/dropbox/copy — copier un fichier dans Dropbox
   if (path === '/v1/dropbox/copy' && request.method === 'POST') {
     const body = await request.json();

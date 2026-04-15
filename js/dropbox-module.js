@@ -396,7 +396,7 @@
         var shareResult = await _dbxShare(basePath);
         var shareUrl = shareResult.url || '';
 
-        allLinks.push({ fournisseur: fournisseur, email: email, url: shareUrl, count: prescriptions.length });
+        allLinks.push({ fournisseur: fournisseur, email: email, url: shareUrl, count: prescriptions.length, folderName: folderName });
 
         // Marquer les prescriptions + cas Digilab
         for (var j = 0; j < prescriptions.length; j++) {
@@ -422,6 +422,20 @@
         }
       }
 
+      // Partager les dossiers par email via Dropbox
+      for (var li = 0; li < allLinks.length; li++) {
+        var link = allLinks[li];
+        if (link.email && link.folderName) {
+          _dbxStatus('Partage avec ' + link.email + '...');
+          try {
+            await _dbxShareByEmail(link.folderName, link.email);
+            console.log('[DROPBOX] Dossier partage avec', link.email);
+          } catch (e) {
+            console.warn('[DROPBOX] Partage email error:', e.message);
+          }
+        }
+      }
+
       // Afficher les résultats
       var resultEl = document.getElementById('dbx-result');
       if (resultEl) {
@@ -435,7 +449,7 @@
             resHtml += ' <button onclick="navigator.clipboard.writeText(\'' + _esc(link.url) + '\');showToast(\'Lien copie !\')" style="background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:2px 8px;font-size:0.68rem;cursor:pointer;margin-left:4px;">Copier</button>';
           }
           if (link.email) {
-            resHtml += '<div style="font-size:0.72rem;color:#666;margin-top:4px;">Envoyer a : <strong>' + _esc(link.email) + '</strong></div>';
+            resHtml += '<div style="font-size:0.72rem;color:#2e7d32;margin-top:4px;">Email envoye a : <strong>' + _esc(link.email) + '</strong></div>';
           }
           resHtml += '</div>';
         });
@@ -509,6 +523,15 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: path })
+    });
+    return resp.json();
+  }
+
+  async function _dbxShareByEmail(folderPath, email) {
+    var resp = await fetch(WORKER_URL + '/v1/dropbox/share-email?key=' + AUTH_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/ILoveSmile/ENVOIS/' + folderPath, email: email })
     });
     return resp.json();
   }
