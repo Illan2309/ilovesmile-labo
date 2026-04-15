@@ -53,7 +53,7 @@ var COGILOG_CODES_DEFAULT = {
   // Inlay Core
   'Inlay Core':             '1-IC',     // parent seul
   'Inlay Core céramisé':    '1-ICCER',
-  'Inlay Core clavette':    'CL',       // ligne EN PLUS de 1-IC
+  'Inlay Core clavette':    '1-IC',     // IC normal + CL ajouté automatiquement en section 8
 
   // Inlay Onlay
   'Inlay Onlay':            '',         // parent → pas de ligne propre
