@@ -1055,6 +1055,16 @@ window.onARefaireChange = function(cb) {
   }
 }
 
+// Helper : normaliser aRefaireActes (rétrocompatibilité ancien format string[])
+window._normalizeRefaireActes = function() {
+  if (Array.isArray(aRefaireActes)) {
+    // Ancien format string[] → convertir en objet { acte: [] } (toutes les dents)
+    var obj = {};
+    aRefaireActes.forEach(function(a) { obj[a] = []; });
+    aRefaireActes = obj;
+  }
+};
+
 window.ouvrirPopupRefaire = function() {
   // Récupérer tous les articles cochés dans la fiche
   const conjointe = [...document.querySelectorAll('input[name="conjointe"]:checked')].map(i => i.value);
@@ -1077,21 +1087,49 @@ window.ouvrirPopupRefaire = function() {
     });
   }
 
+  // Normaliser format ancien si besoin
+  _normalizeRefaireActes();
+  var isObj = (aRefaireActes !== null && typeof aRefaireActes === 'object' && !Array.isArray(aRefaireActes));
+
+  // Récupérer les dents de chaque acte pour afficher en référence
+  var dentsActes = window._dentsActesCourant || {};
+
   const liste = document.getElementById('popup-refaire-liste');
   if (!tousActes.length) {
     liste.innerHTML = '<p style="color:#888;font-size:0.78rem;">Aucun article coché dans la fiche.<\/p>';
   } else {
     liste.innerHTML = tousActes.map(acte => {
-      const isSelected = aRefaireActes === null || aRefaireActes.includes(acte);
-      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fafafa;border-radius:6px;cursor:pointer;font-size:0.78rem;">
-        <input type="checkbox" data-acte="${acte.replace(/"/g,'&quot;')}" ${isSelected ? 'checked' : ''} style="accent-color:#cc0000;">
-        <span>${acte}<\/span>
-      <\/label>`;
+      const isSelected = (aRefaireActes === null) || (isObj && acte in aRefaireActes);
+      // Dents de cet acte (depuis dentsActes)
+      var acteDents = (dentsActes[acte] || '').toString().replace(/^(haut|bas)\|?/g, '').trim();
+      // Dents à refaire (depuis aRefaireActes[acte])
+      var dentsRefaire = (isObj && aRefaireActes[acte]) ? aRefaireActes[acte].join(' ') : '';
+      var showDents = isSelected && acteDents;
+
+      return `<div style="padding:5px 8px;background:#fafafa;border-radius:6px;margin-bottom:4px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.78rem;">
+          <input type="checkbox" data-acte="${acte.replace(/"/g,'&quot;')}" ${isSelected ? 'checked' : ''} style="accent-color:#cc0000;" onchange="toggleRefaireCheckbox(this)">
+          <span style="flex:1;">${acte}${acteDents ? ' <span style=\"color:#888;font-size:0.65rem;\">(' + acteDents + ')<\/span>' : ''}<\/span>
+        <\/label>
+        ${showDents ? `<div style="margin:4px 0 0 28px;">
+          <input type="text" data-acte-dents="${acte.replace(/"/g,'&quot;')}" value="${dentsRefaire}" placeholder="Dents à refaire (vide = toutes)"
+            style="width:calc(100% - 8px);padding:3px 6px;font-size:0.7rem;border:1px solid #e0c0c0;border-radius:5px;font-family:inherit;background:#fff5f5;">
+        <\/div>` : ''}
+      <\/div>`;
     }).join('');
-    // Si première ouverture → tout sélectionner
-    if (aRefaireActes === null) aRefaireActes = [...tousActes];
+    // Si première ouverture (null) → tout sélectionner
+    if (aRefaireActes === null) {
+      aRefaireActes = {};
+      tousActes.forEach(function(a) { aRefaireActes[a] = []; });
+    }
   }
   document.getElementById('popup-refaire').style.display = 'flex';
+}
+
+window.toggleRefaireCheckbox = function(cb) {
+  // Re-render pour afficher/masquer le champ dents
+  validerPopupRefaireSilent();
+  ouvrirPopupRefaire();
 }
 
 window.fermerPopupRefaire = function() {
@@ -1103,13 +1141,27 @@ window.toutSelectionnerRefaire = function(val) {
     .forEach(cb => cb.checked = val);
 }
 
+// Lecture silencieuse des valeurs (sans fermer la popup)
+window.validerPopupRefaireSilent = function() {
+  var obj = {};
+  document.querySelectorAll('#popup-refaire-liste input[type="checkbox"]:checked').forEach(function(cb) {
+    var acte = cb.dataset.acte;
+    // Chercher le champ dents associé
+    var dentsInput = document.querySelector('#popup-refaire-liste input[data-acte-dents="' + acte.replace(/"/g, '\\"') + '"]');
+    var dentsVal = dentsInput ? dentsInput.value.trim() : '';
+    var dentsArr = dentsVal ? dentsVal.split(/[\s,;]+/).filter(function(d) { return /^\d{2}$/.test(d); }) : [];
+    obj[acte] = dentsArr; // [] = toutes les dents
+  });
+  aRefaireActes = obj;
+};
+
 window.validerPopupRefaire = function() {
-  aRefaireActes = [...document.querySelectorAll('#popup-refaire-liste input[type="checkbox"]:checked')]
-    .map(cb => cb.dataset.acte);
+  validerPopupRefaireSilent();
   fermerPopupRefaire();
   // Mettre à jour le label du bouton
+  var count = Object.keys(aRefaireActes).length;
   const btn = document.getElementById('btn-refaire-detail');
-  if (btn) btn.textContent = `Configurer ✏️ (${aRefaireActes.length})`;
+  if (btn) btn.textContent = `Configurer ✏️ (${count})`;
   // Si on est en mode édition d'un bon existant → sauvegarder immédiatement
   if (editingIndex >= 0 && prescriptions[editingIndex]) {
     prescriptions[editingIndex].aRefaireActes = aRefaireActes;

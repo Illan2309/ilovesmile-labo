@@ -634,23 +634,58 @@ function exportCogilogTSV() {
     //     aRefaireActes [...]          → seulement les articles de la liste
     //   IC / ICCER : pas de code 9-00 dans Cogilog → on garde 1-IC mais prix 0 + Rouge
 
-    // toRefaire accessible pour les produits annexes aussi (section 11)
-    const toRefaire = (p.aRefaire === true)
-      ? (Array.isArray(p.aRefaireActes) ? new Set(p.aRefaireActes) : null)
-      : false; // false = pas un cas à refaire
+    // toRefaire : objet { acte: dentsArr } ou null (tout) ou false (pas à refaire)
+    // Rétrocompatibilité : ancien format string[] → objet { acte: [] }
+    let toRefaire = false;
+    if (p.aRefaire === true) {
+      if (p.aRefaireActes === null || p.aRefaireActes === undefined) {
+        toRefaire = null; // tout à refaire
+      } else if (Array.isArray(p.aRefaireActes)) {
+        // Ancien format string[] → objet { acte: [] }
+        toRefaire = {};
+        p.aRefaireActes.forEach(a => { toRefaire[a] = []; });
+      } else if (typeof p.aRefaireActes === 'object') {
+        toRefaire = p.aRefaireActes; // nouveau format objet
+      }
+    }
+
+    // Map des actes à splitter : { acte: { redoDents: [...], normalDents: [...] } }
+    const _splitRefaire = {};
 
     if (p.aRefaire === true) {
-
       for (const acte of actesAvecCodeFiltres) {
-        const doIt = (toRefaire === null) || toRefaire.has(acte);
-        if (!doIt) continue;
+        // Vérifier si cet acte est à refaire
+        const isRefaire = (toRefaire === null) || (toRefaire && acte in toRefaire);
+        if (!isRefaire) continue;
+
+        // Récupérer les dents redo spécifiques (vide = toutes)
+        const redoDents = (toRefaire !== null && toRefaire[acte] && toRefaire[acte].length > 0)
+          ? toRefaire[acte].map(Number)
+          : null; // null = toutes les dents
+
+        // Récupérer les dents totales de l'acte
+        const detailActe = (p.dentsActes || {})[acte] || '';
+        const allDentsStr = detailActe.toString().replace(/^(haut|bas)(\+\w+)?\|?/, '').trim();
+        const allDents = allDentsStr.match(/\d{2}/g)?.map(Number) || [];
+
+        if (redoDents && allDents.length > 0) {
+          // Split : certaines dents redo, d'autres normales
+          const normalDents = allDents.filter(d => !redoDents.includes(d));
+          if (normalDents.length > 0) {
+            // On doit splitter cet acte en 2 lignes
+            _splitRefaire[acte] = { redoDents, normalDents };
+            // Ne PAS changer le code global — sera géré dans la boucle de génération
+            continue;
+          }
+        }
+
+        // Pas de split (toutes les dents à refaire) → comportement actuel
         const code = codes[acte];
         if (aRefaireMap[code]) {
-          codes[acte] = aRefaireMap[code];       // ex: 1-CCZIF → 9-00ZIRF
+          codes[acte] = aRefaireMap[code];
         } else if (code === '1-IC' || code === '1-ICCER') {
-          codes[acte] = '__IC_REFAIRE__';         // prix 0 + Rouge, code reste 1-IC
+          codes[acte] = '__IC_REFAIRE__';
         } else if (code) {
-          // Articles sans code 9-xx (grille de renfort, ackers, etc.) → prix 0 + Rouge
           codes[acte] = '__REFAIRE_' + code + '__';
         }
       }
@@ -713,32 +748,50 @@ function exportCogilogTSV() {
       return parts.join(' ');
     };
 
+    // Helper : remplir la colonne dents d'une ligne produit
+    const _fillDents = (lc, acte, code, dentsOverride) => {
+      const detailActe = dentsOverride || (p.dentsActes || {})[acte] || (p.dentsActes || {})[code] || '';
+      if (detailActe) {
+        const pipeIdx = detailActe.indexOf('|');
+        if (pipeIdx >= 0) {
+          const mPart = detailActe.substring(0, pipeIdx).trim();
+          const dPart = detailActe.substring(pipeIdx + 1).trim();
+          lc[23] = (mPart ? mPart + ' ' : '') + dPart;
+        } else if (ARTICLES_MACHOIRE.has(code)) {
+          lc[23] = detailActe;
+        } else {
+          lc[23] = _formatDentsSolid(detailActe);
+        }
+      } else if (ARTICLES_MACHOIRE.has(code) && machoireStr) {
+        lc[23] = machoireStr;
+      }
+    };
+
     if (actesFinaux.length > 0) {
       for (const acte of actesFinaux) {
-        const code = codes[acte];
-        const qty = quantites[acte] || 1;
-        const lc = buildLigneProd(code, acte, qty);
-        // Dents : priorité dentsActes > machoireStr (adjointe) > dentsFormate (global)
-        const detailActe = (p.dentsActes || {})[acte] || (p.dentsActes || {})[code] || '';
-        if (detailActe) {
-          // dentsActes peut contenir "bas|36 37 46 47" → séparer machoire et dents
-          const pipeIdx = detailActe.indexOf('|');
-          if (pipeIdx >= 0) {
-            const mPart = detailActe.substring(0, pipeIdx).trim();
-            const dPart = detailActe.substring(pipeIdx + 1).trim();
-            lc[23] = (mPart ? mPart + ' ' : '') + dPart;
-          } else if (ARTICLES_MACHOIRE.has(code)) {
-            // Article amovible avec dents spécifiques
-            lc[23] = detailActe;
-          } else {
-            // Article conjointe → formater avec solidGroups si applicable
-            lc[23] = _formatDentsSolid(detailActe);
-          }
-        } else if (ARTICLES_MACHOIRE.has(code) && machoireStr) {
-          lc[23] = machoireStr;
+        // Vérifier si cet acte doit être splitté (certaines dents redo, d'autres normales)
+        if (_splitRefaire[acte]) {
+          const split = _splitRefaire[acte];
+          const origCode = codes[acte]; // code normal (non modifié car split)
+
+          // Ligne 1 : dents redo → code 9-xx, prix 0, Rouge
+          const redoCode = aRefaireMap[origCode] || ('__REFAIRE_' + origCode + '__');
+          const lcRedo = buildLigneProd(redoCode, acte, split.redoDents.length);
+          _fillDents(lcRedo, acte, redoCode, split.redoDents.join(' '));
+          lignes.push(lcRedo);
+
+          // Ligne 2 : dents normales → code normal, prix normal
+          const lcNorm = buildLigneProd(origCode, acte, split.normalDents.length);
+          _fillDents(lcNorm, acte, origCode, split.normalDents.join(' '));
+          lignes.push(lcNorm);
+        } else {
+          // Pas de split → comportement normal
+          const code = codes[acte];
+          const qty = quantites[acte] || 1;
+          const lc = buildLigneProd(code, acte, qty);
+          _fillDents(lc, acte, code, null);
+          lignes.push(lc);
         }
-        // Si pas de dentsActes pour cet acte → laisser vide (ne PAS prendre les dents du cadre bleu global)
-        lignes.push(lc);
       }
     } else if (tousActes.length > 0) {
       lignes.push(buildLigneProd('0', tousActes.join(' / ')));

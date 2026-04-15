@@ -645,7 +645,8 @@ function editPrescription(i) {
   const btnRef = document.getElementById('btn-refaire-detail');
   if (btnRef) {
     btnRef.style.display = p.aRefaire ? 'inline-block' : 'none';
-    if (p.aRefaireActes && p.aRefaireActes.length) btnRef.textContent = `Configurer ✏️ (${p.aRefaireActes.length})`;
+    var _refCount = Array.isArray(p.aRefaireActes) ? p.aRefaireActes.length : (p.aRefaireActes && typeof p.aRefaireActes === 'object' ? Object.keys(p.aRefaireActes).length : 0);
+    if (_refCount) btnRef.textContent = `Configurer ✏️ (${_refCount})`;
   }
   document.getElementById('urgent').checked = p.urgent || false;
   document.getElementById('call-me').checked = p.call_me || false;
