@@ -179,14 +179,8 @@
       _dbxStatus('Generation du ZIP...');
       var dateStr = new Date().toISOString().split('T')[0];
 
-      // Nom du ZIP : plage premier code → dernier code
       var allCodes = selected.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
-      var zipName = 'ENVOI_' + dateStr;
-      if (allCodes.length >= 2) {
-        zipName += '_' + allCodes[0] + '-' + allCodes[allCodes.length - 1];
-      } else if (allCodes.length === 1) {
-        zipName += '_' + allCodes[0];
-      }
+      var zipName = allCodes.length >= 2 ? allCodes[0] + '-' + allCodes[allCodes.length - 1] : (allCodes[0] || 'envoi');
 
       var zipBlob = await zip.generateAsync({ type: 'blob' });
       var a = document.createElement('a');
