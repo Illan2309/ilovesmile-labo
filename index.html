@@ -42,6 +42,8 @@
 <script src="js/confidence-display.js"></script>
 <script src="js/prescription-scan.js"></script>
 <script src="js/folder-scanning.js"></script>
+<script src="js/digilab-module.js"></script>
+<script src="js/digilab-pdf.js"></script>
 <script src="js/autocomplete.js"></script>
 </head>
 <body>
@@ -176,6 +178,7 @@
   <button type="button" onclick="ouvrirModalTarifs()" style="background:#f8f9fa;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:5px 14px;font-size:0.72rem;font-weight:600;color:#e65100;cursor:pointer;">👥 Gestion clients</button>
   <button type="button" onclick="ouvrirModalParametres()" style="background:#f8f9fa;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:5px 14px;font-size:0.72rem;font-weight:600;color:#6a1b9a;cursor:pointer;margin-left:-1px;">⚙️ Paramètres</button>
   <button type="button" onclick="ouvrirModalImplants()" style="background:#f8f9fa;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:5px 14px;font-size:0.72rem;font-weight:600;color:#0277bd;cursor:pointer;margin-left:-1px;">📦 Commandes Implants</button>
+  <button type="button" onclick="ouvrirDigilab()" style="background:#f8f9fa;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:5px 14px;font-size:0.72rem;font-weight:600;color:#00838f;cursor:pointer;margin-left:-1px;">🦷 Digilab</button>
 </div>
 
 <!-- FORMULAIRE PRESCRIPTION -->
@@ -1164,6 +1167,58 @@
   </div>
 </div>
 
+
+<!-- ══ MODAL DIGILAB ══ -->
+<div id="modal-digilab" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); z-index:900; justify-content:center; align-items:center;">
+  <div style="background:white; border-radius:16px; width:96vw; max-width:1100px; height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); overflow:hidden;">
+
+    <!-- Header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #e8e8e8; background:linear-gradient(120deg,#e0f7fa,#e1f5fe); flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:1.3rem;">🦷</span>
+        <span style="font-weight:700; font-size:1rem; color:#00838f;">Digilab</span>
+        <span id="dlb-stats" style="font-size:0.74rem; color:#666;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button onclick="dlbRefresh()" style="background:#e0f7fa; border:1px solid #b2ebf2; border-radius:8px; padding:6px 14px; font-size:0.76rem; font-weight:600; color:#00838f; cursor:pointer;">Actualiser</button>
+        <button onclick="dlbProcessAll()" style="background:linear-gradient(120deg,#1a5c8a,#5bc4c0); border:none; border-radius:8px; padding:6px 16px; font-size:0.76rem; font-weight:700; color:white; cursor:pointer;">Tout traiter</button>
+        <button onclick="fermerDigilab()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#999; padding:4px 8px;">&#10005;</button>
+      </div>
+    </div>
+
+    <!-- Corps : liste + détail -->
+    <div style="flex:1; display:flex; overflow:hidden;">
+
+      <!-- Liste des cas (gauche) -->
+      <div style="width:420px; min-width:320px; border-right:1px solid #e8eef2; display:flex; flex-direction:column; background:#fafbfd;">
+        <div style="padding:10px 16px; border-bottom:1px solid #eee; font-size:0.72rem; color:#888; font-weight:600; letter-spacing:0.5px;">CAS RECUS</div>
+        <div id="dlb-case-list" style="flex:1; overflow-y:auto; padding:8px;">
+          <div style="text-align:center; padding:40px; color:#999;">Chargement...</div>
+        </div>
+      </div>
+
+      <!-- Détail du cas (droite) -->
+      <div style="flex:1; overflow-y:auto; padding:20px; background:white;">
+        <div id="dlb-detail" style="color:#999; text-align:center; padding:60px 20px;">
+          <div style="font-size:2rem; margin-bottom:12px;">🦷</div>
+          <div>Sélectionnez un cas pour voir les détails</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Progress bar (cachée par défaut) -->
+    <div id="dlb-progress" style="display:none; padding:10px 20px; border-top:1px solid #eee; background:#fafbfd;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="flex:1; background:#e0e0e0; border-radius:4px; height:6px; overflow:hidden;">
+          <div id="dlb-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg,#1a5c8a,#5bc4c0); border-radius:4px; transition:width 0.3s;"></div>
+        </div>
+        <span id="dlb-progress-status" style="font-size:0.72rem; color:#666; white-space:nowrap;">0/0</span>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 </div><!-- fin app-content -->
 

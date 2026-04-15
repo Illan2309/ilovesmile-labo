@@ -902,3 +902,61 @@
   }
   .imp-fournisseur-actions button:hover { background:var(--accent-light); color:var(--accent); border-color:var(--accent); transform:scale(1.08); }
   .imp-fournisseur-actions button.danger:hover { background:#ffebee; color:#c62828; border-color:#ef9a9a; }
+
+  /* ══ DIGILAB MODULE ══ */
+  .dlb-case-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; margin-bottom:6px; border-radius:12px; cursor:pointer;
+    border:1px solid transparent; transition:all 0.15s; background:white;
+  }
+  .dlb-case-row:hover { border-color:var(--teal); box-shadow:0 2px 10px rgba(91,196,192,0.12); }
+  .dlb-case-row.selected { border-color:#00838f; background:#e0f7fa; box-shadow:0 2px 12px rgba(0,131,143,0.15); }
+
+  .dlb-case-main { flex:1; min-width:0; }
+  .dlb-case-patient { font-weight:600; font-size:0.82rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dlb-case-meta { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
+  .dlb-case-date { font-size:0.68rem; color:#999; }
+  .dlb-case-comment { font-size:0.7rem; color:#888; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic; }
+
+  .dlb-badge {
+    font-size:0.64rem; font-weight:600; padding:2px 8px; border-radius:10px;
+    white-space:nowrap; letter-spacing:0.2px;
+  }
+  .dlb-service-medit { background:#e8f5e9; color:#2e7d32; }
+  .dlb-service-threeshape { background:#e3f2fd; color:#1565c0; }
+  .dlb-service-dscore { background:#fff3e0; color:#e65100; }
+  .dlb-service-other { background:#f5f5f5; color:#777; }
+
+  .dlb-status-nouveau { background:#fff8e1; color:#f57f17; }
+  .dlb-status-en_cours { background:#e3f2fd; color:#1565c0; }
+  .dlb-status-traite { background:#e8f5e9; color:#2e7d32; }
+
+  .dlb-case-actions { display:flex; gap:4px; flex-shrink:0; }
+
+  .dlb-btn {
+    border:none; border-radius:8px; padding:6px 12px; font-size:0.76rem;
+    font-weight:600; cursor:pointer; transition:all 0.15s; font-family:'DM Sans',sans-serif;
+  }
+  .dlb-btn-dl { background:#e0f7fa; color:#00838f; font-size:0.85rem; padding:6px 10px; }
+  .dlb-btn-dl:hover { background:#b2ebf2; }
+  .dlb-btn-scan { background:#f3e5f5; color:#7b1fa2; font-size:0.85rem; padding:6px 10px; }
+  .dlb-btn-scan:hover { background:#e1bee7; }
+  .dlb-btn-primary { background:var(--accent); color:white; }
+  .dlb-btn-primary:hover { background:#155a7a; transform:translateY(-1px); }
+  .dlb-btn-accent { background:linear-gradient(120deg,#1a5c8a,#5bc4c0); color:white; }
+  .dlb-btn-accent:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(26,92,138,0.3); }
+
+  .dlb-detail-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #eee; }
+  .dlb-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .dlb-detail-field { background:#f8fafb; border-radius:8px; padding:8px 12px; }
+  .dlb-detail-field label { display:block; font-size:0.66rem; color:#999; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; }
+  .dlb-detail-field span { font-size:0.82rem; color:var(--text); font-weight:500; }
+  .dlb-detail-comment { background:#fffde7; border:1px solid #fff9c4; border-radius:10px; padding:12px; margin-bottom:16px; }
+  .dlb-detail-comment label { display:block; font-size:0.66rem; color:#f57f17; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .dlb-detail-comment div { font-size:0.82rem; color:#333; line-height:1.5; white-space:pre-wrap; }
+  .dlb-detail-actions { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+
+  .dlb-file-list { margin-top:8px; border:1px solid #eee; border-radius:10px; overflow:hidden; }
+  .dlb-file-item { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; border-bottom:1px solid #f5f5f5; font-size:0.76rem; }
+  .dlb-file-item:last-child { border-bottom:none; }
+  .dlb-file-item span:first-child { font-weight:500; color:#333; }

@@ -403,7 +403,7 @@ async function afficherFichierDansPanel(body, dataUrl, photoType) {
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           if (!_isStillCurrent()) return;
           const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: 1.5 });
+          const viewport = page.getViewport({ scale: 3 });
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
@@ -461,7 +461,7 @@ async function afficherFichierDansPanel(body, dataUrl, photoType) {
         for (let n = 1; n <= pdf.numPages; n++) {
           if (!_isStillCurrent()) return;
           const page = await pdf.getPage(n);
-          const vp = page.getViewport({ scale: 1.5 });
+          const vp = page.getViewport({ scale: 3 });
           const cv = document.createElement('canvas');
           cv.width = vp.width; cv.height = vp.height;
           cv.style.cssText = 'width:100%;max-width:700px;background:white;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.4);';

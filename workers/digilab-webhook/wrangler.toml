@@ -1,0 +1,11 @@
+name = "digilab-webhook"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Ces valeurs sont des placeholders — les vrais secrets sont dans le dashboard Cloudflare
+# FIREBASE_PROJECT_ID = "votre-project-id"
+
+# Secrets à configurer via : npx wrangler secret put DIGILAB_AUTH_TOKEN
+# npx wrangler secret put FIREBASE_PROJECT_ID
+# npx wrangler secret put FIREBASE_API_KEY
