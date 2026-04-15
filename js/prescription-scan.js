@@ -95,13 +95,27 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     // Le praticien sera corrigé manuellement si besoin.
   } else if (data.praticien) {
     // Aucun cabinet trouvé → tenter de résoudre via le nom du praticien
-    var _bResolvedViaDr = matchCabinetLocal(data.praticien);
-    if (_bResolvedViaDr) {
-      _bResolvedCode = _bResolvedViaDr;
-      var _bClientViaDr = COGILOG_CLIENTS[_bResolvedViaDr] || [];
-      _bCabinetName = _bClientViaDr[3] || _bCabinetName;
-      _bPraticien = standardizePraticien(data.praticien, _bCabinetName);
-      console.log('[Cabinet] Résolu via praticien: ' + _bCabinetName + ' (Dr: ' + _bPraticien + ')');
+    // SEULEMENT si le praticien est unique (existe dans 1 seul cabinet)
+    var _contacts = window.CONTACTS_DENTISTES || {};
+    var _drNorm = (data.praticien || '').toUpperCase().trim();
+    var _drCabinets = [];
+    Object.entries(_contacts).forEach(function([cab, drs]) {
+      if (drs.some(function(d) { return d.toUpperCase().trim() === _drNorm; })) {
+        _drCabinets.push(cab);
+      }
+    });
+    if (_drCabinets.length === 1) {
+      // Praticien unique → on peut résoudre le cabinet par le praticien
+      var _bResolvedViaDr = matchCabinetLocal(data.praticien);
+      if (_bResolvedViaDr) {
+        _bResolvedCode = _bResolvedViaDr;
+        var _bClientViaDr = COGILOG_CLIENTS[_bResolvedViaDr] || [];
+        _bCabinetName = _bClientViaDr[3] || _bCabinetName;
+        _bPraticien = standardizePraticien(data.praticien, _bCabinetName);
+        console.log('[Cabinet] Résolu via praticien unique: ' + _bCabinetName + ' (Dr: ' + _bPraticien + ')');
+      }
+    } else if (_drCabinets.length > 1) {
+      console.log('[Cabinet] Praticien ' + data.praticien + ' existe dans ' + _drCabinets.length + ' cabinets (' + _drCabinets.join(', ') + ') → pas de résolution automatique');
     }
   }
 
