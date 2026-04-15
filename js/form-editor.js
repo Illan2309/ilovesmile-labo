@@ -322,10 +322,8 @@ function savePrescription() {
     }
 
     if (_anciennePresc.scanIA) {
-      const diffs = extraireDiffs(_anciennePresc.scanIA, prescription);
-      const stats = sauvegarderApprentissage(diffs, explicationsaisie);
-      if (diffs.length > 0 && stats) showToast(`💾 Mis à jour · 🧠 ${stats.nouvelles} nouveau(x), ${stats.renforcees} renforcé(s) (${stats.total} en mémoire)`);
-      else if (diffs.length > 0) showToast(`💾 Mis à jour · 🧠 ${diffs.length} correction(s) mémorisée(s)`);
+      const diffs = sauvegarderCorrectionLog(_anciennePresc.scanIA, prescription);
+      if (diffs && diffs.length > 0) showToast(`💾 Mis à jour · 🧠 ${diffs.length} correction(s) loguée(s)`);
       else showToast('✅ Prescription mise à jour ! (IA avait tout bon 👍)');
     } else {
       showToast('✅ Prescription mise à jour !');
@@ -343,10 +341,8 @@ function savePrescription() {
     if (window.sauvegarderUnePrescription) window.sauvegarderUnePrescription(prescription);
 
     if (scanIACourant) {
-      const diffs = extraireDiffs(scanIACourant, prescription);
-      const stats = sauvegarderApprentissage(diffs, explicationsaisie);
-      if (diffs.length > 0 && stats) showToast(`✅ Enregistrée · 🧠 ${stats.nouvelles} nouveau(x), ${stats.renforcees} renforcé(s) (${stats.total} en mémoire)`);
-      else if (diffs.length > 0) showToast(`✅ Enregistrée · 🧠 ${diffs.length} correction(s) mémorisée(s)`);
+      const diffs = sauvegarderCorrectionLog(scanIACourant, prescription);
+      if (diffs && diffs.length > 0) showToast(`✅ Enregistrée · 🧠 ${diffs.length} correction(s) loguée(s)`);
       else showToast('✅ Prescription enregistrée ! (IA avait tout bon 👍)');
     } else {
       showToast('✅ Prescription enregistrée avec succès !');

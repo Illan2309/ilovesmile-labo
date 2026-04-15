@@ -53,6 +53,8 @@ function extraireDiffs(ia, humain) {
 
   // Champs scalaires
   const champScalaires = {
+    cabinet:        [ia.cabinet,          humain.cabinet],
+    code_labo:      [ia.code_labo,        humain.code_labo],
     praticien:      [ia.praticien,        humain.praticien],
     patient_nom:    [ia.patient_nom,      humain.patient?.nom],
     patient_age:    [ia.patient_age,      humain.patient?.age],
@@ -65,6 +67,7 @@ function extraireDiffs(ia, humain) {
     ],
     fraisage:       [ia.fraisage,         humain.fraisage],
     teinte:         [ia.teinte,           humain.teinte],
+    commentaires:   [ia.commentaires,     humain.commentaires],
   };
 
   Object.entries(champScalaires).forEach(([champ, [vIA, vH]]) => {
@@ -86,6 +89,50 @@ function extraireDiffs(ia, humain) {
   const adjH    = new Set(humain.adjointe || []);
   adjH.forEach(v => { if (!adjIA.has(v))   diffs.push({ type: 'case_manquante',  champ: 'adjointe',  valeur: v, contexteIA: [...adjIA] }); });
   adjIA.forEach(v => { if (!adjH.has(v))    diffs.push({ type: 'case_en_trop',    champ: 'adjointe',  valeur: v, contexteIA: [...adjIA] }); });
+
+  // Dents — ajoutées / retirées
+  const dentsIA = new Set(ia.dents || []);
+  const dentsH  = new Set(humain.dents || []);
+  const dentsAjoutees  = [...dentsH].filter(d => !dentsIA.has(d)).sort((a,b) => a-b);
+  const dentsRetirees  = [...dentsIA].filter(d => !dentsH.has(d)).sort((a,b) => a-b);
+  if (dentsAjoutees.length || dentsRetirees.length) {
+    diffs.push({ type: 'dents_modifiees', ia: [...dentsIA].sort((a,b) => a-b), humain: [...dentsH].sort((a,b) => a-b), ajoutees: dentsAjoutees, retirees: dentsRetirees });
+  }
+
+  // DentsActes — mapping acte→dents modifié
+  const daIA = ia.dentsActes || {};
+  const daH  = humain.dentsActes || {};
+  const tousActes = new Set([...Object.keys(daIA), ...Object.keys(daH)]);
+  tousActes.forEach(acte => {
+    const vIA = (daIA[acte] || '').toString().trim();
+    const vH  = (daH[acte]  || '').toString().trim();
+    if (vIA !== vH) {
+      diffs.push({ type: 'dentsActes_modifie', acte, ia: vIA || '(vide)', humain: vH || '(vide)' });
+    }
+  });
+
+  // SolidGroups — groupes unitaire/solidaire modifiés
+  const sgIA = JSON.stringify(ia.solidGroups || []);
+  const sgH  = JSON.stringify(humain.solidGroups || []);
+  if (sgIA !== sgH) {
+    diffs.push({ type: 'solidGroups_modifie', ia: ia.solidGroups || [], humain: humain.solidGroups || [] });
+  }
+
+  // Flags booléens
+  const flags = {
+    urgent:        [ia.urgent,         humain.urgent],
+    call_me:       [ia.call_me,        humain.call_me],
+    cas_esthetique:[ia.cas_esthetique, humain.casEsthetique],
+    a_refaire:     [ia.a_refaire,      humain.aRefaire],
+    scan:          [ia.scan,           humain.scan],
+  };
+  Object.entries(flags).forEach(([flag, [vIA, vH]]) => {
+    const a = !!vIA;
+    const b = !!vH;
+    if (a !== b) {
+      diffs.push({ type: 'flag_modifie', champ: flag, ia: a, correction: b });
+    }
+  });
 
   return diffs;
 }
