@@ -139,7 +139,7 @@
           var p = prescriptions[i];
           var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase().replace(/[^A-Z0-9]/g, '_');
           var code = (p.code_labo || '').replace(/[^A-Za-z0-9]/g, '');
-          var subName = patient + (code ? '_' + code : '');
+          var subName = (code ? code + '_' : '') + patient;
 
           done++;
           _dbxProgress(done / total, done + '/' + total);
@@ -178,10 +178,20 @@
       // Générer et télécharger le ZIP
       _dbxStatus('Generation du ZIP...');
       var dateStr = new Date().toISOString().split('T')[0];
+
+      // Nom du ZIP : plage premier code → dernier code
+      var allCodes = selected.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
+      var zipName = 'ENVOI_' + dateStr;
+      if (allCodes.length >= 2) {
+        zipName += '_' + allCodes[0] + '-' + allCodes[allCodes.length - 1];
+      } else if (allCodes.length === 1) {
+        zipName += '_' + allCodes[0];
+      }
+
       var zipBlob = await zip.generateAsync({ type: 'blob' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(zipBlob);
-      a.download = 'ENVOI_' + dateStr + '.zip';
+      a.download = zipName + '.zip';
       a.click();
       URL.revokeObjectURL(a.href);
 
@@ -351,7 +361,7 @@
           var p = prescriptions[i];
           var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase().replace(/[^A-Z0-9]/g, '_');
           var code = (p.code_labo || '').replace(/[^A-Za-z0-9]/g, '');
-          var subName = patient + (code ? '_' + code : '');
+          var subName = (code ? code + '_' : '') + patient;
           var subPath = basePath + '/' + subName;
 
           totalDone++;
