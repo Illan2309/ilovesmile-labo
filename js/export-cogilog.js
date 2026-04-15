@@ -510,17 +510,17 @@ function exportCogilogTSV() {
         lc[1] = '1-IC';
         lc[2] = COGILOG_LIBELLES['1-IC'] || 'INLAY CORE METAL';
         lc[3] = '0';
-        lc[29] = 'Rouge';
+        lc[29] = ';0;1;1;0;1;0.501963;0.000000;0.008128';
       } else if (codeProd.startsWith('__REFAIRE_') && codeProd.endsWith('__')) {
         // Article sans code 9-xx mais marqué à refaire → prix 0 + Rouge
         const vraiCode = codeProd.slice(10, -2); // enlever __REFAIRE_ et __
         lc[1] = vraiCode;
         lc[2] = COGILOG_LIBELLES[vraiCode] || libelle;
         lc[3] = '0';
-        lc[29] = 'Rouge';
+        lc[29] = ';0;1;1;0;1;0.501963;0.000000;0.008128';
       } else if (codeProd.startsWith('9-')) {
         lc[3] = '0';
-        lc[29] = 'Rouge';
+        lc[29] = ';0;1;1;0;1;0.501963;0.000000;0.008128';
       } else {
         // Essayer p.cabinet → code Cogilog → nom résolu depuis Cogilog
         const nomPourTarif = (p.cabinet || '').trim()
