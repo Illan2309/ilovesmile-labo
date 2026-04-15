@@ -222,7 +222,9 @@
       var f = files[i];
       var name = (f.name || '').split('/').pop();
       if (needsFilter && /^(POF_|FULL_POF_)/i.test(name)) continue;
-      if (!f.url || name.endsWith('.zip')) continue; // skip les ZIP, prendre les fichiers individuels
+      if (!f.url) continue;
+      // Skip les gros ZIP redondants (les fichiers individuels PLY/STL sont déjà listés)
+      if (name.endsWith('.zip') && files.some(function(ff) { return ff.name && /\.(ply|stl|obj|dcm)$/i.test(ff.name); })) continue;
 
       try {
         var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY + '&url=' + encodeURIComponent(f.url));

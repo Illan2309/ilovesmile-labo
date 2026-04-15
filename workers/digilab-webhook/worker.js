@@ -14,7 +14,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-Key',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-Key, Dropbox-API-Arg',
 };
 
 const DIGILAB_API_BASE = 'https://europe-west9-digital-adf.cloudfunctions.net/digilab-inbox-server/public/v1';
