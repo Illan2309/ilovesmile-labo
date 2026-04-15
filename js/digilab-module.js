@@ -182,6 +182,8 @@
       html += '  <td class="dlb-td-actions">';
       html += '    <button class="dlb-btn dlb-btn-dl" onclick="event.stopPropagation();dlbDownloadFiles(\'' + _esc(id) + '\')" title="Telecharger">&#11015;</button>';
       html += '    <button class="dlb-btn dlb-btn-scan" onclick="event.stopPropagation();dlbScanFiche(\'' + _esc(id) + '\')" title="Scanner">&#9881;</button>';
+      var linkCase = c.link_case || ('https://app.digilab.dental/case2/' + id);
+      html += '    <a class="dlb-btn dlb-btn-view" href="' + _esc(linkCase) + '" target="_blank" onclick="event.stopPropagation()" title="Voir en 3D sur Digilab">&#128065;</a>';
       html += '    <button class="dlb-btn dlb-btn-del" onclick="event.stopPropagation();dlbDeleteCase(\'' + _esc(id) + '\')" title="Supprimer">&#10005;</button>';
       html += '  </td>';
       html += '</tr>';

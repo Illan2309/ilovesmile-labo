@@ -966,6 +966,8 @@
   .dlb-btn-dl:hover { background:#b2ebf2; }
   .dlb-btn-scan { background:#f3e5f5; color:#7b1fa2; }
   .dlb-btn-scan:hover { background:#e1bee7; }
+  .dlb-btn-view { background:#e8f5e9; color:#2e7d32; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+  .dlb-btn-view:hover { background:#c8e6c9; }
   .dlb-btn-del { background:#ffebee; color:#c62828; font-size:0.75rem; }
   .dlb-btn-del:hover { background:#ffcdd2; }
   .dlb-btn-primary { background:var(--accent); color:white; }
