@@ -234,6 +234,25 @@ function pmRenderPrefs() {
         </div>
       </div>
 
+      <!-- Dropbox / Fournisseurs -->
+      <div style="background:#f8f4ff; border:1px solid #d0c0e8; border-radius:10px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:0.8rem; font-weight:700; color:#6a1b9a; margin-bottom:12px;">📤 Envoi Dropbox / Fournisseurs</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:0.72rem; color:#888; display:block; margin-bottom:2px;">Email MERDENTAL</label>
+            <input type="email" value="${prefs.email_fournisseur_merdental || 'kerry@merdental.com'}"
+              onchange="pmUpdatePref('email_fournisseur_merdental', this.value)"
+              style="width:100%; padding:6px 10px; border:1px solid #d0c0e8; border-radius:8px; font-size:0.78rem; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:#888; display:block; margin-bottom:2px;">Email HUILE</label>
+            <input type="email" value="${prefs.email_fournisseur_huile || 'customerdata@microunion.com'}"
+              onchange="pmUpdatePref('email_fournisseur_huile', this.value)"
+              style="width:100%; padding:6px 10px; border:1px solid #d0c0e8; border-radius:8px; font-size:0.78rem; box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+
       <!-- Info -->
       <div style="background:#f5f5f5; border-radius:8px; padding:12px; font-size:0.73rem; color:#888; line-height:1.6;">
         💡 Les préférences et le mapping sont sauvegardés dans Firebase et s'appliquent sur tous les appareils.

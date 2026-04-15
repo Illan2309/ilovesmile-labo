@@ -38,6 +38,11 @@ export default {
       return handleDigilabProxy(request, env, url, path);
     }
 
+    // ── Proxy Dropbox API ──
+    if (path.startsWith('/v1/dropbox/')) {
+      return handleDropboxProxy(request, env, url, path);
+    }
+
     // ── Firebase orders (legacy) ──
     if (request.method === 'GET' && path === '/v1/orders') {
       return handleListOrders(request, env);
@@ -179,6 +184,125 @@ async function proxyDigilabFile(url, env) {
   } catch (e) {
     return jsonResponse({ error: 'File proxy error', message: e.message }, 502);
   }
+}
+
+// ═══════════════════════════════════════════
+// PROXY DROPBOX API
+// ═══════════════════════════════════════════
+
+async function handleDropboxProxy(request, env, url, path) {
+  // Auth frontend → worker
+  const appKey = url.searchParams.get('key') || request.headers.get('X-App-Key') || '';
+  if (appKey !== env.DIGILAB_AUTH_TOKEN) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  const dbxToken = env.DROPBOX_TOKEN;
+  if (!dbxToken) {
+    return jsonResponse({ error: 'Dropbox not configured' }, 500);
+  }
+
+  // POST /v1/dropbox/create-folder
+  if (path === '/v1/dropbox/create-folder' && request.method === 'POST') {
+    const body = await request.json();
+    const resp = await fetch('https://api.dropboxapi.com/2/files/create_folder_v2', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: body.path, autorename: false }),
+    });
+    const data = await resp.text();
+    return new Response(data, { status: resp.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+  }
+
+  // POST /v1/dropbox/upload — upload fichier (< 150 MB)
+  if (path === '/v1/dropbox/upload' && request.method === 'POST') {
+    const dropboxArg = request.headers.get('Dropbox-API-Arg') || '{}';
+    const fileBody = await request.arrayBuffer();
+
+    const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + dbxToken,
+        'Dropbox-API-Arg': dropboxArg,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: fileBody,
+    });
+    const data = await resp.text();
+    return new Response(data, { status: resp.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+  }
+
+  // POST /v1/dropbox/upload-from-url — télécharge un fichier externe et l'upload sur Dropbox
+  if (path === '/v1/dropbox/upload-from-url' && request.method === 'POST') {
+    const body = await request.json();
+    const fileUrl = body.url;
+    const dropboxPath = body.path;
+
+    if (!fileUrl || !dropboxPath) {
+      return jsonResponse({ error: 'Missing url or path' }, 400);
+    }
+
+    try {
+      // Télécharger le fichier depuis l'URL
+      const fileResp = await fetch(fileUrl);
+      if (!fileResp.ok) {
+        return jsonResponse({ error: 'File download failed', status: fileResp.status }, 502);
+      }
+      const fileBuffer = await fileResp.arrayBuffer();
+
+      // Upload vers Dropbox
+      const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + dbxToken,
+          'Dropbox-API-Arg': JSON.stringify({ path: dropboxPath, mode: 'add', autorename: true, mute: true }),
+          'Content-Type': 'application/octet-stream',
+        },
+        body: fileBuffer,
+      });
+      const data = await resp.text();
+      return new Response(data, { status: resp.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+    } catch (e) {
+      return jsonResponse({ error: 'Upload from URL failed', message: e.message }, 502);
+    }
+  }
+
+  // POST /v1/dropbox/share — créer un lien partagé
+  if (path === '/v1/dropbox/share' && request.method === 'POST') {
+    const body = await request.json();
+    const resp = await fetch('https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: body.path,
+        settings: { requested_visibility: { '.tag': 'public' }, audience: { '.tag': 'public' } }
+      }),
+    });
+    let data = await resp.text();
+
+    // Si le lien existe déjà (409), récupérer l'existant
+    if (resp.status === 409) {
+      const existing = await fetch('https://api.dropboxapi.com/2/sharing/list_shared_links', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: body.path, direct_only: true }),
+      });
+      data = await existing.text();
+      const parsed = JSON.parse(data);
+      if (parsed.links && parsed.links.length) {
+        return jsonResponse({ url: parsed.links[0].url });
+      }
+    }
+
+    try {
+      const parsed = JSON.parse(data);
+      return jsonResponse({ url: parsed.url || '' });
+    } catch (e) {
+      return new Response(data, { status: resp.status, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
+    }
+  }
+
+  return jsonResponse({ error: 'Unknown dropbox endpoint' }, 404);
 }
 
 // ═══════════════════════════════════════════
