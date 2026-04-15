@@ -805,5 +805,12 @@ function editPrescription(i) {
   setTimeout(() => {
     document.getElementById('split-wrapper').scrollIntoView({ behavior: 'smooth' });
   }, 50);
+
+  // Capturer le snapshot pour les correction logs (si fiche issue d'un scan IA)
+  // Délai pour laisser les badges/dentsActes se rendre avant de capturer
+  if (p.scanIA && typeof capturerSnapshotFormulaire === 'function') {
+    setTimeout(function() { capturerSnapshotFormulaire(); }, 500);
+  }
+
   showToast('Prescription chargée — modifie et sauvegarde !');
 }
