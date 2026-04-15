@@ -511,6 +511,13 @@ function exportCogilogTSV() {
         lc[2] = COGILOG_LIBELLES['1-IC'] || 'INLAY CORE METAL';
         lc[3] = '0';
         lc[29] = 'Rouge';
+      } else if (codeProd.startsWith('__REFAIRE_') && codeProd.endsWith('__')) {
+        // Article sans code 9-xx mais marqué à refaire → prix 0 + Rouge
+        const vraiCode = codeProd.slice(10, -2); // enlever __REFAIRE_ et __
+        lc[1] = vraiCode;
+        lc[2] = COGILOG_LIBELLES[vraiCode] || libelle;
+        lc[3] = '0';
+        lc[29] = 'Rouge';
       } else if (codeProd.startsWith('9-')) {
         lc[3] = '0';
         lc[29] = 'Rouge';
@@ -627,10 +634,12 @@ function exportCogilogTSV() {
     //     aRefaireActes [...]          → seulement les articles de la liste
     //   IC / ICCER : pas de code 9-00 dans Cogilog → on garde 1-IC mais prix 0 + Rouge
 
+    // toRefaire accessible pour les produits annexes aussi (section 11)
+    const toRefaire = (p.aRefaire === true)
+      ? (Array.isArray(p.aRefaireActes) ? new Set(p.aRefaireActes) : null)
+      : false; // false = pas un cas à refaire
+
     if (p.aRefaire === true) {
-      const toRefaire = Array.isArray(p.aRefaireActes)
-        ? new Set(p.aRefaireActes)
-        : null; // null = tous les articles
 
       for (const acte of actesAvecCodeFiltres) {
         const doIt = (toRefaire === null) || toRefaire.has(acte);
@@ -640,8 +649,10 @@ function exportCogilogTSV() {
           codes[acte] = aRefaireMap[code];       // ex: 1-CCZIF → 9-00ZIRF
         } else if (code === '1-IC' || code === '1-ICCER') {
           codes[acte] = '__IC_REFAIRE__';         // prix 0 + Rouge, code reste 1-IC
+        } else if (code) {
+          // Articles sans code 9-xx (grille de renfort, ackers, etc.) → prix 0 + Rouge
+          codes[acte] = '__REFAIRE_' + code + '__';
         }
-        // autres articles sans équivalent 9-00 → on laisse le code normal
       }
     }
 
@@ -735,7 +746,14 @@ function exportCogilogTSV() {
 
     // 11. Produits annexes (cases cochées dans la popup Annexes)
     for (const code of produitsAnnexes) {
-      const lc = buildLigneProd(code, COGILOG_LIBELLES[code] || code);
+      // Vérifier si ce produit annexe est marqué "à refaire"
+      const annexeLabel = (typeof PRODUITS_ANNEXES !== 'undefined' ? PRODUITS_ANNEXES : []).find(pa => pa.code === code);
+      const annexeName = annexeLabel ? annexeLabel.label : code;
+      const isAnnexeRefaire = (toRefaire !== false) && (toRefaire === null || toRefaire.has(annexeName));
+      const lc = buildLigneProd(
+        isAnnexeRefaire ? ('__REFAIRE_' + code + '__') : code,
+        COGILOG_LIBELLES[code] || code
+      );
       // Appliquer les dents/mâchoire si renseignées
       const dentVal = produitsAnnexesDents[code] || '';
       if (dentVal) lc[23] = dentVal;

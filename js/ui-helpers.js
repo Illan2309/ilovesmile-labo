@@ -1057,6 +1057,15 @@ window.ouvrirPopupRefaire = function() {
       'Implant scellé','Implant transvisé'];
     return !sans.includes(a);
   });
+  // Ajouter les produits annexes cochés
+  if (window._produitsAnnexes && window._produitsAnnexes.length > 0) {
+    var _annexesList = (typeof PRODUITS_ANNEXES !== 'undefined') ? PRODUITS_ANNEXES : [];
+    window._produitsAnnexes.forEach(function(code) {
+      var pa = _annexesList.find(function(x) { return x.code === code; });
+      var label = pa ? pa.label : code;
+      if (tousActes.indexOf(label) < 0) tousActes.push(label);
+    });
+  }
 
   const liste = document.getElementById('popup-refaire-liste');
   if (!tousActes.length) {
