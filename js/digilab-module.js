@@ -164,7 +164,9 @@
       html += '    <div class="dlb-case-patient">' + _esc(patient) + '</div>';
       html += '    <div class="dlb-case-meta">';
       html += '      <span class="dlb-badge dlb-service-' + serviceClass + '">' + _esc(service || '?') + '</span>';
-      html += '      <span class="dlb-badge dlb-status-' + status + '">' + (status === 'nouveau' ? 'Nouveau' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status) + '</span>';
+      var statusLabel = status === 'nouveau' ? 'Nouveau' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
+      if (status.startsWith('envoye_')) statusLabel = 'Envoyé à ' + status.replace('envoye_', '').toUpperCase();
+      html += '      <span class="dlb-badge dlb-status-' + (status.startsWith('envoye') ? 'envoye' : status) + '">' + statusLabel + '</span>';
       html += '      <span class="dlb-case-date">' + date + '</span>';
       html += '    </div>';
       if (comment) html += '    <div class="dlb-case-comment">' + _esc(comment) + '</div>';

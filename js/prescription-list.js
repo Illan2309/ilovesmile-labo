@@ -146,6 +146,7 @@ function renderList() {
     'attente':  { cls: 'status-attente',  label: '🟡 En attente' },
     'livre':    { cls: 'status-verifie',  label: '✅ Vérifié' },
     'en-cours': { cls: 'status-attente',  label: '🟡 En attente' },
+    'envoye':   { cls: 'status-envoye',   label: '🟣 Envoyé' },
   };
 
   list.innerHTML = filtered.map(p => {

@@ -396,14 +396,26 @@
 
         allLinks.push({ fournisseur: fournisseur, email: email, url: shareUrl, count: prescriptions.length });
 
-        // Marquer les prescriptions
+        // Marquer les prescriptions + cas Digilab
         for (var j = 0; j < prescriptions.length; j++) {
           prescriptions[j].dropbox_envoye = true;
           prescriptions[j].dropbox_date = now.toISOString();
           prescriptions[j].dropbox_fournisseur = fournisseur;
           prescriptions[j].dropbox_lien = shareUrl;
+          prescriptions[j].statut = 'envoye';
           if (window.sauvegarderUnePrescription) {
             window.sauvegarderUnePrescription(prescriptions[j]);
+          }
+          // Mettre à jour le cas Digilab
+          if (prescriptions[j]._digilabCaseId) {
+            var _dlbDb = window.getDB ? window.getDB() : null;
+            if (_dlbDb) {
+              _dlbDb.collection('digilab_orders').doc(prescriptions[j]._digilabCaseId).update({
+                _status: 'envoye_' + fournisseur.toLowerCase(),
+                _dropboxLien: shareUrl,
+                _dropboxDate: now.toISOString(),
+              }).catch(function(e) { console.warn('[DROPBOX] Digilab status update error', e); });
+            }
           }
         }
       }

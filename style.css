@@ -930,6 +930,8 @@
   .dlb-status-nouveau { background:#fff8e1; color:#f57f17; }
   .dlb-status-en_cours { background:#e3f2fd; color:#1565c0; }
   .dlb-status-traite { background:#e8f5e9; color:#2e7d32; }
+  .dlb-status-envoye { background:#f3e5f5; color:#7b1fa2; }
+  .status-envoye { background:#f3e5f5; color:#7b1fa2; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:600; }
 
   .dlb-case-actions { display:flex; gap:4px; flex-shrink:0; }
 
