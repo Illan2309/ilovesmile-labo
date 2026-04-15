@@ -166,7 +166,7 @@
       else if (service.includes('3shape')) serviceClass = 'threeshape';
       else if (service.includes('dscore') || service.includes('shining')) serviceClass = 'dscore';
 
-      var statusLabel = status === 'nouveau' ? 'Validation' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
+      var statusLabel = status === 'nouveau' ? 'En attente' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
       if (status.startsWith('envoye_')) statusLabel = 'Envoyé ' + status.replace('envoye_', '').toUpperCase();
       var statusClass = status.startsWith('envoye') ? 'envoye' : status;
 
