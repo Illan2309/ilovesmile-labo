@@ -79,12 +79,37 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
     // Fallback : si Dr ???, chercher dans raw_praticien, raw_commentaires et commentaires
     if (_bPraticien === 'Dr ???') {
       var _fallbackTexts = [data.raw_praticien, data.raw_commentaires, data.commentaires].filter(Boolean);
+      // D'abord chercher dans les contacts du cabinet trouvé
       for (var _fi = 0; _fi < _fallbackTexts.length; _fi++) {
         var _fbResult = _chercherPraticienDansTexte(_fallbackTexts[_fi], _bCabinetName);
         if (_fbResult && _fbResult !== 'Dr ???') {
           _bPraticien = _fbResult;
-          console.log('[PRATICIEN] Fallback trouvé dans texte: ' + _bPraticien);
+          console.log('[PRATICIEN] Fallback trouvé dans contacts cabinet: ' + _bPraticien);
           break;
+        }
+      }
+      // Si toujours Dr ??? → chercher dans TOUS les cabinets (utile si praticien pas encore listé dans ce cabinet)
+      if (_bPraticien === 'Dr ???') {
+        var _allContacts = window.CONTACTS_DENTISTES || {};
+        var _norm = function(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); };
+        for (var _fj = 0; _fj < _fallbackTexts.length && _bPraticien === 'Dr ???'; _fj++) {
+          var _texteUp = _norm(_fallbackTexts[_fj]);
+          var _bestGlobal = null, _bestGlobalScore = 0;
+          Object.values(_allContacts).forEach(function(drList) {
+            (drList || []).forEach(function(contact) {
+              if (contact === 'Dr ???') return;
+              var contactClean = _norm(contact).replace(/^DR\.?\s*/i, '').trim();
+              var words = contactClean.split(/[\s\-]+/).filter(function(w) { return w.length >= 3; });
+              var score = 0;
+              words.forEach(function(w) { if (_texteUp.includes(w)) score += w.length; });
+              if (words.length > 0 && _texteUp.includes(words[0])) score += 20;
+              if (score > _bestGlobalScore) { _bestGlobalScore = score; _bestGlobal = contact; }
+            });
+          });
+          if (_bestGlobal && _bestGlobalScore >= 23) {
+            _bPraticien = _bestGlobal;
+            console.log('[PRATICIEN] Fallback trouvé dans tous les cabinets: ' + _bPraticien + ' (score: ' + _bestGlobalScore + ')');
+          }
         }
       }
     }
