@@ -370,6 +370,16 @@ function buildProdAliasPrescription() {
 
   adj += '</div></div>'; // fin col droite + grid
 
+  // ═══ PRODUITS ANNEXES ═══
+  adj += SEP;
+  adj += '<div style="text-align:center;font-size:0.78rem;font-weight:700;letter-spacing:1px;color:#e65100;margin-bottom:6px;">📦 PRODUITS ANNEXES</div>';
+  adj += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+  var _annexesList = (typeof PRODUITS_ANNEXES !== 'undefined') ? PRODUITS_ANNEXES : [];
+  _annexesList.forEach(function(pa) {
+    adj += I(pa.label, pa.label, false, 'color:#e65100');
+  });
+  adj += '</div>';
+
   // ═══ CHAMPS SPÉCIAUX ═══
   var special = SEP;
   special += '<div style="text-align:center;font-size:0.78rem;font-weight:700;letter-spacing:1px;color:#b8860b;margin-bottom:6px;">CHAMPS SPÉCIAUX</div>';
