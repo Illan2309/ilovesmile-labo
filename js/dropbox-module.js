@@ -404,7 +404,7 @@
           prescriptions[j].dropbox_date = now.toISOString();
           prescriptions[j].dropbox_fournisseur = fournisseur;
           prescriptions[j].dropbox_lien = shareUrl;
-          prescriptions[j].statut = 'envoye';
+          prescriptions[j].statut = 'importe';
           if (window.sauvegarderUnePrescription) {
             window.sauvegarderUnePrescription(prescriptions[j]);
           }
