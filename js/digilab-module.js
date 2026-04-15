@@ -145,40 +145,48 @@
     }
 
     var html = '';
+    // En-tête tableau
+    html += '<table class="dlb-table"><thead><tr>';
+    html += '<th>Date</th><th>Patient</th><th>Statut</th><th>Labo</th><th>Service</th><th></th>';
+    html += '</tr></thead><tbody>';
+
     _cases.forEach(function(c) {
       var id = c._digilabId || c._firebaseId || c._id || '';
       var patient = c.patient_name || c.patientName || 'Patient inconnu';
       var service = (c.service || '').toLowerCase();
       var date = _formatDate(c._receivedAt || c.creation_date || '');
+      var time = _formatTime(c._receivedAt || c.creation_date || '');
       var status = c._status || 'nouveau';
-      var comment = (c.comment || '').substring(0, 80);
+      var comment = (c.comment || '').substring(0, 60);
       var isSelected = id === _selectedCaseId;
+      var lab = c.lab || 'ilovesmile';
 
       var serviceClass = 'other';
       if (service.includes('medit')) serviceClass = 'medit';
       else if (service.includes('3shape')) serviceClass = 'threeshape';
       else if (service.includes('dscore') || service.includes('shining')) serviceClass = 'dscore';
 
-      html += '<div class="dlb-case-row ' + (isSelected ? 'selected' : '') + '" onclick="dlbSelectCase(\'' + _esc(id) + '\')">';
-      html += '  <div class="dlb-case-main">';
-      html += '    <div class="dlb-case-patient">' + _esc(patient) + '</div>';
-      html += '    <div class="dlb-case-meta">';
-      html += '      <span class="dlb-badge dlb-service-' + serviceClass + '">' + _esc(service || '?') + '</span>';
-      var statusLabel = status === 'nouveau' ? 'Nouveau' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
-      if (status.startsWith('envoye_')) statusLabel = 'Envoyé à ' + status.replace('envoye_', '').toUpperCase();
-      html += '      <span class="dlb-badge dlb-status-' + (status.startsWith('envoye') ? 'envoye' : status) + '">' + statusLabel + '</span>';
-      html += '      <span class="dlb-case-date">' + date + '</span>';
-      html += '    </div>';
-      if (comment) html += '    <div class="dlb-case-comment">' + _esc(comment) + '</div>';
-      html += '  </div>';
-      html += '  <div class="dlb-case-actions">';
-      html += '    <button class="dlb-btn dlb-btn-dl" onclick="event.stopPropagation();dlbDownloadFiles(\'' + _esc(id) + '\')" title="Télécharger les fichiers">&#11015;</button>';
-      html += '    <button class="dlb-btn dlb-btn-scan" onclick="event.stopPropagation();dlbScanFiche(\'' + _esc(id) + '\')" title="Scanner la fiche">&#9881;</button>';
-      html += '    <button class="dlb-btn" onclick="event.stopPropagation();dlbDeleteCase(\'' + _esc(id) + '\')" title="Supprimer" style="background:#ffebee;color:#c62828;font-size:0.8rem;padding:6px 8px;">&#10005;</button>';
-      html += '  </div>';
-      html += '</div>';
+      var statusLabel = status === 'nouveau' ? 'Validation' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
+      if (status.startsWith('envoye_')) statusLabel = 'Envoyé ' + status.replace('envoye_', '').toUpperCase();
+      var statusClass = status.startsWith('envoye') ? 'envoye' : status;
+
+      html += '<tr class="dlb-table-row ' + (isSelected ? 'selected' : '') + '" onclick="dlbSelectCase(\'' + _esc(id) + '\')">';
+      html += '  <td class="dlb-td-date"><div>' + date + '</div><div class="dlb-td-time">' + time + '</div></td>';
+      html += '  <td class="dlb-td-patient"><div class="dlb-td-name">' + _esc(patient) + '</div>';
+      if (comment) html += '<div class="dlb-td-comment">' + _esc(comment) + '</div>';
+      html += '</td>';
+      html += '  <td><span class="dlb-badge dlb-status-' + statusClass + '">' + statusLabel + '</span></td>';
+      html += '  <td class="dlb-td-lab">' + _esc(lab) + '</td>';
+      html += '  <td><span class="dlb-badge dlb-service-' + serviceClass + '">' + _esc(service || '?') + '</span></td>';
+      html += '  <td class="dlb-td-actions">';
+      html += '    <button class="dlb-btn dlb-btn-dl" onclick="event.stopPropagation();dlbDownloadFiles(\'' + _esc(id) + '\')" title="Telecharger">&#11015;</button>';
+      html += '    <button class="dlb-btn dlb-btn-scan" onclick="event.stopPropagation();dlbScanFiche(\'' + _esc(id) + '\')" title="Scanner">&#9881;</button>';
+      html += '    <button class="dlb-btn dlb-btn-del" onclick="event.stopPropagation();dlbDeleteCase(\'' + _esc(id) + '\')" title="Supprimer">&#10005;</button>';
+      html += '  </td>';
+      html += '</tr>';
     });
 
+    html += '</tbody></table>';
     container.innerHTML = html;
   }
 
@@ -742,6 +750,12 @@
     a.download = filename || 'download';
     a.target = '_blank';
     a.click();
+  }
+
+  function _formatTime(isoStr) {
+    if (!isoStr) return '';
+    try { return new Date(isoStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+    catch(e) { return ''; }
   }
 
   function _formatDate(isoStr) {

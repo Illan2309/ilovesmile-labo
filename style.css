@@ -933,16 +933,40 @@
   .dlb-status-envoye { background:#f3e5f5; color:#7b1fa2; }
   .status-envoye { background:#f3e5f5; color:#7b1fa2; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:600; }
 
-  .dlb-case-actions { display:flex; gap:4px; flex-shrink:0; }
+  /* ── Tableau Digilab style I Love Smile ── */
+  .dlb-table {
+    width:100%; border-collapse:separate; border-spacing:0;
+    font-size:0.78rem; font-family:'DM Sans',sans-serif;
+  }
+  .dlb-table thead th {
+    text-align:left; padding:8px 12px; font-size:0.68rem; font-weight:700;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.8px;
+    border-bottom:2px solid var(--border); background:#fafbfd; position:sticky; top:0; z-index:1;
+  }
+  .dlb-table-row {
+    cursor:pointer; transition:all 0.12s;
+  }
+  .dlb-table-row:hover { background:#f0fafa; }
+  .dlb-table-row.selected { background:#e0f7fa; }
+  .dlb-table-row td { padding:10px 12px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+  .dlb-td-date { white-space:nowrap; color:#555; font-size:0.75rem; }
+  .dlb-td-time { color:#aaa; font-size:0.65rem; }
+  .dlb-td-patient { max-width:220px; }
+  .dlb-td-name { font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dlb-td-comment { font-size:0.68rem; color:#999; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; margin-top:2px; }
+  .dlb-td-lab { color:var(--teal); font-weight:600; font-size:0.72rem; }
+  .dlb-td-actions { white-space:nowrap; }
 
   .dlb-btn {
-    border:none; border-radius:8px; padding:6px 12px; font-size:0.76rem;
+    border:none; border-radius:8px; padding:5px 8px; font-size:0.78rem;
     font-weight:600; cursor:pointer; transition:all 0.15s; font-family:'DM Sans',sans-serif;
   }
-  .dlb-btn-dl { background:#e0f7fa; color:#00838f; font-size:0.85rem; padding:6px 10px; }
+  .dlb-btn-dl { background:#e0f7fa; color:#00838f; }
   .dlb-btn-dl:hover { background:#b2ebf2; }
-  .dlb-btn-scan { background:#f3e5f5; color:#7b1fa2; font-size:0.85rem; padding:6px 10px; }
+  .dlb-btn-scan { background:#f3e5f5; color:#7b1fa2; }
   .dlb-btn-scan:hover { background:#e1bee7; }
+  .dlb-btn-del { background:#ffebee; color:#c62828; font-size:0.75rem; }
+  .dlb-btn-del:hover { background:#ffcdd2; }
   .dlb-btn-primary { background:var(--accent); color:white; }
   .dlb-btn-primary:hover { background:#155a7a; transform:translateY(-1px); }
   .dlb-btn-accent { background:linear-gradient(120deg,#1a5c8a,#5bc4c0); color:white; }
