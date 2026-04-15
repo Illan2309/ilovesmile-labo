@@ -205,7 +205,8 @@
     }
   };
 
-  // Ajouter les fichiers Digilab dans un folder JSZip
+  // Ajouter les fichiers scan Digilab dans un folder JSZip
+  // Priorité : Dropbox staging (sauvegardé au webhook) > URLs Digilab (peut être expiré)
   async function _addDigilabFilesToZip(caseId, zipFolder) {
     var db = window.getDB ? window.getDB() : null;
     if (!db) return;
@@ -214,6 +215,39 @@
     if (!docSnap.exists) return;
 
     var caseData = docSnap.data();
+    var stagingPath = caseData._dropboxStagingPath || '';
+
+    // MÉTHODE 1 : depuis Dropbox staging (fiable)
+    if (stagingPath) {
+      try {
+        var listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: stagingPath })
+        });
+        if (listResp.ok) {
+          var listData = await listResp.json();
+          var entries = listData.entries || [];
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (entry['.tag'] !== 'file') continue;
+            try {
+              var dlResp = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: entry.path_lower || entry.path_display })
+              });
+              if (dlResp.ok) {
+                var blob = await dlResp.blob();
+                zipFolder.file(entry.name, blob);
+                console.log('[DROPBOX] Staging:', entry.name, Math.round(blob.size / 1024) + 'KB');
+              }
+            } catch (e) { console.warn('[DROPBOX] Skip staging:', entry.name); }
+          }
+          return;
+        }
+      } catch (e) { console.warn('[DROPBOX] Staging fallback:', e.message); }
+    }
+
+    // MÉTHODE 2 : fallback URLs Digilab
     var files = caseData.files || [];
     var service = (caseData.service || '').toLowerCase();
     var needsFilter = ['medit', 'dscore2', 'shining3d'].some(function(s) { return service.includes(s); });
@@ -223,21 +257,18 @@
       var name = (f.name || '').split('/').pop();
       if (needsFilter && /^(POF_|FULL_POF_)/i.test(name)) continue;
       if (!f.url) continue;
-      // Skip les gros ZIP redondants (les fichiers individuels PLY/STL sont déjà listés)
       if (name.endsWith('.zip') && files.some(function(ff) { return ff.name && /\.(ply|stl|obj|dcm)$/i.test(ff.name); })) continue;
 
       try {
         var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url: f.url })
-            });
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: f.url })
+        });
         if (resp.ok) {
           var blob = await resp.blob();
           zipFolder.file(name, blob);
         }
-      } catch (e) {
-        console.warn('[DROPBOX] Skip file:', name, e.message);
-      }
+      } catch (e) { console.warn('[DROPBOX] Skip:', name); }
     }
   }
 
@@ -427,16 +458,43 @@
     return resp.json();
   }
 
-  // Upload les fichiers scan Digilab vers Dropbox (via les URLs du webhook)
+  // Upload les fichiers scan Digilab vers Dropbox (copie depuis staging ou URLs)
   async function _dbxUploadDigilabFiles(caseId, subPath, fournisseur) {
-    // Chercher les données du cas Digilab dans Firebase
     var db = window.getDB ? window.getDB() : null;
     if (!db) return;
 
-    var doc = await db.collection('digilab_orders').doc(caseId).get();
-    if (!doc.exists) return;
+    var docSnap = await db.collection('digilab_orders').doc(caseId).get();
+    if (!docSnap.exists) return;
 
-    var caseData = doc.data();
+    var caseData = docSnap.data();
+    var stagingPath = caseData._dropboxStagingPath || '';
+
+    // MÉTHODE 1 : copier depuis Dropbox staging vers le dossier final
+    if (stagingPath) {
+      try {
+        var listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: stagingPath })
+        });
+        if (listResp.ok) {
+          var listData = await listResp.json();
+          var entries = listData.entries || [];
+          for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (entry['.tag'] !== 'file') continue;
+            // Copier le fichier staging → dossier fournisseur
+            await fetch(WORKER_URL + '/v1/dropbox/copy?key=' + AUTH_KEY, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ from: entry.path_lower, to: subPath + '/' + entry.name })
+            });
+            console.log('[DROPBOX] Copié staging → final:', entry.name);
+          }
+          return;
+        }
+      } catch (e) { console.warn('[DROPBOX] Copy staging error:', e.message); }
+    }
+
+    // MÉTHODE 2 : fallback URLs Digilab
     var files = caseData.files || [];
     var service = (caseData.service || '').toLowerCase();
     var needsFilter = ['medit', 'dscore2', 'shining3d'].some(function(s) { return service.includes(s); });
@@ -444,12 +502,8 @@
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
       var name = (f.name || '').split('/').pop();
-
-      // Filtrer les fichiers POF et les ZIPs (on prend les fichiers individuels)
       if (needsFilter && /^(POF_|FULL_POF_)/i.test(name)) continue;
       if (!f.url) continue;
-
-      // Upload le fichier vers Dropbox via le Worker (télécharge depuis URL puis upload)
       await _dbxUploadFromUrl(f.url, subPath + '/' + name);
     }
   }
