@@ -164,7 +164,9 @@
       var serviceClass = 'other';
       if (service.includes('medit')) serviceClass = 'medit';
       else if (service.includes('3shape')) serviceClass = 'threeshape';
-      else if (service.includes('dscore') || service.includes('shining')) serviceClass = 'dscore';
+      else if (service.includes('shining')) serviceClass = 'shining';
+      else if (service.includes('dscore')) serviceClass = 'dscore';
+      else if (service.includes('itero')) serviceClass = 'itero';
 
       var statusLabel = status === 'nouveau' ? 'En attente' : status === 'traite' ? 'Traité' : status === 'en_cours' ? 'En cours' : status;
       if (status.startsWith('envoye_')) statusLabel = 'Envoyé ' + status.replace('envoye_', '').toUpperCase();
