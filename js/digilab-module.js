@@ -357,13 +357,7 @@
       }
 
       if (downloaded === 0 && errors > 0) {
-        // Toutes les URLs ont échoué (probablement expirées) → ouvrir sur Digilab
-        if (c.link_case) {
-          showToast('URLs expirées — ouverture sur Digilab...');
-          window.open(c.link_case, '_blank');
-        } else {
-          showToast('Erreur : URLs expirées', true);
-        }
+        showToast('Echec telechargement — URLs probablement expirees', true);
         return;
       }
 
@@ -379,12 +373,7 @@
 
     } catch (e) {
       console.error('[DIGILAB] Download error:', e);
-      if (c.link_case) {
-        showToast('Erreur — ouverture sur Digilab...', true);
-        window.open(c.link_case, '_blank');
-      } else {
-        showToast('Erreur téléchargement : ' + e.message, true);
-      }
+      showToast('Erreur telechargement : ' + e.message, true);
     }
   };
 
