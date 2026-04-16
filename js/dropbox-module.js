@@ -176,19 +176,39 @@
         }
       }
 
-      // Générer et télécharger le ZIP
-      _dbxStatus('Generation du ZIP...');
-      var dateStr = new Date().toISOString().split('T')[0];
+      // Générer et télécharger un ZIP PAR FOURNISSEUR
+      _dbxStatus('Generation des ZIP...');
 
-      var allCodes = selected.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
-      var zipName = allCodes.length >= 2 ? allCodes[0] + '-' + allCodes[allCodes.length - 1] : (allCodes[0] || 'envoi');
+      for (var fName in byFournisseur) {
+        var fPrescriptions = byFournisseur[fName];
+        var fCodes = fPrescriptions.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
+        fCodes.sort();
+        var range = fCodes.length >= 2 ? fCodes[0] + '-' + fCodes[fCodes.length - 1] : (fCodes[0] || 'envoi');
+        var fZipName = fName + '_' + range;
 
-      var zipBlob = await zip.generateAsync({ type: 'blob' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(zipBlob);
-      a.download = zipName + '.zip';
-      a.click();
-      URL.revokeObjectURL(a.href);
+        // Extraire seulement le dossier de ce fournisseur
+        var fZip = new JSZip();
+        var fFolder = zip.folder(fName);
+        if (fFolder) {
+          fFolder.forEach(function(relativePath, file) {
+            if (!file.dir) {
+              fZip.file(relativePath, file.async('blob'));
+            }
+          });
+        }
+
+        var fBlob = await fZip.generateAsync({ type: 'blob' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(fBlob);
+        a.download = fZipName + '.zip';
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+        // Petite pause entre les téléchargements
+        if (Object.keys(byFournisseur).length > 1) {
+          await new Promise(function(r) { setTimeout(r, 500); });
+        }
+      }
 
       if (progress) progress.style.display = 'none';
       if (dlBtn) { dlBtn.textContent = 'ZIP telecharge !'; dlBtn.style.background = '#e8f5e9'; dlBtn.style.color = '#2e7d32'; }
