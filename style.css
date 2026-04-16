@@ -375,10 +375,30 @@
 
   /* --- Modale Gestion Clients — spécifiques --- */
 
+  /* --- Modale Gestion Clients --- */
+
   /* Sidebar cabinets */
   html[data-theme="dark"] #modal-tarifs div[style*="background:#fafcfe"] {
     background: var(--section-bg) !important;
     border-right-color: var(--border) !important;
+  }
+
+  /* Groupes cabinets dans sidebar */
+  html[data-theme="dark"] #gc-cabinet-list div[style*="background:#e8f0fe"] {
+    background: #1e2a40 !important;
+  }
+  html[data-theme="dark"] #gc-cabinet-list span[style*="color:#1a5c8a"] {
+    color: var(--accent) !important;
+  }
+  html[data-theme="dark"] #gc-cabinet-list span[style*="background:#c8daf8"] {
+    background: #2a3a55 !important;
+    color: #8ab4e8 !important;
+  }
+  html[data-theme="dark"] #gc-cabinet-list div[style*="border-left:2px solid #c8daf8"] {
+    border-left-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #gc-cabinet-list div[style*="color:#aaa"] {
+    color: var(--muted) !important;
   }
 
   /* Boutons filtre statut sidebar */
@@ -394,46 +414,125 @@
     border-color: #5a4a20 !important;
   }
 
-  /* Fiche client : sections inline */
+  /* Fiche client : sections inline claires → dark */
   html[data-theme="dark"] #gc-panel-contacts div[style*="background:#f8fafc"],
-  html[data-theme="dark"] #gc-panel-contacts div[style*="background:#f0f4f8"] {
+  html[data-theme="dark"] #gc-panel-contacts div[style*="background:#f0f4f8"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fafcfe"] {
     background: var(--section-bg) !important;
     border-color: var(--border) !important;
   }
+  /* Sections jaunes (notes, alertes) */
   html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fff8e1"],
   html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fffde7"],
   html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fff3e0"] {
     background: #2e2a1e !important;
     border-color: #5a4a20 !important;
   }
+  /* Section verte (tarif lié) */
   html[data-theme="dark"] #gc-panel-contacts div[style*="background:#f0fff4"] {
     background: #1e2e25 !important;
     border-color: #2a5040 !important;
+  }
+  /* Textes dans la fiche */
+  html[data-theme="dark"] #gc-panel-contacts span[style*="color:#333"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="color:#333"],
+  html[data-theme="dark"] #gc-panel-contacts td[style*="color:#333"] {
+    color: var(--text) !important;
+  }
+  html[data-theme="dark"] #gc-panel-contacts span[style*="color:#555"],
+  html[data-theme="dark"] #gc-panel-contacts span[style*="color:#888"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="color:#888"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="color:#666"],
+  html[data-theme="dark"] #gc-panel-contacts label[style*="color:#888"] {
+    color: var(--muted) !important;
   }
   html[data-theme="dark"] #gc-panel-contacts textarea {
     background: var(--surface) !important;
     color: var(--text) !important;
   }
-  html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fafcfe"] {
+  /* Boutons action fiche client */
+  html[data-theme="dark"] #gc-panel-contacts button[style*="background:#fff3e0"],
+  html[data-theme="dark"] #gc-panel-contacts button[style*="background:#ffebee"] {
     background: var(--section-bg) !important;
     border-color: var(--border) !important;
   }
 
-  /* Tableau tarifs */
-  html[data-theme="dark"] #tarif-thead tr { background: var(--section-bg) !important; }
-  html[data-theme="dark"] #tarif-tbody tr { border-bottom-color: var(--border) !important; }
-  html[data-theme="dark"] #tarif-tbody tr:hover { background: var(--section-bg) !important; }
-  html[data-theme="dark"] #tarif-tbody td { color: var(--text) !important; }
+  /* --- Onglet Tarifs --- */
+
+  /* Barre outils tarifs */
+  html[data-theme="dark"] #gc-tarif-toolbar {
+    background: var(--section-bg) !important;
+    border-bottom-color: var(--border) !important;
+  }
+
+  /* Tableau tarifs — lignes */
+  html[data-theme="dark"] #tarif-tbody tr {
+    background: var(--surface) !important;
+    border-bottom-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #tarif-tbody tr:nth-child(odd) {
+    background: var(--section-bg) !important;
+  }
+  html[data-theme="dark"] #tarif-tbody td {
+    color: var(--text) !important;
+    border-right-color: var(--border) !important;
+  }
+  /* Labels acte (sticky column) */
+  html[data-theme="dark"] #tarif-tbody td[style*="color:#1a5c8a"] {
+    color: var(--accent) !important;
+    background: var(--surface) !important;
+    border-right-color: var(--border) !important;
+  }
+  /* Code acte */
+  html[data-theme="dark"] #tarif-tbody td[style*="color:#888"] {
+    color: var(--muted) !important;
+  }
+  /* Inputs prix */
   html[data-theme="dark"] #tarif-tbody input {
     background: var(--surface) !important;
     border-color: var(--border) !important;
-    color: var(--text) !important;
+    color: var(--accent) !important;
+  }
+  /* Inputs prix modifiés (orange) */
+  html[data-theme="dark"] #tarif-tbody input[style*="background:#fff8e1"] {
+    background: #2e2a1e !important;
+    border-color: #5a4a20 !important;
+    color: #ffb74d !important;
+  }
+  /* Inputs prix vides */
+  html[data-theme="dark"] #tarif-tbody input[style*="background:#f5f5f5"] {
+    background: var(--section-bg) !important;
+    color: var(--muted) !important;
   }
 
-  /* Bouton Gestion clients (sous le formulaire principal) */
-  html[data-theme="dark"] button[onclick="ouvrirModalTarifs()"] {
+  /* Séparateurs groupes tarifs */
+  html[data-theme="dark"] #tarif-tbody td[style*="background:#e8f4fb"] {
+    background: #1e2a40 !important;
+    color: var(--accent) !important;
+    border-bottom-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #tarif-tbody td[style*="background:#f0f0f0"] {
     background: var(--section-bg) !important;
-    color: #ff8a65 !important;
+    color: var(--muted) !important;
+  }
+
+  /* --- Digilab — cas et détails --- */
+
+  /* Contenu Digilab */
+  html[data-theme="dark"] #modal-digilab div[style*="background:#f8fafb"],
+  html[data-theme="dark"] #modal-digilab div[style*="background:#f8fbff"] {
+    background: var(--section-bg) !important;
+  }
+  html[data-theme="dark"] #modal-digilab div[style*="background:#fffde7"] {
+    background: #2e2a1e !important;
+    border-color: #5a4a20 !important;
+  }
+  /* Textes inline digilab */
+  html[data-theme="dark"] #modal-digilab span[style*="color:#555"],
+  html[data-theme="dark"] #modal-digilab span[style*="color:#999"],
+  html[data-theme="dark"] #modal-digilab span[style*="color:#888"],
+  html[data-theme="dark"] #modal-digilab div[style*="color:#333"] {
+    color: var(--muted) !important;
   }
 
   /* Boutons Digilab header */
@@ -441,6 +540,24 @@
     background: var(--teal-light) !important;
     border-color: var(--border) !important;
     color: var(--accent) !important;
+  }
+
+  /* --- Popups dynamiques (groupes, ajout client, etc.) --- */
+  html[data-theme="dark"] #popup-gc-groupes > div,
+  html[data-theme="dark"] #popup-ajout-client > div {
+    background: var(--surface) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+    color: var(--text) !important;
+  }
+  html[data-theme="dark"] #popup-gc-groupes div[style*="background:#f8fbff"],
+  html[data-theme="dark"] #popup-gc-groupes div[style*="background:white"] {
+    background: var(--section-bg) !important;
+  }
+
+  /* Bouton Gestion clients (sous le formulaire principal) */
+  html[data-theme="dark"] button[onclick="ouvrirModalTarifs()"] {
+    background: var(--section-bg) !important;
+    color: #ff8a65 !important;
   }
 
   /* Alias cabinet */
