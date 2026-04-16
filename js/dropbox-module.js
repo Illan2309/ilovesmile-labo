@@ -248,11 +248,6 @@
           (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))
         );
 
-        // Code labo en rouge en haut à gauche (seulement PDF/HTML, pas les images JPG)
-        if (codeLabo && isPdfOrHtml) {
-          htmlParts.push('<div style="padding:4px 12px;font-family:sans-serif;font-size:22px;font-weight:700;color:#c0392b;">' + _esc(codeLabo) + '</div>');
-        }
-
         if (photo && photo !== '__photo__') {
           if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
             // PDF → convertir en images via PDF.js pour impression fiable
@@ -274,6 +269,13 @@
                   var cv = document.createElement('canvas');
                   cv.width = vp.width; cv.height = vp.height;
                   await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+                  // Stamper le code labo en rouge sur la première page
+                  if (pn === 1 && codeLabo && isPdfOrHtml) {
+                    var ctx = cv.getContext('2d');
+                    ctx.font = 'bold 90px sans-serif';
+                    ctx.fillStyle = '#c0392b';
+                    ctx.fillText(codeLabo, 20, 60);
+                  }
                   var imgUrl = cv.toDataURL('image/jpeg', 0.92);
                   htmlParts.push('<div class="fiche-container page-break">');
                   htmlParts.push('<img src="' + imgUrl + '" style="max-width:100%;height:auto;">');
