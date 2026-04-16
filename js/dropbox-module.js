@@ -222,9 +222,14 @@
     showToast('Preparation de l\'impression...');
 
     try {
-      // Fusionner tous les PDF dans un seul document pour impression
-      var printWindow = window.open('', '_blank');
-      if (!printWindow) { showToast('Popup bloquee — autorisez les popups', true); return; }
+      // Utiliser une iframe cachée pour imprimer (pas de popup bloqué)
+      var oldFrame = document.getElementById('print-frame');
+      if (oldFrame) oldFrame.remove();
+      var printFrame = document.createElement('iframe');
+      printFrame.id = 'print-frame';
+      printFrame.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;';
+      document.body.appendChild(printFrame);
+      var printWindow = printFrame.contentWindow;
 
       var htmlParts = [];
       htmlParts.push('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Impression fiches</title>');
@@ -302,9 +307,10 @@
       printWindow.document.close();
 
       // Lancer l'impression après chargement
-      printWindow.onload = function() {
-        setTimeout(function() { printWindow.print(); }, 500);
-      };
+      setTimeout(function() {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      }, 1000);
 
       showToast(selected.length + ' fiche(s) preparee(s) pour impression');
 
