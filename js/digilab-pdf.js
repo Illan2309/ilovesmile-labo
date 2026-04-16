@@ -249,33 +249,30 @@ window.generateDigilabPdf = async function(caseData) {
       doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
       doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
 
-      // Zone : si courte → même ligne, sinon retour à la ligne propre
+      // Zone : retour à la ligne tous les ~30 caractères (aux virgules)
       var zoneStr = String(zone);
-      if (doc.getTextWidth(zoneStr) <= cols[0].w - 2) {
-        doc.text(zoneStr, cols[0].x, y);
-        y += 8;
+      var zoneLines = [];
+      if (zoneStr.length <= 30) {
+        zoneLines = [zoneStr];
       } else {
-        // Couper par groupes de ~8 dents (aux virgules)
         var parts = zoneStr.split(',');
-        var lines = [];
         var current = '';
         for (var zi = 0; zi < parts.length; zi++) {
           var test = current ? current + ',' + parts[zi].trim() : parts[zi].trim();
-          if (doc.getTextWidth(test) > secW - 4 && current) {
-            lines.push(current);
+          if (test.length > 30 && current) {
+            zoneLines.push(current);
             current = parts[zi].trim();
           } else {
             current = test;
           }
         }
-        if (current) lines.push(current);
-
-        doc.setFontSize(7); doc.setTextColor(...muted);
-        for (var li = 0; li < lines.length; li++) {
-          doc.text(lines[li], cols[0].x, y + (li === 0 ? 0 : li * 4));
-        }
-        y += Math.max(8, lines.length * 4 + 2);
+        if (current) zoneLines.push(current);
       }
+      doc.text(zoneLines[0], cols[0].x, y);
+      for (var li = 1; li < zoneLines.length; li++) {
+        doc.text(zoneLines[li], cols[0].x, y + li * 4);
+      }
+      y += Math.max(8, zoneLines.length * 4 + 2);
 
       // Ligne séparatrice légère
       doc.setDrawColor(...borderGray); doc.setLineWidth(0.1);
