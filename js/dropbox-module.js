@@ -222,99 +222,108 @@
     showToast('Preparation de l\'impression...');
 
     try {
-      // Utiliser une iframe cachée pour imprimer (pas de popup bloqué)
-      var oldFrame = document.getElementById('print-frame');
-      if (oldFrame) oldFrame.remove();
-      var printFrame = document.createElement('iframe');
-      printFrame.id = 'print-frame';
-      printFrame.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;';
-      document.body.appendChild(printFrame);
-      var printWindow = printFrame.contentWindow;
-
-      var htmlParts = [];
-      htmlParts.push('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Impression fiches</title>');
-      htmlParts.push('<style>@media print { .page-break { page-break-after: always; } } body { margin:0; padding:0; } .page-break { page-break-after: always; } .fiche-container { width:100%; display:flex; justify-content:center; } .fiche-container canvas, .fiche-container img { max-width:100%; height:auto; } </style>');
-      htmlParts.push('</head><body>');
+      // Collecter toutes les images des fiches
+      var pages = []; // { imgUrl, codeLabo }
 
       for (var i = 0; i < selected.length; i++) {
         var p = selected[i];
         var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
         var codeLabo = p.code_labo || '';
 
-        // Photo = notre PDF Digilab généré OU la fiche originale (POF HTML/PDF)
+        // Photo = PDF base64 local > photo_url > photo
         var photo = (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) ? p.photo : (p.photo_url || p.photo);
-        var isPdfOrHtml = photo && photo !== '__photo__' && (
-          photo.startsWith('data:application/pdf') || photo.startsWith('data:text/html') ||
-          (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))
-        );
 
-        if (photo && photo !== '__photo__') {
-          if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
-            // PDF → convertir en images via PDF.js pour impression fiable
-            try {
-              var pdfData;
-              if (photo.startsWith('data:')) {
-                pdfData = atob(photo.split(',')[1]);
-              } else {
-                var resp = await fetch(photo);
-                var buf = await resp.arrayBuffer();
-                pdfData = buf;
-              }
-              var pdfBytes = photo.startsWith('data:') ? Uint8Array.from(pdfData, function(c) { return c.charCodeAt(0); }) : new Uint8Array(pdfData);
-              if (window.pdfjsLib) {
-                var pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-                for (var pn = 1; pn <= pdf.numPages; pn++) {
-                  var page = await pdf.getPage(pn);
-                  var vp = page.getViewport({ scale: 2 });
-                  var cv = document.createElement('canvas');
-                  cv.width = vp.width; cv.height = vp.height;
-                  await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-                  // Stamper le code labo en rouge sur la première page
-                  if (pn === 1 && codeLabo && isPdfOrHtml) {
-                    var ctx = cv.getContext('2d');
-                    ctx.font = 'bold 90px sans-serif';
-                    ctx.fillStyle = '#c0392b';
-                    ctx.fillText(codeLabo, 20, 60);
-                  }
-                  var imgUrl = cv.toDataURL('image/jpeg', 0.92);
-                  htmlParts.push('<div class="fiche-container page-break">');
-                  htmlParts.push('<img src="' + imgUrl + '" style="max-width:100%;height:auto;">');
-                  htmlParts.push('</div>');
+        // Si pas de photo mais cas Digilab → régénérer le PDF à la volée
+        if ((!photo || photo === '__photo__') && p._digilabCaseId && window.generateDigilabPdf) {
+          try {
+            var db = window.getDB ? window.getDB() : null;
+            if (db) {
+              var snap = await db.collection('digilab_orders').doc(String(p._digilabCaseId)).get();
+              if (snap.exists) {
+                var result = await window.generateDigilabPdf(snap.data());
+                if (result && result.doc) {
+                  photo = result.doc.output('datauristring');
+                  console.log('[PRINT] PDF régénéré pour', patient);
                 }
               }
-            } catch (e) {
-              console.warn('[PRINT] PDF render error pour', patient, e);
             }
-          } else if (photo.startsWith('data:text/html')) {
-            // HTML → injecter directement
-            try {
-              var htmlContent = atob(photo.split(',')[1]);
-              htmlParts.push('<div class="page-break">');
-              htmlParts.push(htmlContent);
-              htmlParts.push('</div>');
-            } catch(e) {}
-          } else if (photo.startsWith('http') || photo.startsWith('data:image')) {
-            // Image
-            htmlParts.push('<div class="fiche-container page-break">');
-            htmlParts.push('<img src="' + photo + '" style="max-width:100%;max-height:100vh;">');
-            htmlParts.push('</div>');
-          }
-        } else {
+          } catch(e) { console.warn('[PRINT] Regen PDF error:', e); }
+        }
+
+        if (!photo || photo === '__photo__') {
           console.warn('[PRINT] Pas de fiche pour', patient);
+          continue;
+        }
+
+        // Rendre les PDF en images via PDF.js
+        if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
+          try {
+            var pdfBytes;
+            if (photo.startsWith('data:')) {
+              var raw = atob(photo.split(',')[1]);
+              pdfBytes = Uint8Array.from(raw, function(c) { return c.charCodeAt(0); });
+            } else {
+              var resp = await fetch(photo);
+              pdfBytes = new Uint8Array(await resp.arrayBuffer());
+            }
+            if (window.pdfjsLib) {
+              var pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+              for (var pn = 1; pn <= pdf.numPages; pn++) {
+                var page = await pdf.getPage(pn);
+                var vp = page.getViewport({ scale: 2.5 });
+                var cv = document.createElement('canvas');
+                cv.width = vp.width; cv.height = vp.height;
+                await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+                // Stamper code labo en rouge sur la première page
+                if (pn === 1 && codeLabo) {
+                  var ctx = cv.getContext('2d');
+                  ctx.font = 'bold 72px sans-serif';
+                  ctx.fillStyle = '#c0392b';
+                  ctx.fillText(codeLabo, 30, 100);
+                }
+                pages.push(cv.toDataURL('image/jpeg', 0.92));
+              }
+            }
+          } catch(e) { console.warn('[PRINT] PDF error:', patient, e); }
+        } else if (photo.startsWith('data:text/html')) {
+          // HTML → on ne peut pas imprimer directement, skip
+          console.warn('[PRINT] HTML non supporté pour impression directe:', patient);
+        } else {
+          // Image (JPG, PNG)
+          pages.push(photo);
         }
       }
 
-      htmlParts.push('</body></html>');
-      printWindow.document.write(htmlParts.join(''));
-      printWindow.document.close();
+      if (pages.length === 0) {
+        showToast('Aucune fiche a imprimer', true);
+        return;
+      }
 
-      // Lancer l'impression après chargement
+      // Construire l'iframe d'impression (sans header/footer navigateur)
+      var oldFrame = document.getElementById('print-frame');
+      if (oldFrame) oldFrame.remove();
+      var printFrame = document.createElement('iframe');
+      printFrame.id = 'print-frame';
+      printFrame.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;';
+      document.body.appendChild(printFrame);
+
+      var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title>';
+      html += '<style>@page { margin: 0; } body { margin:0; padding:0; } .p { page-break-after:always; display:flex; justify-content:center; align-items:flex-start; } .p:last-child { page-break-after:auto; } .p img { width:100%; height:auto; }</style>';
+      html += '</head><body>';
+      pages.forEach(function(img) {
+        html += '<div class="p"><img src="' + img + '"></div>';
+      });
+      html += '</body></html>';
+
+      printFrame.contentWindow.document.write(html);
+      printFrame.contentWindow.document.close();
+
       setTimeout(function() {
         printFrame.contentWindow.focus();
         printFrame.contentWindow.print();
-      }, 1000);
+      }, 800);
 
-      showToast(selected.length + ' fiche(s) preparee(s) pour impression');
+      showToast(pages.length + ' page(s) preparee(s) pour impression');
 
     } catch (e) {
       console.error('[PRINT] Error:', e);
