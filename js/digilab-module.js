@@ -778,7 +778,7 @@
 
     var items = [];
 
-    if (c._status === 'traite' || c._status === 'en_cours') {
+    if (c._status === 'traite' || c._status === 'en_cours' || (c._status && c._status.startsWith('envoye'))) {
       items.push({ label: 'Remettre en attente', icon: '&#8634;', action: 'dlbResetCase(\'' + _esc(caseId) + '\')' });
     }
     if (c._status === 'nouveau') {
