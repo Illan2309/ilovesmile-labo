@@ -181,13 +181,16 @@
 
       for (var fName in byFournisseur) {
         var fPrescriptions = byFournisseur[fName];
+        // Extraire le préfixe lettre et les numéros pour le range
         var fCodes = fPrescriptions.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
         fCodes.sort(function(a, b) {
           var numA = parseInt((a.match(/\d+/) || [0])[0]);
           var numB = parseInt((b.match(/\d+/) || [0])[0]);
           return numA - numB;
         });
-        var range = fCodes.length >= 2 ? fCodes[0] + '-' + fCodes[fCodes.length - 1] : (fCodes[0] || 'envoi');
+        var prefix = (fCodes[0] || '').replace(/\d+$/, '');
+        var nums = fCodes.map(function(c) { return parseInt((c.match(/\d+/) || [0])[0]); }).filter(function(n) { return !isNaN(n); });
+        var range = nums.length >= 2 ? prefix + Math.min.apply(null, nums) + '-' + prefix + Math.max.apply(null, nums) : (fCodes[0] || 'envoi');
         var fZipName = fName + '_' + range;
 
         // Extraire seulement le dossier de ce fournisseur
