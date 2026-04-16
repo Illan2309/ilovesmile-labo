@@ -88,12 +88,12 @@
       '  </div>' +
       '  <div id="dbx-result" style="display:none;margin-bottom:16px;"></div>' +
       '  <div style="background:#fff8e1;border:1px solid #fff176;border-radius:10px;padding:12px;margin-bottom:16px;font-size:0.78rem;color:#f57f17;">' +
-      '    <strong>Etape 1 :</strong> Telechargez le ZIP pour verifier le contenu.<br>' +
-      '    <strong>Etape 2 :</strong> Si tout est correct, confirmez l\'envoi sur Dropbox.' +
+      '    <strong>Etape 1 :</strong> Telechargez le ZIP.<br>' +
+      '    <strong>Etape 2 :</strong> Ouvrez WeTransfer et glissez le ZIP dedans.' +
       '  </div>' +
       '  <div style="display:flex;gap:8px;">' +
-      '    <button id="dbx-download-btn" onclick="window._dbxTelechargerZip()" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">1. Telecharger et verifier</button>' +
-      '    <button id="dbx-send-btn" onclick="window._dbxLancerEnvoi()" disabled style="flex:1;background:#e0e0e0;color:#999;border:none;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:not-allowed;font-family:DM Sans,sans-serif;">2. Confirmer envoi Dropbox</button>' +
+      '    <button id="dbx-download-btn" onclick="window._dbxTelechargerZip()" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">1. Telecharger</button>' +
+      '    <button id="dbx-send-btn" onclick="window._ouvrirWeTransfer()" style="flex:1;background:linear-gradient(120deg,#409cff,#6bc5f8);color:white;border:none;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">2. Ouvrir WeTransfer</button>' +
       '  </div>' +
       '  <div style="margin-top:8px;text-align:right;">' +
       '    <button onclick="document.getElementById(\'modal-dropbox\').remove()" style="background:none;border:none;color:#999;font-size:0.78rem;cursor:pointer;text-decoration:underline;">Annuler</button>' +
@@ -192,23 +192,22 @@
       if (progress) progress.style.display = 'none';
       if (dlBtn) { dlBtn.textContent = 'ZIP telecharge !'; dlBtn.style.background = '#e8f5e9'; dlBtn.style.color = '#2e7d32'; }
 
-      // Activer le bouton de confirmation
-      var sendBtn = document.getElementById('dbx-send-btn');
-      if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.style.background = 'linear-gradient(120deg,#1a5c8a,#5bc4c0)';
-        sendBtn.style.color = 'white';
-        sendBtn.style.cursor = 'pointer';
-      }
-
-      showToast('ZIP telecharge — verifiez le contenu puis confirmez l\'envoi');
+      showToast('ZIP telecharge !');
 
     } catch (e) {
       console.error('[DROPBOX] ZIP error:', e);
       showToast('Erreur generation ZIP : ' + e.message, true);
-      if (dlBtn) { dlBtn.disabled = false; dlBtn.textContent = '1. Telecharger et verifier'; }
+      if (dlBtn) { dlBtn.disabled = false; dlBtn.textContent = '1. Telecharger'; }
       if (progress) progress.style.display = 'none';
     }
+  };
+
+  // ═══════════════════════════════════════════
+  // ÉTAPE 2 : OUVRIR WETRANSFER
+  // ═══════════════════════════════════════════
+
+  window._ouvrirWeTransfer = function() {
+    window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
