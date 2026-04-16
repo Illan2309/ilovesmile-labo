@@ -311,6 +311,13 @@ function savePrescription() {
     photo_type: _anciennePresc ? (_anciennePresc.photo_type || null) : null,
     photo_html: _anciennePresc ? (_anciennePresc.photo_html || null) : null,
     scanIA: _anciennePresc ? _anciennePresc.scanIA : (scanIACourant || null),
+    // Préserver les métadonnées Digilab + Dropbox
+    _digilabCaseId: _anciennePresc ? (_anciennePresc._digilabCaseId || null) : null,
+    _digilabService: _anciennePresc ? (_anciennePresc._digilabService || null) : null,
+    dropbox_envoye: _anciennePresc ? (_anciennePresc.dropbox_envoye || null) : null,
+    dropbox_date: _anciennePresc ? (_anciennePresc.dropbox_date || null) : null,
+    dropbox_fournisseur: _anciennePresc ? (_anciennePresc.dropbox_fournisseur || null) : null,
+    dropbox_lien: _anciennePresc ? (_anciennePresc.dropbox_lien || null) : null,
   };
 
   // Snapshot de editingIndex au clic (anti-race avec onSnapshot Firebase)
