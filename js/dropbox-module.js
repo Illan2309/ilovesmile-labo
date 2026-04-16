@@ -407,10 +407,28 @@
       } catch (e) { console.warn('[DROPBOX] Staging fallback:', e.message); }
     }
 
-    // MÉTHODE 2 : fallback URLs Digilab
+    // MÉTHODE 2 : fallback URLs Digilab (souvent expirées — tester 1 seul fichier d'abord)
     var files = caseData.files || [];
     var service = (caseData.service || '').toLowerCase();
     var needsFilter = ['medit', 'dscore2', 'shining3d'].some(function(s) { return service.includes(s); });
+
+    // Tester avec le premier fichier valide — si 400, toutes les URLs sont expirées
+    var firstValid = files.find(function(f) { return f.url; });
+    if (firstValid) {
+      try {
+        var testResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: firstValid.url })
+        });
+        if (!testResp.ok) {
+          console.warn('[DROPBOX] URLs Digilab expirées pour', caseId, '— skip');
+          return;
+        }
+      } catch(e) {
+        console.warn('[DROPBOX] URLs Digilab inaccessibles pour', caseId);
+        return;
+      }
+    }
 
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
