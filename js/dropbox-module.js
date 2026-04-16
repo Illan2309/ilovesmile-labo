@@ -197,11 +197,13 @@
         var fZip = new JSZip();
         var fFolder = zip.folder(fName);
         if (fFolder) {
+          var _promises = [];
           fFolder.forEach(function(relativePath, file) {
             if (!file.dir) {
-              fZip.file(relativePath, file.async('blob'));
+              _promises.push(file.async('blob').then(function(b) { fZip.file(relativePath, b); }));
             }
           });
+          await Promise.all(_promises);
         }
 
         var fBlob = await fZip.generateAsync({ type: 'blob' });

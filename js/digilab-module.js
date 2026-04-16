@@ -855,14 +855,14 @@
     var items = [];
 
     if (c._status === 'traite' || c._status === 'en_cours' || (c._status && c._status.startsWith('envoye'))) {
-      items.push({ label: 'Remettre en attente', icon: '&#8634;', action: 'dlbResetCase(\'' + _esc(caseId) + '\')' });
+      items.push({ label: 'Remettre en attente', icon: '&#8634;', fn: function() { dlbResetCase(caseId); } });
     }
     if (c._status === 'nouveau') {
-      items.push({ label: 'Tout traiter', icon: '&#9881;', action: 'dlbProcessCase(\'' + _esc(caseId) + '\')' });
+      items.push({ label: 'Tout traiter', icon: '&#9881;', fn: function() { dlbProcessCase(caseId); } });
     }
-    items.push({ label: 'Scanner la fiche', icon: '&#128196;', action: 'dlbScanFiche(\'' + _esc(caseId) + '\')' });
-    items.push({ label: 'Telecharger fichiers', icon: '&#11015;', action: 'dlbDownloadFiles(\'' + _esc(caseId) + '\')' });
-    items.push({ label: 'Supprimer', icon: '&#10005;', action: 'dlbDeleteCase(\'' + _esc(caseId) + '\')', color: '#e53935' });
+    items.push({ label: 'Scanner la fiche', icon: '&#128196;', fn: function() { dlbScanFiche(caseId); } });
+    items.push({ label: 'Telecharger fichiers', icon: '&#11015;', fn: function() { dlbDownloadFiles(caseId); } });
+    items.push({ label: 'Supprimer', icon: '&#10005;', fn: function() { dlbDeleteCase(caseId); }, color: '#e53935' });
 
     items.forEach(function(item) {
       var div = document.createElement('div');
@@ -870,7 +870,7 @@
       div.innerHTML = '<span style="width:18px;text-align:center;">' + item.icon + '</span> ' + item.label;
       div.onmouseenter = function() { div.style.background = '#f5f5f5'; };
       div.onmouseleave = function() { div.style.background = 'none'; };
-      div.onclick = function() { menu.remove(); eval(item.action); };
+      div.onclick = function() { menu.remove(); item.fn(); };
       menu.appendChild(div);
     });
 

@@ -54,7 +54,7 @@ async function getDropboxToken(env) {
         const data = await resp.json();
         _cachedDropboxToken = data.access_token;
         // expires_in est en secondes (typiquement 14400 = 4h)
-        _cachedDropboxTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+        _cachedDropboxTokenExpiry = Date.now() + (data.expires_in || 14400) * 1000;
         console.log('[DROPBOX] Token refreshed, expires in', data.expires_in, 's');
         return _cachedDropboxToken;
       }

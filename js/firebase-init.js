@@ -153,9 +153,6 @@ function initFirebase() {
     const data = [];
     snapshot.forEach(d => data.push(d.data()));
     data.sort((a, b) => (b._ts || 0) - (a._ts || 0));
-    // Debug Digilab : vérifier ce que Firebase retourne
-    var _dlbCount = data.filter(p => p._digilabCaseId).length;
-    if (_dlbCount > 0 || data.length > 0) console.log('[LOAD] Prescriptions:', data.length, '| avec _digilabCaseId:', _dlbCount);
     // Réinjecter les photos : priorité Cloudinary (photo_url), sinon cache local/session
     data.forEach(p => {
       if (p.photo_html) {
@@ -284,7 +281,6 @@ function initFirebase() {
 
   // Fonctions cloud
   window.sauvegarderUnePrescription = async function(p) {
-    console.log('[SAVE-ENTRY]', 'patient:', (p.patient||{}).nom || p.patient_nom, '_digilabCaseId:', p._digilabCaseId);
     try {
       if (!p._id) p._id = 'id_' + Date.now() + Math.random().toString(36).slice(2);
 
@@ -352,8 +348,6 @@ function initFirebase() {
         }
       }
 
-      // Debug : vérifier l'état de _digilabCaseId AVANT pSans
-      console.log('[SAVE-DEBUG]', p._id, '_digilabCaseId:', p._digilabCaseId, 'patient:', (p.patient||{}).nom || p.patient_nom);
       // Bug PDF 5 fix — tous les champs photo toujours explicites dans pSans
       const pSans = {
         ...p,
@@ -372,8 +366,6 @@ function initFirebase() {
       };
       // Nettoyer les undefined (Firebase les refuse)
       Object.keys(pSans).forEach(k => { if (pSans[k] === undefined) pSans[k] = null; });
-      // Debug Digilab
-      if (p._digilabCaseId) console.log('[SAVE] _digilabCaseId AVANT set():', p._digilabCaseId, '→ pSans:', pSans._digilabCaseId);
       await _prescriptionsCol.doc(p._id).set(pSans);
       // Debounce l'écriture de nextNum pour éviter le rate-limit 429 en scan batch
       _debounceSaveNextNum();
