@@ -445,7 +445,10 @@
       var mapped = _mapDigilabToPrescription(c);
 
       // 2. Chercher la fiche originale HTML/PDF du cas
-      var originalFile = _findOriginalFile(c);
+      // Pour Medit, DSCore, Shining3D → pas de fiche originale, directement générer PDF
+      var service_lc = (c.service || '').toLowerCase();
+      var skipOriginalFile = ['medit', 'dscore2', 'shining3d'].some(function(s) { return service_lc.includes(s); });
+      var originalFile = skipOriginalFile ? null : _findOriginalFile(c);
       var photoDataUrl = null;
 
       if (originalFile && originalFile.url) {
