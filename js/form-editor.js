@@ -800,8 +800,25 @@ function editPrescription(i) {
   filename.textContent = p.patient?.nom || p.numero;
 
   // Pour les HTML : toujours utiliser photo_html (le base64 local) pour l'affichage, pas le lien Cloudinary raw
-  const photoAfficher = (p.photo_type === 'html' && p.photo_html) ? p.photo_html : (p.photo_url || p.photo);
-  const photoType = (p.photo_type === 'html' && p.photo_html) ? 'html' : (p._photoType || p.photo_type || 'image');
+  // Pour les PDF : préférer le base64 local (multi-page garanti via PDF.js) plutôt que l'URL Cloudinary (CORS)
+  var photoAfficher, photoType;
+  if (p.photo_type === 'html' && p.photo_html) {
+    photoAfficher = p.photo_html;
+    photoType = 'html';
+  } else if (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) {
+    // PDF base64 local disponible → utiliser directement (pas de CORS, multi-page OK)
+    photoAfficher = p.photo;
+    photoType = 'pdf';
+  } else {
+    photoAfficher = p.photo_url || p.photo;
+    photoType = p._photoType || p.photo_type || 'image';
+    // Détection auto si l'URL ou le data URL ressemble à un PDF
+    if (photoType === 'image' && photoAfficher) {
+      if (photoAfficher.startsWith('data:application/pdf') || (photoAfficher.startsWith('http') && (photoAfficher.toLowerCase().includes('.pdf') || photoAfficher.toLowerCase().includes('/raw/')))) {
+        photoType = 'pdf';
+      }
+    }
+  }
   if (photoAfficher && photoAfficher !== '__photo__') {
     afficherFichierDansPanel(body, photoAfficher, photoType);
   } else {
