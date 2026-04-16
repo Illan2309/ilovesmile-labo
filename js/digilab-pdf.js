@@ -244,23 +244,37 @@ window.generateDigilabPdf = async function(caseData) {
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...dark);
 
-      // Zone peut contenir beaucoup de dents — wrapping sur toute la largeur si trop long
+      // Teinte, désignation, matériau sur la première ligne
+      doc.text(String(teinte), cols[1].x, y);
+      doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
+      doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
+
+      // Zone : si courte → même ligne, sinon retour à la ligne propre
       var zoneStr = String(zone);
-      if (doc.getTextWidth(zoneStr) > cols[0].w - 2) {
-        // Zone longue → afficher sur toute la largeur du tableau
-        var zoneLines = doc.splitTextToSize(zoneStr, secW - 4);
-        doc.text(zoneLines, cols[0].x, y);
-        y += zoneLines.length * 4 + 2;
-        doc.text(String(teinte), cols[0].x, y);
-        doc.text(String(designation), cols[1].x, y, { maxWidth: cols[2].w - 2 });
-        doc.text(String(materiau), cols[2].x + cols[2].w, y, { maxWidth: cols[3].w - 2 });
+      if (doc.getTextWidth(zoneStr) <= cols[0].w - 2) {
+        doc.text(zoneStr, cols[0].x, y);
         y += 8;
       } else {
-        doc.text(zoneStr, cols[0].x, y);
-        doc.text(String(teinte), cols[1].x, y);
-        doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
-        doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
-        y += 8;
+        // Couper par groupes de ~8 dents (aux virgules)
+        var parts = zoneStr.split(',');
+        var lines = [];
+        var current = '';
+        for (var zi = 0; zi < parts.length; zi++) {
+          var test = current ? current + ',' + parts[zi].trim() : parts[zi].trim();
+          if (doc.getTextWidth(test) > secW - 4 && current) {
+            lines.push(current);
+            current = parts[zi].trim();
+          } else {
+            current = test;
+          }
+        }
+        if (current) lines.push(current);
+
+        doc.setFontSize(7); doc.setTextColor(...muted);
+        for (var li = 0; li < lines.length; li++) {
+          doc.text(lines[li], cols[0].x, y + (li === 0 ? 0 : li * 4));
+        }
+        y += Math.max(8, lines.length * 4 + 2);
       }
 
       // Ligne séparatrice légère
