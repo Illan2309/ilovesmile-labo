@@ -516,12 +516,12 @@
           // 3a. Envoyer la fiche complète à Gemini (comme un scan classique)
           var parsed = await callGemini(fileData.base64, fileData.mediaType, isHTML);
 
-          // 3b. Fusionner : l'IA a la priorité, le mapping brut sert de fallback
+          // 3b. Fusionner : IA pour les actes/dents, mapping Digilab pour cabinet/praticien/dates
           if (parsed) {
-            // Garder les champs du mapping brut que l'IA n'a pas trouvé
-            var fallbackFields = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
-            fallbackFields.forEach(function(field) {
-              if (!parsed[field] && mapped[field]) {
+            // Champs où le MAPPING DIGILAB est plus fiable → toujours garder le mapping si renseigné
+            var mappingPriority = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+            mappingPriority.forEach(function(field) {
+              if (mapped[field]) {
                 parsed[field] = mapped[field];
               }
             });
@@ -539,7 +539,7 @@
               var parsedFb = await callGemini(pdfB64Fb, 'application/pdf', false);
               if (parsedFb) {
                 var fbFields = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
-                fbFields.forEach(function(f) { if (!parsedFb[f] && mapped[f]) parsedFb[f] = mapped[f]; });
+                fbFields.forEach(function(f) { if (mapped[f]) parsedFb[f] = mapped[f]; });
                 mapped = parsedFb;
               }
             }
@@ -569,10 +569,10 @@
             var pdfBase64 = photoDataUrl.split(',')[1];
             var parsedPdf = await callGemini(pdfBase64, 'application/pdf', false);
             if (parsedPdf) {
-              // L'IA a la priorité, le mapping brut sert de fallback
-              var fallbackFields2 = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
-              fallbackFields2.forEach(function(field) {
-                if (!parsedPdf[field] && mapped[field]) {
+              // Mapping Digilab prioritaire pour cabinet/praticien/dates
+              var mappingPriority2 = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+              mappingPriority2.forEach(function(field) {
+                if (mapped[field]) {
                   parsedPdf[field] = mapped[field];
                 }
               });
