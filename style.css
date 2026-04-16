@@ -55,6 +55,177 @@
     --grad: linear-gradient(120deg, #1a5c8a 0%, #5bc4c0 100%);
   }
 
+  /* ── Dark Mode ── */
+  html[data-theme="dark"] {
+    --bg: #1a1f2e;
+    --surface: #242938;
+    --border: #3a4055;
+    --accent: #5bc4c0;
+    --teal: #5bc4c0;
+    --accent-light: #2a3545;
+    --teal-light: #1e3035;
+    --text: #e0e6ed;
+    --muted: #8899aa;
+    --success: #4caf50;
+    --danger: #ef5350;
+    --section-bg: #2a3040;
+    --grad: linear-gradient(120deg, #2a7ab5 0%, #5bc4c0 100%);
+  }
+
+  html[data-theme="dark"] header {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  }
+
+  html[data-theme="dark"] input[type="text"],
+  html[data-theme="dark"] input[type="date"],
+  html[data-theme="dark"] input[type="number"],
+  html[data-theme="dark"] input[type="email"],
+  html[data-theme="dark"] textarea,
+  html[data-theme="dark"] select {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  html[data-theme="dark"] .login-card {
+    background: var(--surface);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  html[data-theme="dark"] .login-input {
+    background: var(--section-bg);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  html[data-theme="dark"] .login-input:focus { background: var(--surface); }
+
+  html[data-theme="dark"] .dent-btn {
+    background: var(--surface);
+    color: var(--muted);
+  }
+
+  html[data-theme="dark"] .teinte-chip {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  html[data-theme="dark"] .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  html[data-theme="dark"] .btn-header-secondary {
+    background: var(--surface);
+    color: var(--accent);
+  }
+
+  html[data-theme="dark"] .btn-header-outline {
+    background: var(--surface);
+    color: var(--accent);
+  }
+
+  html[data-theme="dark"] .btn-pdf {
+    background: var(--surface);
+    color: var(--accent);
+  }
+
+  html[data-theme="dark"] .scan-panel {
+    background: var(--surface);
+  }
+  html[data-theme="dark"] .scan-panel-warning {
+    background: #2e2a1e;
+    border-color: #5a4a20;
+  }
+  html[data-theme="dark"] .scan-panel-accent {
+    background: var(--surface);
+  }
+
+  html[data-theme="dark"] .checkbox-label:has(input:checked) {
+    background: #3a3520;
+    color: #e6b800;
+    border-color: #7a6a20;
+  }
+
+  html[data-theme="dark"] .gc-list-item.selected {
+    background: #1e3040;
+    color: var(--accent);
+    border-color: #2a5070;
+  }
+  html[data-theme="dark"] .gc-list-item:not(.selected) { color: var(--text); }
+
+  html[data-theme="dark"] .grille-list-item.selected {
+    background: #1e3040;
+    color: var(--accent);
+    border-color: #2a5070;
+  }
+  html[data-theme="dark"] .grille-list-item:not(.selected) { color: var(--text); }
+  html[data-theme="dark"] .grille-list-item-sub { color: var(--muted); }
+
+  html[data-theme="dark"] .suggest-item { border-bottom-color: var(--border); }
+  html[data-theme="dark"] .suggest-item:hover { background: var(--section-bg); }
+
+  html[data-theme="dark"] .tarif-cab-btn:not(.selected) {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  html[data-theme="dark"] .pa-item { color: var(--text); }
+  html[data-theme="dark"] .pa-item:hover { background: #2e2848; border-color: #6a5aaa; }
+  html[data-theme="dark"] .pa-item.has-aliases { background: #2e2540; border-color: #7a5aaa; }
+
+  html[data-theme="dark"] .dlb-case-row { background: var(--surface); }
+  html[data-theme="dark"] .dlb-case-row.selected { background: #1e3035; border-color: #00838f; }
+  html[data-theme="dark"] .dlb-table thead th { background: var(--section-bg); }
+  html[data-theme="dark"] .dlb-table-row:hover { background: var(--section-bg); }
+  html[data-theme="dark"] .dlb-table-row td { border-bottom-color: var(--border); }
+  html[data-theme="dark"] .dlb-detail-field { background: var(--section-bg); }
+  html[data-theme="dark"] .dlb-detail-comment { background: #2e2a1e; border-color: #5a4a20; }
+  html[data-theme="dark"] .dlb-file-list { border-color: var(--border); }
+  html[data-theme="dark"] .dlb-file-item { border-bottom-color: var(--border); }
+  html[data-theme="dark"] .dlb-file-item span:first-child { color: var(--text); }
+
+  html[data-theme="dark"] .imp-fournisseur-card {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  html[data-theme="dark"] .imp-fournisseur-logo { background: var(--section-bg); border-color: var(--border); }
+  html[data-theme="dark"] .imp-fournisseur-actions button { background: var(--surface); border-color: var(--border); color: var(--muted); }
+  html[data-theme="dark"] #imp-order-table td { border-bottom-color: var(--border); }
+  html[data-theme="dark"] #imp-order-table tr.cab-alt { background: var(--section-bg); }
+  html[data-theme="dark"] #imp-order-table tr:hover { background: #1e3040; }
+
+  html[data-theme="dark"] .imp-drop-zone { background: var(--section-bg); }
+
+  html[data-theme="dark"] #global-drop-overlay-inner {
+    background: var(--surface);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  html[data-theme="dark"] #acte-detail-popup {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  }
+  html[data-theme="dark"] #acte-detail-popup input[type=text] { border-color: var(--border); }
+  html[data-theme="dark"] .acte-popup-jaw button { background: var(--surface); border-color: var(--border); color: var(--accent); }
+  html[data-theme="dark"] .acte-popup-jaw button.active { background: var(--accent); color: #1a1f2e; }
+
+  html[data-theme="dark"] .us-modal { background: var(--surface); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  html[data-theme="dark"] .us-group { background: var(--section-bg); border-color: var(--border); }
+
+  html[data-theme="dark"] .filter-tag { background: #1e3040; color: #6ab4e8; }
+  html[data-theme="dark"] .filter-tag-close { color: #6ab4e8; }
+
+  html[data-theme="dark"] .gc-action-btn { background: var(--surface); color: var(--text); }
+  html[data-theme="dark"] .gc-del-btn { background: #3a1a1a; border-color: #6a3030; }
+
+  html[data-theme="dark"] .actions {
+    background: linear-gradient(90deg, var(--teal-light), var(--accent-light));
+    border-top-color: var(--border);
+  }
+
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);

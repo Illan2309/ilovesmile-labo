@@ -19,6 +19,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="style.css">
+<script src="js/dark-mode.js"></script>
 <!-- Données extraites -->
 <script src="js/data/contacts-dentistes.js"></script>
 <script src="js/data/cogilog-clients.js"></script>
@@ -104,6 +105,7 @@
     <button onclick="ouvrirSelecteurDossiers()" class="btn-header-outline" title="Sélectionner un ou plusieurs dossiers">
       📁 Dossiers
     </button>
+    <button id="btn-dark-mode" onclick="toggleDarkMode()" title="Mode sombre" style="background:none;border:1px solid var(--border);border-radius:8px;font-size:1rem;padding:4px 8px;cursor:pointer;line-height:1;">🌙</button>
     <span id="firebase-status" style="font-size:0.65rem;color:rgba(255,255,255,0.7);font-weight:500;">⏳</span>
     <button onclick="logoutUser()" style="background:none;border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:rgba(255,255,255,0.7);font-size:0.65rem;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;" title="Deconnexion">🔒</button>
   </div>
