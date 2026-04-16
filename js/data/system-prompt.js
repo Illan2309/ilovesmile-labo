@@ -174,6 +174,8 @@ ITEMS SANS dentsActes (jamais de dents) :
 ⚠️ IMPLANTS — Les dents vont TOUJOURS sur le sous-item (Implant scellé ou Implant transvisé), JAMAIS sur le parent (Implant CCM ou Implant CCC).
 Ex: "implant CCM scellé 14 15" → dentsActes: {"Implant scellé": "14 15"}
 
+⚠️ ARMATURE — NE JAMAIS cocher la case "Armature" quand la fiche mentionne "armature" dans un contexte descriptif (ex: "armature zircone", "bridge armature", "armature en métal"). Le mot "armature" désigne souvent le matériau ou la structure, PAS la case à cocher. Ne cocher "Armature" QUE si le praticien demande explicitement une armature SEULE (sans couronne/bridge associé).
+
 ⚠️ PEI et CIRE D'OCCLUSION — JAMAIS de numéros de dents. Uniquement "haut", "bas" ou "haut+bas".
 Ex: dentsActes: {"PEI":"haut"} ou {"Cire d'occlusion":"haut+bas"}. JAMAIS "haut|14" ni "36 37".
 
