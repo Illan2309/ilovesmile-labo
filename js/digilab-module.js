@@ -471,14 +471,31 @@
             mapped = parsed;
           }
         } catch (e) {
-          console.warn('[DIGILAB] Erreur fiche originale, fallback commentaire:', e.message);
-          // Fallback : traiter le commentaire seul
-          var comment = c.comment || '';
-          if (comment.trim()) {
-            var ficheHtml = _buildFicheHtml(c);
-            var base64 = btoa(unescape(encodeURIComponent(ficheHtml)));
-            var parsedFallback = await callGemini(base64, 'text/html', true);
-            _mergeIaResults(mapped, parsedFallback);
+          console.warn('[DIGILAB] Erreur fiche originale, fallback PDF généré + IA:', e.message);
+          // Fallback : générer notre PDF + envoyer à l'IA
+          try {
+            var pdfFallback = await window.generateDigilabPdf(c);
+            if (pdfFallback && pdfFallback.doc) {
+              var pdfBlobFb = pdfFallback.doc.output('blob');
+              photoDataUrl = await _blobToDataUrl(pdfBlobFb);
+              var pdfB64Fb = photoDataUrl.split(',')[1];
+              var parsedFb = await callGemini(pdfB64Fb, 'application/pdf', false);
+              if (parsedFb) {
+                var fbFields = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+                fbFields.forEach(function(f) { if (!parsedFb[f] && mapped[f]) parsedFb[f] = mapped[f]; });
+                mapped = parsedFb;
+              }
+            }
+          } catch (e2) {
+            console.warn('[DIGILAB] Fallback PDF aussi échoué, mapping brut seul:', e2.message);
+            // Dernier recours : au moins le commentaire
+            var comment = c.comment || '';
+            if (comment.trim()) {
+              var ficheHtml = _buildFicheHtml(c);
+              var base64 = btoa(unescape(encodeURIComponent(ficheHtml)));
+              var parsedFallback = await callGemini(base64, 'text/html', true);
+              _mergeIaResults(mapped, parsedFallback);
+            }
           }
         }
       } else {
@@ -488,6 +505,7 @@
         if (pdfResult && pdfResult.doc) {
           var pdfBlob = pdfResult.doc.output('blob');
           photoDataUrl = await _blobToDataUrl(pdfBlob);
+          console.log('[DIGILAB] PDF généré, photoDataUrl:', photoDataUrl ? (photoDataUrl.substring(0, 50) + '...') : 'NULL');
 
           // Envoyer le PDF généré à Gemini comme un scan classique
           try {
