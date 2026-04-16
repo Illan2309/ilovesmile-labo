@@ -172,7 +172,7 @@
       if (status.startsWith('envoye_')) statusLabel = 'Envoye ' + status.replace('envoye_', '').toUpperCase();
       var statusClass = status.startsWith('envoye') ? 'envoye' : status;
 
-      html += '<tr class="dlb-table-row ' + (isSelected ? 'selected' : '') + '" onclick="dlbSelectCase(\'' + _esc(id) + '\')">';
+      html += '<tr class="dlb-table-row ' + (isSelected ? 'selected' : '') + '" onclick="dlbSelectCase(\'' + _esc(id) + '\')" oncontextmenu="event.preventDefault();dlbContextMenu(event,\'' + _esc(id) + '\')">';
       html += '  <td class="dlb-td-date">' + dateStr + ' ' + timeStr + '</td>';
       html += '  <td class="dlb-td-patient"><div class="dlb-td-name">' + _esc(patient) + '</div></td>';
       html += '  <td><span class="dlb-badge dlb-status-' + statusClass + '">' + statusLabel + '</span></td>';
@@ -741,6 +741,58 @@
   // ═══════════════════════════════════════════
   // HELPERS
   // ═══════════════════════════════════════════
+
+  // ── Menu contextuel (clic droit) sur un cas ──
+  window.dlbContextMenu = function(event, caseId) {
+    // Supprimer un ancien menu s'il existe
+    var old = document.getElementById('dlb-ctx-menu');
+    if (old) old.remove();
+
+    var c = _findCase(caseId);
+    if (!c) return;
+
+    var menu = document.createElement('div');
+    menu.id = 'dlb-ctx-menu';
+    menu.style.cssText = 'position:fixed;z-index:9999;background:white;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:6px 0;min-width:200px;font-family:DM Sans,sans-serif;font-size:0.82rem;';
+    menu.style.left = event.clientX + 'px';
+    menu.style.top = event.clientY + 'px';
+
+    var items = [];
+
+    if (c._status === 'traite' || c._status === 'en_cours') {
+      items.push({ label: 'Remettre en attente', icon: '&#8634;', action: 'dlbResetCase(\'' + _esc(caseId) + '\')' });
+    }
+    if (c._status === 'nouveau') {
+      items.push({ label: 'Tout traiter', icon: '&#9881;', action: 'dlbProcessCase(\'' + _esc(caseId) + '\')' });
+    }
+    items.push({ label: 'Scanner la fiche', icon: '&#128196;', action: 'dlbScanFiche(\'' + _esc(caseId) + '\')' });
+    items.push({ label: 'Telecharger fichiers', icon: '&#11015;', action: 'dlbDownloadFiles(\'' + _esc(caseId) + '\')' });
+    items.push({ label: 'Supprimer', icon: '&#10005;', action: 'dlbDeleteCase(\'' + _esc(caseId) + '\')', color: '#e53935' });
+
+    items.forEach(function(item) {
+      var div = document.createElement('div');
+      div.style.cssText = 'padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;color:' + (item.color || '#333') + ';';
+      div.innerHTML = '<span style="width:18px;text-align:center;">' + item.icon + '</span> ' + item.label;
+      div.onmouseenter = function() { div.style.background = '#f5f5f5'; };
+      div.onmouseleave = function() { div.style.background = 'none'; };
+      div.onclick = function() { menu.remove(); eval(item.action); };
+      menu.appendChild(div);
+    });
+
+    document.body.appendChild(menu);
+
+    // Fermer au clic ailleurs
+    var _closeCtx = function(e) {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', _closeCtx); }
+    };
+    setTimeout(function() { document.addEventListener('click', _closeCtx); }, 10);
+  };
+
+  // ── Remettre un cas traité en attente (nouveau) ──
+  window.dlbResetCase = function(caseId) {
+    _updateStatus(caseId, 'nouveau');
+    showToast('Cas remis en attente');
+  };
 
   window.dlbDeleteCase = function(caseId) {
     if (!confirm('Supprimer ce cas Digilab ?')) return;
