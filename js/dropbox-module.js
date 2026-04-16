@@ -288,10 +288,7 @@
           } catch(e) { console.warn('[PRINT] Regen PDF error:', e); }
         }
 
-        if (!photo || photo === '__photo__') {
-          console.warn('[PRINT] Pas de fiche pour', patient);
-          continue;
-        }
+        if (!photo || photo === '__photo__') continue;
 
         // Rendre selon le type
         var isPdf = photoType === 'pdf' || photo.startsWith('data:application/pdf') || (photoType !== 'html' && photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')));
