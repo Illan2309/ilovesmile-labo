@@ -36,12 +36,9 @@ window.generateDigilabPdf = async function(caseData) {
   var priceList = caseData.priceList || [];
   var cameraData = caseData.cameraData || [];
   var linkCase = caseData.link_case || ('https://app.digilab.dental/case2/' + caseId);
-  var dentistName = caseData.dentistName || dentist.name || caseData.senderEmail || '';
-  // Fallback : extraire "Dr XXX" depuis le commentaire si pas de dentiste
-  if (!dentistName || !dentistName.trim()) {
-    var drMatch = comment.match(/\b(DR\.?\s+[A-Z][A-Za-zÀ-ÿ\s\-]+)/i);
-    if (drMatch) dentistName = drMatch[1].trim();
-  }
+  // Priorité : extraire "Dr XXX" du commentaire (plus fiable), sinon champ dentiste
+  var drMatch = comment.match(/\b(DR\.?\s+[A-Z][A-Za-zÀ-ÿ\s\-]+)/i);
+  var dentistName = drMatch ? drMatch[1].trim() : (caseData.dentistName || dentist.name || caseData.senderEmail || '');
 
   // ══════════════════════════════════
   // DATE + NOM LABO (en-tête discret)
