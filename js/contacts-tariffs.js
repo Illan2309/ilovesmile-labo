@@ -450,8 +450,8 @@ function gcFiltreStatut(statut) {
     const btn = document.getElementById('gc-filtre-' + s);
     const isActive = (s === statut) || (s === 'tous' && !statut);
     if (btn) {
-      btn.style.background = isActive ? '#1a5c8a' : 'white';
-      btn.style.color = isActive ? 'white' : (s === 'actif' ? '#2e7d32' : s === 'inactif' ? '#c62828' : '#555');
+      btn.style.background = isActive ? '#1a5c8a' : dmTabActive();
+      btn.style.color = isActive ? 'white' : (s === 'actif' ? '#2e7d32' : s === 'inactif' ? '#c62828' : dmTabTextInactive());
     }
   });
   gcConstruireListe(document.getElementById('gc-search')?.value?.toLowerCase() || '');
