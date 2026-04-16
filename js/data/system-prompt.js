@@ -200,6 +200,8 @@ Guides reconnus :
   VITA Bleach : BL1, BL2, BL3, BL4
   Chromascop : 110-540
 Casse standard : lettre(s) MAJUSCULE + chiffre(s) (ex: A2, BL1, 3M2). Si aucune teinte → vide. Ne jamais inventer.
+⚠️ MULTI-TEINTES : si le praticien indique plusieurs teintes (ex: "A2-A3", "A2/A3", "teinte A2 collet A3"), les retourner TOUTES séparées par "/" du PLUS FONCÉ au PLUS CLAIR. Ordre VITA Classical du plus foncé : A4 > A3.5 > A3 > A2 > A1 > B4 > B3 > B2 > B1.
+Exemples : "A2-A3" → "A3/A2" | "collet A3.5 dent A2" → "A3.5/A2" | "A2" → "A2" (une seule = pas de slash).
 
 ══════════════════════════════════════════
 SCANBODY (champ "piv")
