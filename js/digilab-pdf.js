@@ -153,7 +153,14 @@ window.generateDigilabPdf = async function(caseData) {
     var danceImg = danceCanvas.toDataURL('image/png');
     var mmPerPx = 25.4 / 96;
     var logoX = W - margin - dW * mmPerPx - 2;
-    doc.addImage(danceImg, 'PNG', logoX, hY + 5, dW * mmPerPx, dH * mmPerPx);
+    doc.addImage(danceImg, 'PNG', logoX, hY + 3, dW * mmPerPx, dH * mmPerPx);
+    // Plateforme d'origine sous le logo
+    if (service) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...teal);
+      doc.text(service, logoX + dW * mmPerPx / 2, hY + 3 + dH * mmPerPx + 2, { align: 'center' });
+    }
   } catch(e) {}
 
   // ══════════════════════════════════
