@@ -208,6 +208,7 @@
 
   window._ouvrirWeTransfer = function() {
     window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
+    showToast('WeTransfer ouvert — glissez le ZIP depuis votre dossier Telechargements');
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
