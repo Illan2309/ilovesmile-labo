@@ -124,6 +124,10 @@
     if (typeof showToast === 'function') showToast('Digilab : actualisation...');
   };
 
+  window.dlbFilterList = function() {
+    _renderListe();
+  };
+
   // ═══════════════════════════════════════════
   // RENDU LISTE DES CAS
   // ═══════════════════════════════════════════
@@ -144,13 +148,28 @@
       return;
     }
 
+    // Filtrer par recherche
+    var searchInput = document.getElementById('dlb-search');
+    var query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+    var filtered = _cases;
+    if (query) {
+      filtered = _cases.filter(function(c) {
+        var patient = (c.patient_name || c.patientName || '').toLowerCase();
+        var cabinet = (c.of || c.dentistName || '').toLowerCase();
+        var service = (c.service || '').toLowerCase();
+        var id = (c._digilabId || c._firebaseId || c._id || '').toLowerCase();
+        var status = (c._status || '').toLowerCase();
+        return patient.includes(query) || cabinet.includes(query) || service.includes(query) || id.includes(query) || status.includes(query);
+      });
+    }
+
     var html = '';
     // En-tête tableau
     html += '<table class="dlb-table"><thead><tr>';
     html += '<th>Date de creation</th><th>Patient</th><th>Statut</th><th>Cabinet</th><th>Service</th><th>Id du cas</th><th></th>';
     html += '</tr></thead><tbody>';
 
-    _cases.forEach(function(c) {
+    filtered.forEach(function(c) {
       var id = c._digilabId || c._firebaseId || c._id || '';
       var patient = c.patient_name || c.patientName || 'Patient inconnu';
       var service = (c.service || '').toLowerCase();
