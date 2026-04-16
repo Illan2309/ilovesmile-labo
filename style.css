@@ -226,6 +226,101 @@
     border-top-color: var(--border);
   }
 
+  /* ── Modales : containers et headers (override inline styles) ── */
+  html[data-theme="dark"] #modal-parametres > div,
+  html[data-theme="dark"] #modal-tarifs > div,
+  html[data-theme="dark"] #modal-implants > div,
+  html[data-theme="dark"] #modal-digilab > div {
+    background: var(--surface) !important;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5) !important;
+  }
+
+  html[data-theme="dark"] #modal-parametres > div > div:first-child,
+  html[data-theme="dark"] #modal-tarifs > div > div:first-child,
+  html[data-theme="dark"] #modal-implants > div > div:first-child,
+  html[data-theme="dark"] #modal-digilab > div > div:first-child {
+    background: var(--section-bg) !important;
+    border-bottom-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #modal-parametres > div > div:first-child span[style*="color:#4a148c"] { color: #ce93d8 !important; }
+  html[data-theme="dark"] #modal-tarifs > div > div:first-child span[style*="color:#1a5c8a"] { color: var(--accent) !important; }
+  html[data-theme="dark"] #modal-implants > div > div:first-child span[style*="color:#0277bd"] { color: #4fc3f7 !important; }
+  html[data-theme="dark"] #modal-digilab > div > div:first-child span[style*="color:#00838f"] { color: #4dd0e1 !important; }
+
+  /* Onglets dans les modales */
+  html[data-theme="dark"] #modal-parametres div[style*="background:rgba(255,255,255,0.6)"],
+  html[data-theme="dark"] #modal-tarifs div[style*="background:#e8eff5"] {
+    background: rgba(255,255,255,0.08) !important;
+  }
+
+  /* Contenu des modales (panneaux scrollables) */
+  html[data-theme="dark"] #pm-panel-mapping,
+  html[data-theme="dark"] #pm-panel-labels,
+  html[data-theme="dark"] #pm-panel-prefs,
+  html[data-theme="dark"] #gc-panel-contacts,
+  html[data-theme="dark"] #gc-panel-tarifs,
+  html[data-theme="dark"] #imp-tab-commandes,
+  html[data-theme="dark"] #imp-tab-fournisseurs,
+  html[data-theme="dark"] #dlb-content {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+  }
+
+  /* Bouton Gestion clients sous le formulaire */
+  html[data-theme="dark"] button[onclick="ouvrirModalTarifs()"] {
+    background: var(--section-bg) !important;
+    color: #ff8a65 !important;
+  }
+
+  /* Boutons Digilab header */
+  html[data-theme="dark"] #modal-digilab button[onclick="dlbRefresh()"] {
+    background: var(--teal-light) !important;
+    border-color: var(--border) !important;
+    color: var(--accent) !important;
+  }
+
+  /* Sections prefs (inline backgrounds) */
+  html[data-theme="dark"] #pm-prefs-content div[style*="background:#f8f4ff"] {
+    background: var(--section-bg) !important;
+    border-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #pm-prefs-content div[style*="background:#f5f5f5"] {
+    background: var(--section-bg) !important;
+  }
+  html[data-theme="dark"] #pm-prefs-content input[type="email"] {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  /* Mapping et labels panels (containers inline) */
+  html[data-theme="dark"] #pm-panel-mapping div[style*="background:white"],
+  html[data-theme="dark"] #pm-panel-labels div[style*="background:white"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="background:white"],
+  html[data-theme="dark"] #gc-panel-tarifs div[style*="background:white"] {
+    background: var(--surface) !important;
+  }
+  html[data-theme="dark"] #pm-panel-mapping div[style*="background:#fafbfd"],
+  html[data-theme="dark"] #pm-panel-labels div[style*="background:#fafbfd"],
+  html[data-theme="dark"] #gc-panel-contacts div[style*="background:#fafbfd"],
+  html[data-theme="dark"] #gc-panel-tarifs div[style*="background:#fafbfd"] {
+    background: var(--section-bg) !important;
+  }
+
+  /* Digilab detail fields inline */
+  html[data-theme="dark"] #modal-digilab div[style*="background:#f8fafb"],
+  html[data-theme="dark"] #modal-digilab div[style*="background:#f8fbff"] {
+    background: var(--section-bg) !important;
+  }
+
+  /* Fermer buttons dans les modales */
+  html[data-theme="dark"] #modal-parametres button[style*="color:#999"],
+  html[data-theme="dark"] #modal-tarifs button[style*="color:#999"],
+  html[data-theme="dark"] #modal-implants button[style*="color:#999"],
+  html[data-theme="dark"] #modal-digilab button[style*="color:#999"] {
+    color: var(--muted) !important;
+  }
+
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);

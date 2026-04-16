@@ -30,6 +30,14 @@ function toggleDarkMode() {
   if (btn) btn.textContent = newMode ? '☀️' : '🌙';
 }
 
+// Helpers pour les couleurs dark-aware (utilisés par les switchTab JS)
+function isDarkMode() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+function dmTabActive() { return isDarkMode() ? '#2a3040' : 'white'; }
+function dmTabInactive() { return 'transparent'; }
+function dmTabTextInactive() { return isDarkMode() ? '#8899aa' : '#666'; }
+
 // Au chargement du DOM, mettre à jour l'icône selon l'état initial
 document.addEventListener('DOMContentLoaded', function () {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';

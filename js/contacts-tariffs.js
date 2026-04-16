@@ -68,17 +68,17 @@ function gcSwitchTab(tab) {
   const actT = document.getElementById('gc-actions-tarifs');
 
   [panC, panT].forEach(p => { if(p) p.style.display = 'none'; });
-  [btnC, btnT].forEach(b => { if(b) { b.style.background = 'transparent'; b.style.color = '#666'; }});
+  [btnC, btnT].forEach(b => { if(b) { b.style.background = dmTabInactive(); b.style.color = dmTabTextInactive(); }});
   [actC, actT].forEach(a => { if(a) a.style.display = 'none'; });
 
   if (tab === 'contacts') {
     panC.style.display = 'block';
-    btnC.style.background = 'white'; btnC.style.color = '#1a5c8a';
+    btnC.style.background = dmTabActive(); btnC.style.color = '#1a5c8a';
     actC.style.display = 'flex';
     renderContactsEditor();
   } else if (tab === 'tarifs') {
     panT.style.display = 'flex';
-    btnT.style.background = 'white'; btnT.style.color = '#1a5c8a';
+    btnT.style.background = dmTabActive(); btnT.style.color = '#1a5c8a';
     actT.style.display = 'flex';
     if (gcCabinetSelectionne) {
       const tk = getTarifKey(gcCabinetSelectionne);
@@ -96,7 +96,7 @@ function gcSwitchTab(tab) {
     gcRenderTarifsPanel();
   } else if (tab === 'grilles') {
     panG.style.display = 'flex';
-    btnG.style.background = 'white'; btnG.style.color = '#1a5c8a';
+    btnG.style.background = dmTabActive(); btnG.style.color = '#1a5c8a';
     actG.style.display = 'flex';
     requestAnimationFrame(() => gcRenderGrilles());
   }

@@ -24,7 +24,7 @@ function pmSwitchTab(tab) {
     const p = document.getElementById(panels[t]);
     const b = document.getElementById(btns[t]);
     if (p) p.style.display = t === tab ? 'flex' : 'none';
-    if (b) { b.style.background = t === tab ? 'white' : 'transparent'; b.style.color = t === tab ? '#6a1b9a' : '#666'; }
+    if (b) { b.style.background = t === tab ? dmTabActive() : dmTabInactive(); b.style.color = t === tab ? '#6a1b9a' : dmTabTextInactive(); }
   });
   if (tab === 'mapping') pmRenderMapping();
   else if (tab === 'labels') pmRenderLabels();
