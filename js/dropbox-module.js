@@ -206,9 +206,14 @@
   // ÉTAPE 2 : OUVRIR WETRANSFER
   // ═══════════════════════════════════════════
 
-  window._ouvrirWeTransfer = function() {
+  window._ouvrirWeTransfer = async function() {
     window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
-    showToast('WeTransfer ouvert — glissez le ZIP depuis votre dossier Telechargements');
+    // Ouvrir le Finder sur le dossier Téléchargements via File System Access API
+    try {
+      await window.showDirectoryPicker({ startIn: 'downloads' });
+    } catch(e) {
+      // L'utilisateur a fermé le picker ou API non supportée — pas grave
+    }
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
