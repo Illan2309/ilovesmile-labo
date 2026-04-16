@@ -182,7 +182,11 @@
       for (var fName in byFournisseur) {
         var fPrescriptions = byFournisseur[fName];
         var fCodes = fPrescriptions.map(function(p) { return (p.code_labo || '').replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
-        fCodes.sort();
+        fCodes.sort(function(a, b) {
+          var numA = parseInt((a.match(/\d+/) || [0])[0]);
+          var numB = parseInt((b.match(/\d+/) || [0])[0]);
+          return numA - numB;
+        });
         var range = fCodes.length >= 2 ? fCodes[0] + '-' + fCodes[fCodes.length - 1] : (fCodes[0] || 'envoi');
         var fZipName = fName + '_' + range;
 
