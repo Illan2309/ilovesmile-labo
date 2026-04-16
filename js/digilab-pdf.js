@@ -252,14 +252,14 @@ window.generateDigilabPdf = async function(caseData) {
       // Zone : retour à la ligne tous les ~30 caractères (aux virgules)
       var zoneStr = String(zone);
       var zoneLines = [];
-      if (zoneStr.length <= 30) {
+      if (zoneStr.length <= 10) {
         zoneLines = [zoneStr];
       } else {
         var parts = zoneStr.split(',');
         var current = '';
         for (var zi = 0; zi < parts.length; zi++) {
           var test = current ? current + ',' + parts[zi].trim() : parts[zi].trim();
-          if (test.length > 30 && current) {
+          if (test.length > 10 && current) {
             zoneLines.push(current);
             current = parts[zi].trim();
           } else {
