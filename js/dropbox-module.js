@@ -257,8 +257,19 @@
         var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
         var codeLabo = p.code_labo || '';
 
-        // Photo = PDF base64 local > photo_url > photo
-        var photo = (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) ? p.photo : (p.photo_url || p.photo);
+        // Photo : préférer le base64 local (PDF ou HTML), sinon photo_url
+        var photo;
+        if (p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) {
+          photo = p.photo;
+        } else {
+          photo = p.photo_url || p.photo;
+        }
+        var photoType = p.photo_type || '';
+        // Forcer le type depuis le data URL si pas défini
+        if (!photoType && photo) {
+          if (photo.startsWith('data:text/html')) photoType = 'html';
+          else if (photo.startsWith('data:application/pdf')) photoType = 'pdf';
+        }
 
         // Si pas de photo mais cas Digilab → régénérer le PDF à la volée
         if ((!photo || photo === '__photo__') && p._digilabCaseId && window.generateDigilabPdf) {
@@ -282,8 +293,11 @@
           continue;
         }
 
-        // Rendre les PDF en images via PDF.js
-        if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
+        // Rendre selon le type
+        var isPdf = photoType === 'pdf' || photo.startsWith('data:application/pdf') || (photoType !== 'html' && photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')));
+        var isHtml = photoType === 'html' || photo.startsWith('data:text/html');
+
+        if (isPdf && !isHtml) {
           try {
             var pdfBytes;
             if (photo.startsWith('data:')) {
@@ -312,7 +326,7 @@
               }
             }
           } catch(e) { console.warn('[PRINT] PDF error:', patient, e); }
-        } else if (photo.startsWith('data:text/html')) {
+        } else if (isHtml) {
           // HTML → injecter le contenu directement dans la page d'impression
           try {
             var htmlRaw = atob(photo.split(',')[1]);
