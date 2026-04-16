@@ -451,57 +451,65 @@
       var originalFile = skipOriginalFile ? null : _findOriginalFile(c);
       var photoDataUrl = null;
 
-      if (originalFile && originalFile.url) {
-        // ── FLOW FICHE ORIGINALE : télécharger + IA complète ──
+      if (originalFile) {
+        // ── FLOW FICHE ORIGINALE : staging Dropbox (fiable) > URL Digilab (expire) ──
         console.log('[DIGILAB] Fiche originale trouvée:', originalFile.name);
         try {
           var fileData = null;
-          // Essayer l'URL Digilab directe
-          try {
-            fileData = await _downloadFileAsBase64(originalFile.url, originalFile.name);
-          } catch(urlErr) {
-            console.warn('[DIGILAB] URL Digilab expirée, tentative staging Dropbox...', urlErr.message);
-            // Fallback : chercher dans le staging Dropbox
-            var db = window.getDB ? window.getDB() : null;
-            if (db) {
-              var _caseSnap = await db.collection('digilab_orders').doc(caseId).get();
-              if (_caseSnap.exists) {
-                var _stagingPath = (_caseSnap.data() || {})._dropboxStagingPath;
-                if (_stagingPath) {
-                  try {
-                    var _listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
-                      method: 'POST', headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ path: _stagingPath })
-                    });
-                    if (_listResp.ok) {
-                      var _listData = await _listResp.json();
-                      var _entries = _listData.entries || [];
-                      // Chercher le même fichier dans le staging
-                      var _origName = (originalFile.name || '').toLowerCase();
-                      var _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase() === _origName; });
-                      if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && (e.name.toLowerCase().endsWith('.html') || e.name.toLowerCase().endsWith('.pdf')); });
-                      if (_match) {
-                        console.log('[DIGILAB] Fiche trouvée dans staging Dropbox:', _match.name);
-                        var _dlResp = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
-                          method: 'POST', headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ path: _match.path_lower || _match.path_display })
-                        });
-                        if (_dlResp.ok) {
-                          var _blob = await _dlResp.blob();
-                          var _nameLower = _match.name.toLowerCase();
-                          var _mediaType = _nameLower.endsWith('.html') ? 'text/html' : (_nameLower.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
-                          _blob = new Blob([_blob], { type: _mediaType });
-                          var _dataUrl = await _blobToDataUrl(_blob);
-                          fileData = { base64: _dataUrl.split(',')[1], mediaType: _mediaType, dataUrl: _dataUrl };
-                        }
+
+          // PRIORITÉ 1 : Staging Dropbox (toujours disponible)
+          var _db = window.getDB ? window.getDB() : null;
+          if (_db) {
+            var _caseSnap = await _db.collection('digilab_orders').doc(caseId).get();
+            if (_caseSnap.exists) {
+              var _stagingPath = (_caseSnap.data() || {})._dropboxStagingPath;
+              if (_stagingPath) {
+                try {
+                  var _listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: _stagingPath })
+                  });
+                  if (_listResp.ok) {
+                    var _entries = ((await _listResp.json()).entries || []);
+                    // Chercher la fiche : POF HTML > HTML > POF PDF > PDF (même logique que _findOriginalFile)
+                    var _origName = (originalFile.name || '').toLowerCase();
+                    var _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase() === _origName; });
+                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && /^pof[_\s]/i.test(e.name) && e.name.toLowerCase().endsWith('.html') && !/^full/i.test(e.name); });
+                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.html') && !/^full/i.test(e.name); });
+                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.pdf'); });
+                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.html'); });
+                    if (_match) {
+                      console.log('[DIGILAB] Fiche depuis staging Dropbox:', _match.name);
+                      var _dlResp = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: _match.path_lower || _match.path_display })
+                      });
+                      if (_dlResp.ok) {
+                        var _blob = await _dlResp.blob();
+                        var _nameLower = _match.name.toLowerCase();
+                        var _mediaType = _nameLower.endsWith('.html') ? 'text/html' : (_nameLower.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+                        _blob = new Blob([_blob], { type: _mediaType });
+                        var _dataUrl = await _blobToDataUrl(_blob);
+                        fileData = { base64: _dataUrl.split(',')[1], mediaType: _mediaType, dataUrl: _dataUrl };
                       }
                     }
-                  } catch(dbxErr) { console.warn('[DIGILAB] Staging Dropbox échoué:', dbxErr.message); }
-                }
+                  }
+                } catch(dbxErr) { console.warn('[DIGILAB] Staging Dropbox échoué:', dbxErr.message); }
               }
             }
-            if (!fileData) throw urlErr; // aucune source → fallback normal
           }
+
+          // PRIORITÉ 2 : URL Digilab directe (fallback, peut être expirée)
+          if (!fileData && originalFile.url) {
+            try {
+              fileData = await _downloadFileAsBase64(originalFile.url, originalFile.name);
+              console.log('[DIGILAB] Fiche depuis URL Digilab directe');
+            } catch(urlErr) {
+              console.warn('[DIGILAB] URL Digilab aussi expirée:', urlErr.message);
+            }
+          }
+
+          if (!fileData) throw new Error('Fiche introuvable (staging + URL)');
           var isHTML = fileData.mediaType === 'text/html';
           photoDataUrl = fileData.dataUrl;
 
