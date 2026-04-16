@@ -41,12 +41,11 @@ window.generateDigilabPdf = async function(caseData) {
   var dentistName = drMatch ? drMatch[1].trim() : (caseData.dentistName || dentist.name || caseData.senderEmail || '');
 
   // ══════════════════════════════════
-  // DATE + NOM LABO (en-tête discret)
+  // NOM LABO (en-tête discret, sans date)
   // ══════════════════════════════════
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...muted);
-  doc.text(creationDate + '  ' + (_dlbFmtTime(caseData.creation_date || caseData._receivedAt || '')), margin, 8);
   doc.text('I love smile', W - margin, 8, { align: 'right' });
 
   // ══════════════════════════════════
