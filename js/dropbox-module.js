@@ -93,7 +93,8 @@
       '  </div>' +
       '  <div style="display:flex;gap:8px;">' +
       '    <button id="dbx-download-btn" onclick="window._dbxTelechargerZip()" style="flex:1;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">1. Telecharger</button>' +
-      '    <button id="dbx-send-btn" onclick="window._ouvrirWeTransfer()" style="flex:1;background:linear-gradient(120deg,#409cff,#6bc5f8);color:white;border:none;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">2. Ouvrir WeTransfer</button>' +
+      '    <button onclick="window._imprimerFiches()" style="flex:1;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">2. Imprimer</button>' +
+      '    <button id="dbx-send-btn" onclick="window._ouvrirWeTransfer()" style="flex:1;background:linear-gradient(120deg,#409cff,#6bc5f8);color:white;border:none;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:DM Sans,sans-serif;">3. Ouvrir WeTransfer</button>' +
       '  </div>' +
       '  <div style="margin-top:8px;text-align:right;">' +
       '    <button onclick="document.getElementById(\'modal-dropbox\').remove()" style="background:none;border:none;color:#999;font-size:0.78rem;cursor:pointer;text-decoration:underline;">Annuler</button>' +
@@ -208,6 +209,88 @@
 
   window._ouvrirWeTransfer = function() {
     window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
+  };
+
+  // ═══════════════════════════════════════════
+  // IMPRIMER TOUTES LES FICHES (PDF anglais + fiches originales)
+  // ═══════════════════════════════════════════
+
+  window._imprimerFiches = async function() {
+    var selected = _getSelectedPrescriptions();
+    if (selected.length === 0) return;
+
+    showToast('Preparation de l\'impression...');
+
+    try {
+      // Fusionner tous les PDF dans un seul document pour impression
+      var printWindow = window.open('', '_blank');
+      if (!printWindow) { showToast('Popup bloquee — autorisez les popups', true); return; }
+
+      var htmlParts = [];
+      htmlParts.push('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Impression fiches</title>');
+      htmlParts.push('<style>@media print { .page-break { page-break-after: always; } } body { margin:0; padding:0; } .page-break { page-break-after: always; } .fiche-container { width:100%; display:flex; justify-content:center; } .fiche-container canvas, .fiche-container img { max-width:100%; height:auto; } </style>');
+      htmlParts.push('</head><body>');
+
+      for (var i = 0; i < selected.length; i++) {
+        var p = selected[i];
+        var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
+
+        // 1. PDF anglais (notre fiche générée)
+        try {
+          var commentEN = '';
+          var commField = p.commentaires || '';
+          var enMatch = commField.match(/--- EN ---\n?([\s\S]*)/);
+          if (enMatch) commentEN = enMatch[1].trim();
+
+          var doc = await buildPDFAnglaisDoc(p, commentEN);
+          var pdfDataUrl = doc.output('datauristring');
+          htmlParts.push('<div class="fiche-container page-break">');
+          htmlParts.push('<embed src="' + pdfDataUrl + '" type="application/pdf" style="width:100%;height:100vh;">');
+          htmlParts.push('</div>');
+        } catch (e) {
+          console.warn('[PRINT] PDF anglais error pour', patient, e);
+        }
+
+        // 2. Fiche originale (photo de la prescription — PDF ou HTML)
+        var photo = p.photo_url || p.photo;
+        if (photo && photo !== '__photo__') {
+          if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
+            // PDF → embed
+            htmlParts.push('<div class="fiche-container page-break">');
+            htmlParts.push('<embed src="' + photo + '" type="application/pdf" style="width:100%;height:100vh;">');
+            htmlParts.push('</div>');
+          } else if (photo.startsWith('data:text/html')) {
+            // HTML → iframe
+            try {
+              var htmlContent = atob(photo.split(',')[1]);
+              htmlParts.push('<div class="page-break">');
+              htmlParts.push(htmlContent);
+              htmlParts.push('</div>');
+            } catch(e) {}
+          } else if (photo.startsWith('http') || photo.startsWith('data:image')) {
+            // Image
+            htmlParts.push('<div class="fiche-container page-break">');
+            htmlParts.push('<img src="' + photo + '" style="max-width:100%;max-height:100vh;">');
+            htmlParts.push('</div>');
+          }
+        }
+      }
+
+      htmlParts.push('</body></html>');
+      printWindow.document.write(htmlParts.join(''));
+      printWindow.document.close();
+
+      // Lancer l'impression après chargement
+      printWindow.onload = function() {
+        setTimeout(function() { printWindow.print(); }, 500);
+      };
+
+      showToast(selected.length + ' fiche(s) preparee(s) pour impression');
+
+    } catch (e) {
+      console.error('[PRINT] Error:', e);
+      showToast('Erreur impression : ' + e.message, true);
+    }
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
