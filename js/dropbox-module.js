@@ -207,13 +207,14 @@
   // ═══════════════════════════════════════════
 
   window._ouvrirWeTransfer = async function() {
-    window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
-    // Ouvrir le Finder sur le dossier Téléchargements via File System Access API
+    // Ouvrir le Finder sur le dossier Téléchargements d'abord (nécessite le geste utilisateur)
     try {
       await window.showDirectoryPicker({ startIn: 'downloads' });
     } catch(e) {
       // L'utilisateur a fermé le picker ou API non supportée — pas grave
     }
+    // Puis ouvrir WeTransfer
+    window.open('https://wetransfer.com/', '_blank', 'width=900,height=700,menubar=no,toolbar=no,location=no,status=no');
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
