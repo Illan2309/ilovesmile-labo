@@ -3,12 +3,17 @@
  * 1. Reçoit les commandes de Digilab (POST /v1/order/add) → Firebase
  * 2. Proxy vers l'API publique Digilab (GET/PUT /v1/digilab/*)
  * 3. Proxy fichiers binaires (GET /v1/digilab/proxy-file)
+ * 4. Proxy Dropbox avec refresh token automatique
  *
  * Secrets Cloudflare :
  * - DIGILAB_AUTH_TOKEN : token Bearer webhook
  * - DIGILAB_API_KEY : clé API publique Digilab (dlb_live_xxxxx)
  * - FIREBASE_PROJECT_ID : ID projet Firebase
  * - FIREBASE_API_KEY : clé API Firebase Web
+ * - DROPBOX_REFRESH_TOKEN : refresh token Dropbox (longue durée)
+ * - DROPBOX_APP_KEY : App Key de l'app Dropbox
+ * - DROPBOX_APP_SECRET : App Secret de l'app Dropbox
+ * - DROPBOX_TOKEN : (legacy) token court, remplacé par le refresh flow
  */
 
 const CORS_HEADERS = {
@@ -18,6 +23,54 @@ const CORS_HEADERS = {
 };
 
 const DIGILAB_API_BASE = 'https://europe-west9-digital-adf.cloudfunctions.net/digilab-inbox-server/public/v1';
+
+// ═══════════════════════════════════════════
+// DROPBOX TOKEN REFRESH (les access tokens expirent après 4h)
+// ═══════════════════════════════════════════
+
+let _cachedDropboxToken = null;
+let _cachedDropboxTokenExpiry = 0;
+
+async function getDropboxToken(env) {
+  // Si on a un token en cache encore valide (marge de 5 min)
+  if (_cachedDropboxToken && Date.now() < _cachedDropboxTokenExpiry - 300000) {
+    return _cachedDropboxToken;
+  }
+
+  // Si refresh token configuré → rafraîchir automatiquement
+  if (env.DROPBOX_REFRESH_TOKEN && env.DROPBOX_APP_KEY && env.DROPBOX_APP_SECRET) {
+    try {
+      const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: env.DROPBOX_REFRESH_TOKEN,
+          client_id: env.DROPBOX_APP_KEY,
+          client_secret: env.DROPBOX_APP_SECRET,
+        }).toString(),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        _cachedDropboxToken = data.access_token;
+        // expires_in est en secondes (typiquement 14400 = 4h)
+        _cachedDropboxTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+        console.log('[DROPBOX] Token refreshed, expires in', data.expires_in, 's');
+        return _cachedDropboxToken;
+      }
+      console.error('[DROPBOX] Token refresh failed:', resp.status, await resp.text());
+    } catch (e) {
+      console.error('[DROPBOX] Token refresh error:', e.message);
+    }
+  }
+
+  // Fallback : token statique (legacy, peut être expiré)
+  if (env.DROPBOX_TOKEN) {
+    return env.DROPBOX_TOKEN;
+  }
+
+  return null;
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -116,7 +169,7 @@ async function handleOrderAdd(request, env, ctx) {
   }, 200);
 
   // 3. Upload Dropbox EN ARRIÈRE-PLAN (via waitUntil, pas de timeout pour Digilab)
-  if (ctx && env.DROPBOX_TOKEN && orderData.files && orderData.files.length) {
+  if (ctx && (env.DROPBOX_REFRESH_TOKEN || env.DROPBOX_TOKEN) && orderData.files && orderData.files.length) {
     ctx.waitUntil(_uploadToDropboxStaging(env, orderData, orderId, patientName, stagingPath));
   }
 
@@ -130,10 +183,13 @@ async function _uploadToDropboxStaging(env, orderData, orderId, patientName, sta
   const dropboxPaths = [];
 
   try {
+    const dbxToken = await getDropboxToken(env);
+    if (!dbxToken) { console.error('[DROPBOX] No token available for staging upload'); return; }
+
     // Créer le dossier staging
     await fetch('https://api.dropboxapi.com/2/files/create_folder_v2', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + env.DROPBOX_TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + dbxToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: stagingPath, autorename: false }),
     });
 
@@ -151,7 +207,7 @@ async function _uploadToDropboxStaging(env, orderData, orderId, patientName, sta
         await fetch('https://content.dropboxapi.com/2/files/upload', {
           method: 'POST',
           headers: {
-            'Authorization': 'Bearer ' + env.DROPBOX_TOKEN,
+            'Authorization': 'Bearer ' + dbxToken,
             'Dropbox-API-Arg': JSON.stringify({ path: stagingPath + '/' + fileName, mode: 'add', autorename: true, mute: true }),
             'Content-Type': 'application/octet-stream',
           },
@@ -272,9 +328,9 @@ async function handleDropboxProxy(request, env, url, path) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
-  const dbxToken = env.DROPBOX_TOKEN;
+  const dbxToken = await getDropboxToken(env);
   if (!dbxToken) {
-    return jsonResponse({ error: 'Dropbox not configured' }, 500);
+    return jsonResponse({ error: 'Dropbox not configured (no token or refresh token)' }, 500);
   }
 
   // POST /v1/dropbox/create-folder

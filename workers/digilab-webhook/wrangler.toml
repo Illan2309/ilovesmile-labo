@@ -6,6 +6,11 @@ compatibility_date = "2024-01-01"
 # Ces valeurs sont des placeholders — les vrais secrets sont dans le dashboard Cloudflare
 # FIREBASE_PROJECT_ID = "votre-project-id"
 
-# Secrets à configurer via : npx wrangler secret put DIGILAB_AUTH_TOKEN
+# Secrets à configurer via : npx wrangler secret put <NOM>
+# npx wrangler secret put DIGILAB_AUTH_TOKEN
 # npx wrangler secret put FIREBASE_PROJECT_ID
 # npx wrangler secret put FIREBASE_API_KEY
+# npx wrangler secret put DROPBOX_REFRESH_TOKEN   ← refresh token longue durée
+# npx wrangler secret put DROPBOX_APP_KEY          ← App Key Dropbox
+# npx wrangler secret put DROPBOX_APP_SECRET       ← App Secret Dropbox
+# (DROPBOX_TOKEN est legacy, le refresh flow le remplace)
