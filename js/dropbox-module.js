@@ -234,6 +234,15 @@
       for (var i = 0; i < selected.length; i++) {
         var p = selected[i];
         var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
+        var codeLabo = p.code_labo || '';
+
+        // Bandeau code labo + patient en haut de chaque fiche
+        if (codeLabo || patient) {
+          htmlParts.push('<div style="padding:8px 16px;background:#1a5c8a;color:white;font-family:sans-serif;font-size:18px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">');
+          htmlParts.push('<span>' + _esc(codeLabo) + '</span>');
+          htmlParts.push('<span style="font-size:13px;font-weight:400;">' + _esc(patient) + '</span>');
+          htmlParts.push('</div>');
+        }
 
         // Photo = notre PDF Digilab généré OU la fiche originale (POF HTML/PDF)
         var photo = (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) ? p.photo : (p.photo_url || p.photo);
