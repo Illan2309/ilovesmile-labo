@@ -650,8 +650,17 @@
     border-top-color: var(--border) !important;
   }
   /* Lignes praticiens */
-  html[data-theme="dark"] #contacts-liste div {
+  html[data-theme="dark"] #contacts-liste > div {
+    background: var(--section-bg) !important;
+    border-color: var(--border) !important;
     color: var(--text);
+  }
+  html[data-theme="dark"] #contacts-liste span[style*="background:#ede7f6"] {
+    background: #2e2540 !important;
+    color: #ce93d8 !important;
+  }
+  html[data-theme="dark"] #contacts-liste div[style*="border-top:1px dashed"] {
+    border-top-color: var(--border) !important;
   }
   /* Boutons modifier/supprimer fiche */
   html[data-theme="dark"] #contacts-editor button[style*="background:#fff3e0"] {
