@@ -942,7 +942,7 @@
     var files = c.files || [];
     if (!files.length) return null;
 
-    // Priorité : POF HTML > HTML > POF PDF > PDF
+    // Priorité : POF HTML (pas FULL) > HTML > FULL_POF HTML > POF PDF (pas FULL) > PDF > FULL_POF PDF
     var pofHtml = files.find(function(f) {
       var n = (f.name || '').toLowerCase();
       return /^pof[_\s]/i.test(n) && n.endsWith('.html') && !/^full[_\s]?pof/i.test(n);
@@ -955,6 +955,12 @@
     });
     if (anyHtml) return anyHtml;
 
+    var fullPofHtml = files.find(function(f) {
+      var n = (f.name || '').toLowerCase();
+      return /^full[_\s]?pof/i.test(n) && n.endsWith('.html');
+    });
+    if (fullPofHtml) return fullPofHtml;
+
     var pofPdf = files.find(function(f) {
       var n = (f.name || '').toLowerCase();
       return /^pof[_\s]/i.test(n) && n.endsWith('.pdf') && !/^full[_\s]?pof/i.test(n);
@@ -963,7 +969,7 @@
 
     var anyPdf = files.find(function(f) {
       var n = (f.name || '').toLowerCase();
-      return n.endsWith('.pdf') && !/^full[_\s]?pof/i.test(n);
+      return n.endsWith('.pdf');
     });
     if (anyPdf) return anyPdf;
 
