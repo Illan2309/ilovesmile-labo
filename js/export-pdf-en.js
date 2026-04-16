@@ -1387,7 +1387,16 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
       var def = _annexesList.find(function(a) { return a.code === code; });
       var label = def ? def.label : code;
       var dents = (p.produitsAnnexesDents || {})[code] || '';
-      _annexeLines += '+ ' + label + (dents ? ' (' + dents + ')' : '') + '\n';
+      // Calculer la quantité : nombre de dents ou positions (haut+bas=2, haut=1, 14 15 16=3)
+      var qty = 1;
+      if (dents) {
+        if (dents.includes('+')) {
+          qty = dents.split('+').length; // haut+bas = 2
+        } else if (/^\d/.test(dents.trim())) {
+          qty = dents.trim().split(/[\s,|]+/).filter(Boolean).length; // 14 15 16 = 3
+        }
+      }
+      _annexeLines += '+ ' + label + (dents ? ' (' + dents + ')' : '') + (qty > 1 ? ' x' + qty : '') + '\n';
     });
   }
   const commentText = ((commentaireEN || p.commentaires || '') + (_annexeLines ? '\n' + _annexeLines : '')).trim();

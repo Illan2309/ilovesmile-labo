@@ -803,12 +803,22 @@ function exportCogilogTSV() {
       const annexeLabel = (typeof PRODUITS_ANNEXES !== 'undefined' ? PRODUITS_ANNEXES : []).find(pa => pa.code === code);
       const annexeName = annexeLabel ? annexeLabel.label : code;
       const isAnnexeRefaire = (toRefaire !== false) && (toRefaire === null || toRefaire.has(annexeName));
+      // Calculer la quantité : nombre de dents ou positions (haut+bas=2, haut=1, 14 15 16=3)
+      const dentVal = produitsAnnexesDents[code] || '';
+      let annexeQty = 1;
+      if (dentVal) {
+        if (dentVal.includes('+')) {
+          annexeQty = dentVal.split('+').length; // haut+bas = 2
+        } else if (/^\d/.test(dentVal.trim())) {
+          annexeQty = dentVal.trim().split(/[\s,|]+/).filter(Boolean).length; // 14 15 16 = 3
+        }
+      }
       const lc = buildLigneProd(
         isAnnexeRefaire ? ('__REFAIRE_' + code + '__') : code,
-        COGILOG_LIBELLES[code] || code
+        COGILOG_LIBELLES[code] || code,
+        annexeQty
       );
       // Appliquer les dents/mâchoire si renseignées
-      const dentVal = produitsAnnexesDents[code] || '';
       if (dentVal) lc[23] = dentVal;
       lignes.push(lc);
     }
