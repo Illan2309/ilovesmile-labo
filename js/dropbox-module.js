@@ -235,32 +235,40 @@
         var p = selected[i];
         var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
 
-        // 1. PDF anglais (notre fiche générée)
-        try {
-          var commentEN = '';
-          var commField = p.commentaires || '';
-          var enMatch = commField.match(/--- EN ---\n?([\s\S]*)/);
-          if (enMatch) commentEN = enMatch[1].trim();
-
-          var doc = await buildPDFAnglaisDoc(p, commentEN);
-          var pdfDataUrl = doc.output('datauristring');
-          htmlParts.push('<div class="fiche-container page-break">');
-          htmlParts.push('<embed src="' + pdfDataUrl + '" type="application/pdf" style="width:100%;height:100vh;">');
-          htmlParts.push('</div>');
-        } catch (e) {
-          console.warn('[PRINT] PDF anglais error pour', patient, e);
-        }
-
-        // 2. Fiche originale (photo de la prescription — PDF ou HTML)
-        var photo = p.photo_url || p.photo;
+        // Photo = notre PDF Digilab généré OU la fiche originale (POF HTML/PDF)
+        var photo = (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) ? p.photo : (p.photo_url || p.photo);
         if (photo && photo !== '__photo__') {
           if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
-            // PDF → embed
-            htmlParts.push('<div class="fiche-container page-break">');
-            htmlParts.push('<embed src="' + photo + '" type="application/pdf" style="width:100%;height:100vh;">');
-            htmlParts.push('</div>');
+            // PDF → convertir en images via PDF.js pour impression fiable
+            try {
+              var pdfData;
+              if (photo.startsWith('data:')) {
+                pdfData = atob(photo.split(',')[1]);
+              } else {
+                var resp = await fetch(photo);
+                var buf = await resp.arrayBuffer();
+                pdfData = buf;
+              }
+              var pdfBytes = photo.startsWith('data:') ? Uint8Array.from(pdfData, function(c) { return c.charCodeAt(0); }) : new Uint8Array(pdfData);
+              if (window.pdfjsLib) {
+                var pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                for (var pn = 1; pn <= pdf.numPages; pn++) {
+                  var page = await pdf.getPage(pn);
+                  var vp = page.getViewport({ scale: 2 });
+                  var cv = document.createElement('canvas');
+                  cv.width = vp.width; cv.height = vp.height;
+                  await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+                  var imgUrl = cv.toDataURL('image/jpeg', 0.92);
+                  htmlParts.push('<div class="fiche-container page-break">');
+                  htmlParts.push('<img src="' + imgUrl + '" style="max-width:100%;height:auto;">');
+                  htmlParts.push('</div>');
+                }
+              }
+            } catch (e) {
+              console.warn('[PRINT] PDF render error pour', patient, e);
+            }
           } else if (photo.startsWith('data:text/html')) {
-            // HTML → iframe
+            // HTML → injecter directement
             try {
               var htmlContent = atob(photo.split(',')[1]);
               htmlParts.push('<div class="page-break">');
@@ -273,6 +281,8 @@
             htmlParts.push('<img src="' + photo + '" style="max-width:100%;max-height:100vh;">');
             htmlParts.push('</div>');
           }
+        } else {
+          console.warn('[PRINT] Pas de fiche pour', patient);
         }
       }
 
