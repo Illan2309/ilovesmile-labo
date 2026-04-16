@@ -1379,7 +1379,18 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     doc.text('AESTHETIC', badgeX + estW/2, badgeY, { align: 'center' });
   }
   const commentStartY = (p.urgent || p.call_me || p.casEsthetique) ? y + 18 : y + 14;
-  const commentText = commentaireEN || p.commentaires || '';
+  // Ajouter les produits annexes dans le commentaire
+  var _annexeLines = '';
+  if (p.produitsAnnexes && p.produitsAnnexes.length > 0) {
+    var _annexesList = (typeof PRODUITS_ANNEXES !== 'undefined') ? PRODUITS_ANNEXES : [];
+    p.produitsAnnexes.forEach(function(code) {
+      var def = _annexesList.find(function(a) { return a.code === code; });
+      var label = def ? def.label : code;
+      var dents = (p.produitsAnnexesDents || {})[code] || '';
+      _annexeLines += '+ ' + label + (dents ? ' (' + dents + ')' : '') + '\n';
+    });
+  }
+  const commentText = ((commentaireEN || p.commentaires || '') + (_annexeLines ? '\n' + _annexeLines : '')).trim();
   if (commentText.trim()) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...dark);
     const clines = doc.splitTextToSize(commentText, commW2 - 8);
