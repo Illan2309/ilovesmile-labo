@@ -462,30 +462,43 @@
           }
         }
       } else {
-        // ── FLOW SANS FICHE : commentaire seul → Gemini ──
-        console.log('[DIGILAB] Pas de fiche originale, traitement commentaire seul');
-        var comment2 = c.comment || '';
-        if (comment2.trim()) {
-          var ficheHtml2 = _buildFicheHtml(c);
-          var base642 = btoa(unescape(encodeURIComponent(ficheHtml2)));
-          var parsed2 = await callGemini(base642, 'text/html', true);
-          _mergeIaResults(mapped, parsed2);
+        // ── FLOW SANS FICHE : générer PDF custom puis envoyer à l'IA ──
+        console.log('[DIGILAB] Pas de fiche originale, génération PDF + IA');
+        var pdfResult = await window.generateDigilabPdf(c);
+        if (pdfResult && pdfResult.doc) {
+          var pdfBlob = pdfResult.doc.output('blob');
+          photoDataUrl = await _blobToDataUrl(pdfBlob);
+
+          // Envoyer le PDF généré à Gemini comme un scan classique
+          try {
+            var pdfBase64 = photoDataUrl.split(',')[1];
+            var parsedPdf = await callGemini(pdfBase64, 'application/pdf', false);
+            if (parsedPdf) {
+              // L'IA a la priorité, le mapping brut sert de fallback
+              var fallbackFields2 = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+              fallbackFields2.forEach(function(field) {
+                if (!parsedPdf[field] && mapped[field]) {
+                  parsedPdf[field] = mapped[field];
+                }
+              });
+              mapped = parsedPdf;
+            }
+          } catch (e) {
+            console.warn('[DIGILAB] IA sur PDF généré échoué, fallback mapping brut:', e.message);
+            // Fallback : au moins traiter le commentaire
+            var comment2 = c.comment || '';
+            if (comment2.trim()) {
+              var ficheHtml2 = _buildFicheHtml(c);
+              var base642 = btoa(unescape(encodeURIComponent(ficheHtml2)));
+              var parsed2 = await callGemini(base642, 'text/html', true);
+              _mergeIaResults(mapped, parsed2);
+            }
+          }
         }
       }
 
       // 4. Construire la prescription via le pipeline standard
       var prescription = await buildPrescriptionFromScan(mapped, photoDataUrl, mapped, true);
-
-      // 5. Si pas de fiche originale, générer le PDF custom comme avant
-      if (!photoDataUrl) {
-        var pdfResult = await window.generateDigilabPdf(c);
-        if (pdfResult && pdfResult.doc) {
-          var pdfBlob = pdfResult.doc.output('blob');
-          var pdfDataUrl = await _blobToDataUrl(pdfBlob);
-          prescription.photo = pdfDataUrl;
-          prescription.photo_type = 'pdf';
-        }
-      }
 
       // 6. Métadonnées Digilab
       prescription._digilabCaseId = caseId;
