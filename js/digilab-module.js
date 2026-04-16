@@ -421,34 +421,73 @@
     _updateStatus(caseId, 'en_cours');
 
     try {
-      // 1. MAPPING DIRECT depuis les données structurées
+      // 1. MAPPING DIRECT depuis les données structurées (base)
       var mapped = _mapDigilabToPrescription(c);
 
-      // 2. COMMENTAIRE → envoyer à Gemini pour extraire les actes
-      var comment = c.comment || '';
-      if (comment.trim()) {
-        // Construire un HTML minimal avec le contexte pour aider l'IA
-        var ficheHtml = _buildFicheHtml(c);
-        var base64 = btoa(unescape(encodeURIComponent(ficheHtml)));
-        var parsed = await callGemini(base64, 'text/html', true);
+      // 2. Chercher la fiche originale HTML/PDF du cas
+      var originalFile = _findOriginalFile(c);
+      var photoDataUrl = null;
 
-        // Fusionner : l'IA complète ce que le mapping direct n'a pas
-        _mergeIaResults(mapped, parsed);
+      if (originalFile && originalFile.url) {
+        // ── FLOW FICHE ORIGINALE : télécharger + IA complète ──
+        console.log('[DIGILAB] Fiche originale trouvée:', originalFile.name);
+        try {
+          var fileData = await _downloadFileAsBase64(originalFile.url);
+          var isHTML = fileData.mediaType === 'text/html';
+          photoDataUrl = fileData.dataUrl;
+
+          // 3a. Envoyer la fiche complète à Gemini (comme un scan classique)
+          var parsed = await callGemini(fileData.base64, fileData.mediaType, isHTML);
+
+          // 3b. Fusionner : l'IA a la priorité, le mapping brut sert de fallback
+          if (parsed) {
+            // Garder les champs du mapping brut que l'IA n'a pas trouvé
+            var fallbackFields = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+            fallbackFields.forEach(function(field) {
+              if (!parsed[field] && mapped[field]) {
+                parsed[field] = mapped[field];
+              }
+            });
+            mapped = parsed;
+          }
+        } catch (e) {
+          console.warn('[DIGILAB] Erreur fiche originale, fallback commentaire:', e.message);
+          // Fallback : traiter le commentaire seul
+          var comment = c.comment || '';
+          if (comment.trim()) {
+            var ficheHtml = _buildFicheHtml(c);
+            var base64 = btoa(unescape(encodeURIComponent(ficheHtml)));
+            var parsedFallback = await callGemini(base64, 'text/html', true);
+            _mergeIaResults(mapped, parsedFallback);
+          }
+        }
+      } else {
+        // ── FLOW SANS FICHE : commentaire seul → Gemini ──
+        console.log('[DIGILAB] Pas de fiche originale, traitement commentaire seul');
+        var comment2 = c.comment || '';
+        if (comment2.trim()) {
+          var ficheHtml2 = _buildFicheHtml(c);
+          var base642 = btoa(unescape(encodeURIComponent(ficheHtml2)));
+          var parsed2 = await callGemini(base642, 'text/html', true);
+          _mergeIaResults(mapped, parsed2);
+        }
       }
 
-      // 3. Construire la prescription via le pipeline standard
-      var prescription = await buildPrescriptionFromScan(mapped, null, mapped, true);
+      // 4. Construire la prescription via le pipeline standard
+      var prescription = await buildPrescriptionFromScan(mapped, photoDataUrl, mapped, true);
 
-      // 4. Générer le PDF et l'utiliser comme photo de la prescription
-      var pdfResult = await window.generateDigilabPdf(c);
-      if (pdfResult && pdfResult.doc) {
-        var pdfBlob = pdfResult.doc.output('blob');
-        var pdfDataUrl = await _blobToDataUrl(pdfBlob);
-        prescription.photo = pdfDataUrl;
-        prescription.photo_type = 'pdf';
+      // 5. Si pas de fiche originale, générer le PDF custom comme avant
+      if (!photoDataUrl) {
+        var pdfResult = await window.generateDigilabPdf(c);
+        if (pdfResult && pdfResult.doc) {
+          var pdfBlob = pdfResult.doc.output('blob');
+          var pdfDataUrl = await _blobToDataUrl(pdfBlob);
+          prescription.photo = pdfDataUrl;
+          prescription.photo_type = 'pdf';
+        }
       }
 
-      // 5. Métadonnées Digilab
+      // 6. Métadonnées Digilab
       prescription._digilabCaseId = caseId;
       prescription._digilabService = c.service || '';
       prescription.scan = true;
@@ -744,6 +783,68 @@
     var c = _findCase(caseId);
     if (c) c._status = newStatus;
     _renderListe();
+  }
+
+  // ── Trouver la fiche originale HTML/PDF dans les fichiers du cas ──
+  function _findOriginalFile(c) {
+    var files = c.files || [];
+    if (!files.length) return null;
+
+    // Priorité : POF HTML > HTML > POF PDF > PDF
+    var pofHtml = files.find(function(f) {
+      var n = (f.name || '').toLowerCase();
+      return /^pof[_\s]/i.test(n) && n.endsWith('.html') && !/^full[_\s]?pof/i.test(n);
+    });
+    if (pofHtml) return pofHtml;
+
+    var anyHtml = files.find(function(f) {
+      var n = (f.name || '').toLowerCase();
+      return n.endsWith('.html') && !/^full[_\s]?pof/i.test(n);
+    });
+    if (anyHtml) return anyHtml;
+
+    var pofPdf = files.find(function(f) {
+      var n = (f.name || '').toLowerCase();
+      return /^pof[_\s]/i.test(n) && n.endsWith('.pdf') && !/^full[_\s]?pof/i.test(n);
+    });
+    if (pofPdf) return pofPdf;
+
+    var anyPdf = files.find(function(f) {
+      var n = (f.name || '').toLowerCase();
+      return n.endsWith('.pdf') && !/^full[_\s]?pof/i.test(n);
+    });
+    if (anyPdf) return anyPdf;
+
+    return null;
+  }
+
+  // ── Télécharger un fichier Digilab et le convertir en base64 ──
+  async function _downloadFileAsBase64(fileUrl) {
+    var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: fileUrl })
+    });
+    if (!resp.ok) throw new Error('Download failed: ' + resp.status);
+
+    var blob = await resp.blob();
+    var mimeType = blob.type || 'application/octet-stream';
+
+    // Déterminer le mediaType pour Gemini
+    var mediaType = 'application/octet-stream';
+    if (mimeType.includes('html') || mimeType.includes('text')) mediaType = 'text/html';
+    else if (mimeType.includes('pdf')) mediaType = 'application/pdf';
+
+    // Convertir en base64 via FileReader
+    var dataUrl = await new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = function() { reject(new Error('FileReader error')); };
+      reader.readAsDataURL(blob);
+    });
+
+    var base64 = dataUrl.split(',')[1];
+    return { base64: base64, mediaType: mediaType, dataUrl: dataUrl };
   }
 
   function _downloadUrl(url, filename) {
