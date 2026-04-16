@@ -236,16 +236,18 @@
         var patient = ((p.patient || {}).nom || p.patient_nom || 'PATIENT').toUpperCase();
         var codeLabo = p.code_labo || '';
 
-        // Bandeau code labo + patient en haut de chaque fiche
-        if (codeLabo || patient) {
-          htmlParts.push('<div style="padding:8px 16px;background:#1a5c8a;color:white;font-family:sans-serif;font-size:18px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">');
-          htmlParts.push('<span>' + _esc(codeLabo) + '</span>');
-          htmlParts.push('<span style="font-size:13px;font-weight:400;">' + _esc(patient) + '</span>');
-          htmlParts.push('</div>');
-        }
-
         // Photo = notre PDF Digilab généré OU la fiche originale (POF HTML/PDF)
         var photo = (p.photo_type === 'pdf' && p.photo && p.photo !== '__photo__' && p.photo.startsWith('data:')) ? p.photo : (p.photo_url || p.photo);
+        var isPdfOrHtml = photo && photo !== '__photo__' && (
+          photo.startsWith('data:application/pdf') || photo.startsWith('data:text/html') ||
+          (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))
+        );
+
+        // Code labo en rouge en haut à gauche (seulement PDF/HTML, pas les images JPG)
+        if (codeLabo && isPdfOrHtml) {
+          htmlParts.push('<div style="padding:4px 12px;font-family:sans-serif;font-size:22px;font-weight:700;color:#c0392b;">' + _esc(codeLabo) + '</div>');
+        }
+
         if (photo && photo !== '__photo__') {
           if (photo.startsWith('data:application/pdf') || (photo.startsWith('http') && (photo.toLowerCase().includes('.pdf') || photo.toLowerCase().includes('/raw/')))) {
             // PDF → convertir en images via PDF.js pour impression fiable
