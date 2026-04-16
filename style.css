@@ -952,10 +952,10 @@
   .dlb-table-row.selected { background:#e0f7fa; }
   .dlb-table-row td { padding:10px 12px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
   .dlb-td-date { white-space:nowrap; color:#555; font-size:0.74rem; }
-  .dlb-td-patient { max-width:320px; }
+  .dlb-td-patient { max-width:200px; }
   .dlb-td-name { font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dlb-td-cabinet { color:#555; font-size:0.74rem; max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dlb-td-caseid { color:#999; font-size:0.68rem; font-family:'DM Mono',monospace; max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dlb-td-cabinet { color:#555; font-size:0.74rem; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dlb-td-caseid { color:#999; font-size:0.68rem; font-family:'DM Mono',monospace; max-width:none; white-space:nowrap; }
   .dlb-td-actions { white-space:nowrap; }
 
   .dlb-btn {
