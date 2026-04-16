@@ -125,19 +125,35 @@ window.generateDigilabPdf = async function(caseData) {
   doc.setFont('helvetica', 'bold'); doc.setTextColor(...dark);
   doc.text(deadline || '-', infoX + doc.getTextWidth('Date de livraison souhaitee: '), infoY);
 
-  // Logo (droite)
-  if (typeof LOGO_B64 !== 'undefined' && LOGO_B64) {
-    try {
-      var logoImg = new Image();
-      logoImg.src = LOGO_B64;
-      await new Promise(function(r) { logoImg.onload = r; logoImg.onerror = r; });
-      var logoH = 22;
-      var logoRatio = (logoImg.naturalWidth || 200) / (logoImg.naturalHeight || 200);
-      var logoW = logoH * logoRatio;
-      var logoX = W - margin - logoW - 3;
-      doc.addImage(LOGO_B64, 'PNG', logoX, hY + (hH - logoH) / 2, logoW, logoH);
-    } catch(e) {}
-  }
+  // Logo "I love smile" cursif (droite) — canvas avec Dancing Script
+  try {
+    var danceCanvas = document.createElement('canvas');
+    var dScale = 4;
+    var dW = 220, dH = 48;
+    danceCanvas.width = dW * dScale;
+    danceCanvas.height = dH * dScale;
+    var dCtx = danceCanvas.getContext('2d');
+    dCtx.scale(dScale, dScale);
+    dCtx.clearRect(0, 0, dW, dH);
+    dCtx.font = "bold 30px 'Dancing Script', cursive";
+    var textGrad = dCtx.createLinearGradient(0, 0, 180, 0);
+    textGrad.addColorStop(0, '#1a5c8a');
+    textGrad.addColorStop(0.6, '#5bc4c0');
+    textGrad.addColorStop(1, '#4ab0ac');
+    dCtx.fillStyle = textGrad;
+    dCtx.fillText('I love smile', 0, 30);
+    var lineGrad = dCtx.createLinearGradient(0, 0, 180, 0);
+    lineGrad.addColorStop(0, '#1a5c8a');
+    lineGrad.addColorStop(1, '#5bc4c0');
+    dCtx.strokeStyle = lineGrad;
+    dCtx.lineWidth = 2;
+    dCtx.lineCap = 'round';
+    dCtx.beginPath(); dCtx.moveTo(0, 36); dCtx.lineTo(160, 36); dCtx.stroke();
+    var danceImg = danceCanvas.toDataURL('image/png');
+    var mmPerPx = 25.4 / 96;
+    var logoX = W - margin - dW * mmPerPx - 2;
+    doc.addImage(danceImg, 'PNG', logoX, hY + 5, dW * mmPerPx, dH * mmPerPx);
+  } catch(e) {}
 
   // ══════════════════════════════════
   // SCHEMA DENTAIRE
@@ -227,12 +243,25 @@ window.generateDigilabPdf = async function(caseData) {
       var materiau = item.material || '';
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...dark);
-      doc.text(String(zone), cols[0].x, y);
-      doc.text(String(teinte), cols[1].x, y);
-      doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
-      doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
 
-      y += 8;
+      // Zone peut contenir beaucoup de dents — wrapping sur toute la largeur si trop long
+      var zoneStr = String(zone);
+      if (doc.getTextWidth(zoneStr) > cols[0].w - 2) {
+        // Zone longue → afficher sur toute la largeur du tableau
+        var zoneLines = doc.splitTextToSize(zoneStr, secW - 4);
+        doc.text(zoneLines, cols[0].x, y);
+        y += zoneLines.length * 4 + 2;
+        doc.text(String(teinte), cols[0].x, y);
+        doc.text(String(designation), cols[1].x, y, { maxWidth: cols[2].w - 2 });
+        doc.text(String(materiau), cols[2].x + cols[2].w, y, { maxWidth: cols[3].w - 2 });
+        y += 8;
+      } else {
+        doc.text(zoneStr, cols[0].x, y);
+        doc.text(String(teinte), cols[1].x, y);
+        doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
+        doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
+        y += 8;
+      }
 
       // Ligne séparatrice légère
       doc.setDrawColor(...borderGray); doc.setLineWidth(0.1);
