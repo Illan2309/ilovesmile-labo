@@ -69,7 +69,7 @@
       fournisseurResume += '</div>';
     });
 
-    modal.innerHTML = '<div style="background:white;border-radius:16px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.2);">' +
+    modal.innerHTML = '<div style="background:white;border-radius:16px;width:750px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.2);">' +
       '<div style="padding:16px 20px;background:linear-gradient(120deg,#e0f7fa,#e1f5fe);border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;">' +
       '  <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.2rem;">📦</span><span style="font-weight:700;font-size:1rem;color:#1a5c8a;">Envoyer au fournisseur</span></div>' +
       '  <button onclick="document.getElementById(\'modal-dropbox\').remove()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#999;">✕</button>' +
