@@ -155,11 +155,12 @@
     if (query) {
       filtered = _cases.filter(function(c) {
         var patient = (c.patient_name || c.patientName || '').toLowerCase();
-        var cabinet = (c.of || c.dentistName || '').toLowerCase();
+        var cabinet = ((c.dentistCreator && c.dentistCreator.name) || c.realDentist || c.dentistName || '').toLowerCase();
         var service = (c.service || '').toLowerCase();
-        var id = (c._digilabId || c._firebaseId || c._id || '').toLowerCase();
+        var id = String(c._digilabId || c._firebaseId || c._id || '').toLowerCase();
         var status = (c._status || '').toLowerCase();
-        return patient.includes(query) || cabinet.includes(query) || service.includes(query) || id.includes(query) || status.includes(query);
+        var comment = (c.comment || '').toLowerCase();
+        return patient.includes(query) || cabinet.includes(query) || service.includes(query) || id.includes(query) || status.includes(query) || comment.includes(query);
       });
     }
 
