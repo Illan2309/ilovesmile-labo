@@ -572,6 +572,118 @@
     color: #ff8a65 !important;
   }
 
+  /* --- Fiche client (#contacts-editor) contenu dynamique --- */
+
+  /* Bloc coordonnées */
+  html[data-theme="dark"] #contacts-editor div[style*="background:#f8fafc"] {
+    background: var(--section-bg) !important;
+    border-color: var(--border) !important;
+  }
+  /* Textes coordonnées (#444) */
+  html[data-theme="dark"] #contacts-editor div[style*="color:#444"],
+  html[data-theme="dark"] #contacts-editor span[style*="color:#444"] {
+    color: var(--text) !important;
+  }
+  /* Liens */
+  html[data-theme="dark"] #contacts-editor a[style*="color:#1a5c8a"] {
+    color: var(--accent) !important;
+  }
+  /* Boutons Copier */
+  html[data-theme="dark"] #contacts-editor button[style*="color:#666"] {
+    color: var(--muted) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Grille tarifaire (vert ou jaune) */
+  html[data-theme="dark"] #contacts-editor div[style*="background:#f0fff4"] {
+    background: #1e2e25 !important;
+    border-color: #2a5040 !important;
+  }
+  html[data-theme="dark"] #contacts-editor div[style*="background:#fff8e1"],
+  html[data-theme="dark"] #contacts-editor div[style*="background:#fffde7"] {
+    background: #2e2a1e !important;
+    border-color: #5a4a20 !important;
+  }
+  html[data-theme="dark"] #contacts-editor div[style*="background:#fff3e0"] {
+    background: #2e2518 !important;
+    border-color: #5a4020 !important;
+  }
+
+  /* Notes internes */
+  html[data-theme="dark"] #contacts-editor textarea {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Section prescriptions */
+  html[data-theme="dark"] #contacts-editor div[style*="border:1px solid #e8eef4"] {
+    border-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #contacts-editor div[style*="background:#f0f4f8"] {
+    background: var(--section-bg) !important;
+    border-color: var(--border) !important;
+  }
+  /* Lignes prescriptions */
+  html[data-theme="dark"] #contacts-editor div[style*="border-bottom:1px solid #f0f4f8"] {
+    border-bottom-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #contacts-editor span[style*="color:#333"] {
+    color: var(--text) !important;
+  }
+  html[data-theme="dark"] #contacts-editor span[style*="color:#888"],
+  html[data-theme="dark"] #contacts-editor span[style*="color:#aaa"],
+  html[data-theme="dark"] #contacts-editor span[style*="color:#999"],
+  html[data-theme="dark"] #contacts-editor div[style*="color:#aaa"],
+  html[data-theme="dark"] #contacts-editor div[style*="color:#888"],
+  html[data-theme="dark"] #contacts-editor div[style*="color:#666"] {
+    color: var(--muted) !important;
+  }
+
+  /* Section praticiens */
+  html[data-theme="dark"] #contacts-editor div[style*="background:#e8f4fb"] {
+    background: #1e2a40 !important;
+  }
+  /* Zone ajout praticien */
+  html[data-theme="dark"] #contacts-editor div[style*="background:#fafcfe"] {
+    background: var(--section-bg) !important;
+    border-top-color: var(--border) !important;
+  }
+  /* Lignes praticiens */
+  html[data-theme="dark"] #contacts-liste div {
+    color: var(--text);
+  }
+  /* Boutons modifier/supprimer fiche */
+  html[data-theme="dark"] #contacts-editor button[style*="background:#fff3e0"] {
+    background: var(--section-bg) !important;
+    border-color: var(--border) !important;
+  }
+  html[data-theme="dark"] #contacts-editor button[style*="background:#ffebee"] {
+    background: #3a1a1a !important;
+    border-color: #6a3030 !important;
+  }
+  /* Titre cabinet */
+  html[data-theme="dark"] #contacts-editor h3[style*="color:#1a5c8a"] {
+    color: var(--accent) !important;
+  }
+  /* Notes header */
+  html[data-theme="dark"] #contacts-editor span[style*="color:#1a5c8a"] {
+    color: var(--accent) !important;
+  }
+  /* Aucune prescription (dashed) */
+  html[data-theme="dark"] #contacts-editor div[style*="border:1px dashed"] {
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+  }
+  /* Badge COG */
+  html[data-theme="dark"] #contacts-editor span[style*="background:#e8f5e9"] {
+    background: #1e2e25 !important;
+  }
+  /* Statut select */
+  html[data-theme="dark"] #contacts-editor select {
+    background: var(--surface) !important;
+  }
+
   /* Alias cabinet */
   html[data-theme="dark"] #modal-aliases-cabinet h3 { color: var(--text) !important; }
 

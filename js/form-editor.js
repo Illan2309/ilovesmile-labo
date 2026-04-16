@@ -7,54 +7,11 @@ var DENTS_BAS = [
   [31,32,33,34,35,36,37,38]
 ];
 
+// Grille globale de dents retirée — les dents sont gérées par acte (dentsActes).
+// selectedDents reste déclaré (vide) pour ne pas casser les références existantes.
 var selectedDents = new Set();
-
-function buildDentsGrid() {
-  const grid = document.getElementById('dents-grid');
-  grid.innerHTML = '';
-
-  // Ligne haut + ligne bas uniquement (pas de labels, les boutons ont déjà le numéro)
-  const rowHaut = buildRow([...DENTS_HAUT[0], ...DENTS_HAUT[1]]);
-  grid.appendChild(rowHaut);
-
-  // Séparateur visuel entre haut et bas
-  const sep = document.createElement('div');
-  sep.style.cssText = 'height:3px;background:var(--border);border-radius:2px;margin:4px 0;';
-  grid.appendChild(sep);
-
-  const rowBas = buildRow([...DENTS_BAS[0], ...DENTS_BAS[1]]);
-  grid.appendChild(rowBas);
-}
-
-function buildRow(nums) {
-  const row = document.createElement('div');
-  row.className = 'dents-row';
-  nums.forEach((n, i) => {
-    if (i === 8) {
-      const div = document.createElement('div');
-      div.className = 'dents-divider';
-      row.appendChild(div);
-    }
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'dent-btn';
-    btn.textContent = n;
-    btn.dataset.dent = n;
-    btn.onclick = () => toggleDent(n, btn);
-    row.appendChild(btn);
-  });
-  return row;
-}
-
-function toggleDent(n, btn) {
-  if (selectedDents.has(n)) {
-    selectedDents.delete(n);
-    btn.classList.remove('selected');
-  } else {
-    selectedDents.add(n);
-    btn.classList.add('selected');
-  }
-}
+function buildDentsGrid() { /* désactivé */ }
+function toggleDent() { /* désactivé */ }
 
 // ---- TEINTES ----
 var TEINTES = ['A1','A2','A3','A3.5','A4','B1','B2','B3','B4','C1','C2','C3','D2','D3'];
@@ -275,7 +232,7 @@ function savePrescription() {
       livraison: dateToISO(document.getElementById('date-livraison').value),
       sansDate: document.getElementById('sans-date-livraison')?.checked || false,
     },
-    dents: [...selectedDents].sort((a,b) => a-b),
+    dents: [], // grille globale retirée, dents gérées par acte (dentsActes)
     conjointe,
     fraisage: (window._dentsActesCourant && window._dentsActesCourant['Fraisage']) || document.getElementById('fraisage').value || '',
     piv: document.getElementById('piv').value.trim() || '',

@@ -584,7 +584,7 @@ function getCurrentFormData() {
     date_empreinte: document.getElementById('date-empreinte').value,
     date_livraison: document.getElementById('date-livraison').value,
     a_refaire: document.getElementById('a-refaire').checked,
-    dents: [...selectedDents].sort((a,b) => a-b),
+    dents: [], // grille globale retirée
     conjointe: [...document.querySelectorAll('input[name="conjointe"]:checked')].map(e => e.value),
     adjointe: [...document.querySelectorAll('input[name="adjointe"]:checked')].map(e => e.value),
     dentsActes: Object.assign({}, window._dentsActesCourant),

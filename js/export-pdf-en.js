@@ -740,67 +740,7 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
 
   y += rowH1 + 5;
 
-  // ─── SECTION 2 : TEETH (schéma FDI) ──────────────────────────────────────
-  const teethSH = 32;
-  sectionHeader('TEETH INVOLVED', margin, y, secW, 7);
-  box(margin, y + 7, secW, teethSH - 7, white);
-
-  const dents = p.dents || [];
-  const DENTS_H = [[18,17,16,15,14,13,12,11],[21,22,23,24,25,26,27,28]];
-  const DENTS_B = [[48,47,46,45,44,43,42,41],[31,32,33,34,35,36,37,38]];
-  const btnW = 7.1, btnH = 5.3;
-  const totalW = 16 * btnW + 3;
-  const startX = W / 2 - totalW / 2;
-
-  const drawRow = (rowDents, rowY) => {
-    let dx = startX;
-    rowDents[0].forEach((n) => {
-      const sel = dents.includes(n);
-      if (sel) { gradRect(dx, rowY, btnW - 0.8, btnH); }
-      else {
-        doc.setFillColor(...offWhite);
-        doc.setDrawColor(...borderCol);
-        doc.setLineWidth(0.18);
-        doc.rect(dx, rowY, btnW - 0.8, btnH, 'FD');
-      }
-      doc.setFontSize(5); doc.setFont('helvetica', sel ? 'bold' : 'normal');
-      doc.setTextColor(...(sel ? white : muted));
-      doc.text(String(n), dx + (btnW - 0.8) / 2, rowY + 3.5, { align: 'center' });
-      dx += btnW;
-    });
-    dx += 3;
-    rowDents[1].forEach((n) => {
-      const sel = dents.includes(n);
-      if (sel) { gradRect(dx, rowY, btnW - 0.8, btnH); }
-      else {
-        doc.setFillColor(...offWhite);
-        doc.setDrawColor(...borderCol);
-        doc.setLineWidth(0.18);
-        doc.rect(dx, rowY, btnW - 0.8, btnH, 'FD');
-      }
-      doc.setFontSize(5); doc.setFont('helvetica', sel ? 'bold' : 'normal');
-      doc.setTextColor(...(sel ? white : muted));
-      doc.text(String(n), dx + (btnW - 0.8) / 2, rowY + 3.5, { align: 'center' });
-      dx += btnW;
-    });
-  };
-
-  const rowY_H = y + 10;
-  drawRow(DENTS_H, rowY_H);
-  const sepY = rowY_H + btnH + 1.5;
-  doc.setDrawColor(...borderCol); doc.setLineWidth(0.35);
-  doc.line(startX, sepY, startX + totalW, sepY);
-  const rowY_B = sepY + 2;
-  drawRow(DENTS_B, rowY_B);
-
-  // Labels R/L
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(...muted);
-  doc.text('R', startX - 3.5, rowY_H + 3.5);
-  doc.text('L', startX + totalW + 0.5, rowY_H + 3.5);
-  doc.text('R', startX - 3.5, rowY_B + 3.5);
-  doc.text('L', startX + totalW + 0.5, rowY_B + 3.5);
-
-  y += teethSH + 5;
+  // ─── SECTION 2 : TEETH global grid retirée (dents gérées par acte via dentsActes) ───
 
   // ─── SECTION 3 : FIXED + REMOVABLE ───────────────────────────────────────
 

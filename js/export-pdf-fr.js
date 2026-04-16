@@ -97,21 +97,7 @@ function exportPDF(i) {
 
   y += row1H + 5;
 
-  // ROW 2: Dents
-  sectionBox('Dents concernées', margin, y, W - margin * 2, 22);
-  if (p.dents && p.dents.length > 0) {
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...blue);
-    doc.text(p.dents.sort((a,b)=>a-b).join('  –  '), margin + 3, y + 14);
-    doc.setFont('helvetica', 'normal');
-  } else {
-    doc.setFontSize(7);
-    doc.setTextColor(...gray);
-    doc.text('Aucune dent sélectionnée', margin + 3, y + 14);
-  }
-
-  y += 27;
+  // ROW 2: Dents globales retirée (les dents sont gérées par acte via dentsActes)
 
   // ROW 3: Conjointe + Adjointe
   const halfW = (W - margin * 2 - gap) / 2;
