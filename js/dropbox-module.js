@@ -313,8 +313,15 @@
             }
           } catch(e) { console.warn('[PRINT] PDF error:', patient, e); }
         } else if (photo.startsWith('data:text/html')) {
-          // HTML → on ne peut pas imprimer directement, skip
-          console.warn('[PRINT] HTML non supporté pour impression directe:', patient);
+          // HTML → injecter le contenu directement dans la page d'impression
+          try {
+            var htmlRaw = atob(photo.split(',')[1]);
+            // Wrapper avec code labo + page break
+            var htmlPage = '<div class="p">';
+            if (codeLabo) htmlPage += '<div style="font-size:28px;font-weight:700;color:#c0392b;padding:8px 12px;">' + codeLabo + '</div>';
+            htmlPage += htmlRaw + '</div>';
+            pages.push({ type: 'html', content: htmlPage });
+          } catch(e) { console.warn('[PRINT] HTML error:', patient, e); }
         } else {
           // Image (JPG, PNG)
           pages.push(photo);
@@ -335,10 +342,16 @@
       document.body.appendChild(printFrame);
 
       var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title>';
-      html += '<style>@page { margin: 0; } body { margin:0; padding:0; } .p { page-break-after:always; display:flex; justify-content:center; align-items:flex-start; } .p:last-child { page-break-after:auto; } .p img { width:100%; height:auto; }</style>';
+      html += '<style>@page { margin: 5mm; } body { margin:0; padding:0; } .p { page-break-after:always; } .p:last-child { page-break-after:auto; } .p img { width:100%; height:auto; }</style>';
       html += '</head><body>';
-      pages.forEach(function(img) {
-        html += '<div class="p"><img src="' + img + '"></div>';
+      pages.forEach(function(pg) {
+        if (typeof pg === 'string') {
+          // Image (data URL)
+          html += '<div class="p"><img src="' + pg + '"></div>';
+        } else if (pg && pg.type === 'html') {
+          // Contenu HTML brut
+          html += pg.content;
+        }
       });
       html += '</body></html>';
 
