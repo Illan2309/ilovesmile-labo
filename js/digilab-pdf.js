@@ -237,12 +237,36 @@ window.generateDigilabPdf = async function(caseData) {
     doc.line(margin, y, margin + secW, y);
     y += 5;
 
+    // Traduction EN → FR pour les matériaux et désignations
+    var _tradFR = {
+      'zirconia': 'Zircone', 'zircone': 'Zircone',
+      'emax': 'E.max', 'e.max': 'E.max', 'lithium disilicate': 'E.max',
+      'ceramic': 'Ceramique', 'ceramics': 'Ceramique', 'ceramique': 'Ceramique',
+      'milled ceramic': 'Ceramique usinee', 'milled ceramics': 'Ceramique usinee',
+      'metal': 'Metal', 'metal ceramic': 'Ceramo-metallique',
+      'composite': 'Composite', 'resin': 'Resine', 'acrylic': 'Resine',
+      'titanium': 'Titane', 'gold': 'Or', 'chrome cobalt': 'Chrome-Cobalt',
+      'pmma': 'PMMA', 'peek': 'PEEK', 'wax': 'Cire',
+      'crown': 'Couronne', 'bridge': 'Bridge', 'inlay': 'Inlay', 'onlay': 'Onlay',
+      'veneer': 'Facette', 'implant': 'Implant', 'abutment': 'Pilier',
+      'coping': 'Chape', 'framework': 'Armature',
+      'temporary': 'Provisoire', 'permanent': 'Definitif',
+      'anatomic': 'Anatomique', 'full contour': 'Pleine anatomie',
+    };
+    function _traduire(str) {
+      if (!str) return '';
+      var lower = str.toLowerCase().trim();
+      if (_tradFR[lower]) return _tradFR[lower];
+      // Traduction partielle (chaque mot)
+      return str.split(/[\s,]+/).map(function(w) { return _tradFR[w.toLowerCase()] || w; }).join(' ');
+    }
+
     // Data rows
     priceList.forEach(function(item) {
       var zone = item.area || '';
       var teinte = item.shade || '';
-      var designation = item.frDesignation || item.designation || '';
-      var materiau = item.material || '';
+      var designation = _traduire(item.frDesignation || item.designation || '');
+      var materiau = _traduire(item.material || '');
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...dark);
 
