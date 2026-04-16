@@ -452,7 +452,7 @@
         // ── FLOW FICHE ORIGINALE : télécharger + IA complète ──
         console.log('[DIGILAB] Fiche originale trouvée:', originalFile.name);
         try {
-          var fileData = await _downloadFileAsBase64(originalFile.url);
+          var fileData = await _downloadFileAsBase64(originalFile.url, originalFile.name);
           var isHTML = fileData.mediaType === 'text/html';
           photoDataUrl = fileData.dataUrl;
 
@@ -904,7 +904,7 @@
   }
 
   // ── Télécharger un fichier Digilab et le convertir en base64 ──
-  async function _downloadFileAsBase64(fileUrl) {
+  async function _downloadFileAsBase64(fileUrl, fileName) {
     var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -915,10 +915,19 @@
     var blob = await resp.blob();
     var mimeType = blob.type || 'application/octet-stream';
 
-    // Déterminer le mediaType pour Gemini
+    // Déterminer le mediaType pour Gemini (MIME du blob + fallback nom de fichier)
     var mediaType = 'application/octet-stream';
-    if (mimeType.includes('html') || mimeType.includes('text')) mediaType = 'text/html';
-    else if (mimeType.includes('pdf')) mediaType = 'application/pdf';
+    var nameLower = (fileName || '').toLowerCase();
+    if (mimeType.includes('html') || mimeType.includes('text') || nameLower.endsWith('.html') || nameLower.endsWith('.htm')) {
+      mediaType = 'text/html';
+    } else if (mimeType.includes('pdf') || nameLower.endsWith('.pdf')) {
+      mediaType = 'application/pdf';
+    }
+
+    // Forcer le bon type sur le blob pour que le dataUrl ait le bon préfixe
+    if (mediaType !== mimeType) {
+      blob = new Blob([blob], { type: mediaType });
+    }
 
     // Convertir en base64 via FileReader
     var dataUrl = await new Promise(function(resolve, reject) {
