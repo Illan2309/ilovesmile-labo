@@ -66,13 +66,12 @@ function initLettreJourSelect() {
   }
 }
 
-// Initialisation dès que le DOM est prêt
+// Initialisation robuste : DOMContentLoaded + fallback timer
 if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLettreJourSelect);
-  } else {
-    initLettreJourSelect();
-  }
+  document.addEventListener('DOMContentLoaded', initLettreJourSelect);
+  window.addEventListener('load', initLettreJourSelect);
+  setTimeout(initLettreJourSelect, 200);
+  setTimeout(initLettreJourSelect, 1000);
 }
 
 // Auto-incrément du code labo (scan en temps réel, plus de cache)
