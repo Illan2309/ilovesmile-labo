@@ -102,6 +102,10 @@
       🖼️ Galerie
       <input type="file" id="photo-input-gallery" accept="image/*,application/pdf,text/html" multiple style="display:none;" onchange="handleGalleryInput(this)">
     </label>
+    <div id="lettre-jour-wrap" title="Lettre du jour utilisée pour les codes labo des scans. Modifiable manuellement (reset chaque jour)." style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:2px 6px 2px 8px;">
+      <span style="font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.75);letter-spacing:0.5px;">LETTRE</span>
+      <select id="lettre-jour-select" onchange="setLettreJourOverride(this.value)" style="background:transparent;border:none;color:white;font-family:'DM Mono',monospace;font-size:0.9rem;font-weight:700;cursor:pointer;padding:2px 0;appearance:none;-webkit-appearance:none;padding-right:2px;"></select>
+    </div>
     <button onclick="ouvrirSelecteurDossiers()" class="btn-header-outline" title="Sélectionner un ou plusieurs dossiers">
       📁 Dossiers
     </button>

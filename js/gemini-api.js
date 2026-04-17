@@ -7,12 +7,79 @@ function getCodeLaboLetterForDay(day) {
   return _extras[day] || 'A';
 }
 
+// Override manuel de la lettre du jour (sélecteur dans le header)
+// Persiste en localStorage avec la date → reset automatique le lendemain
+window._overrideCodeLaboLetter = null;
+
+function getCurrentCodeLaboLetter() {
+  return window._overrideCodeLaboLetter || getCodeLaboLetterForDay(new Date().getDate());
+}
+
+function _dayForLetter(lettre) {
+  for (let d = 1; d <= 31; d++) {
+    if (getCodeLaboLetterForDay(d) === lettre) return d;
+  }
+  return new Date().getDate();
+}
+
+function setLettreJourOverride(lettre) {
+  const todayDay = new Date().getDate();
+  const todayLetter = getCodeLaboLetterForDay(todayDay);
+  if (!lettre || lettre === todayLetter) {
+    window._overrideCodeLaboLetter = null;
+    try { localStorage.removeItem('lettre_jour_override'); } catch(e) {}
+  } else {
+    window._overrideCodeLaboLetter = lettre;
+    try { localStorage.setItem('lettre_jour_override', JSON.stringify({ day: todayDay, letter: lettre })); } catch(e) {}
+  }
+}
+
+function initLettreJourSelect() {
+  const sel = document.getElementById('lettre-jour-select');
+  if (!sel) return;
+  const todayDay = new Date().getDate();
+  const todayLetter = getCodeLaboLetterForDay(todayDay);
+  // Construire la liste des 31 lettres possibles
+  const opts = [];
+  for (let d = 1; d <= 31; d++) {
+    const l = getCodeLaboLetterForDay(d);
+    const mark = (d === todayDay) ? ' (auj.)' : '';
+    opts.push('<option value="' + l + '">' + l + mark + '</option>');
+  }
+  sel.innerHTML = opts.join('');
+  // Restaurer l'override seulement si on est encore le même jour
+  let saved = null;
+  try {
+    const raw = localStorage.getItem('lettre_jour_override');
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.day === todayDay) saved = obj.letter;
+    }
+  } catch(e) {}
+  if (saved && saved !== todayLetter) {
+    sel.value = saved;
+    window._overrideCodeLaboLetter = saved;
+  } else {
+    sel.value = todayLetter;
+    window._overrideCodeLaboLetter = null;
+    try { localStorage.removeItem('lettre_jour_override'); } catch(e) {}
+  }
+}
+
+// Initialisation dès que le DOM est prêt
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLettreJourSelect);
+  } else {
+    initLettreJourSelect();
+  }
+}
+
 // Auto-incrément du code labo (scan en temps réel, plus de cache)
 
 // Auto-incrément du code labo
 function getNextCodeLabo(fournisseur, isScan = false) {
-  var now = new Date();
-  var lettre = getCodeLaboLetterForDay(now.getDate());
+  var lettre = getCurrentCodeLaboLetter();
   var prefix = isScan ? 'X' : ''; // X devant pour les scans (PDF/HTML)
   var fullLettre = prefix + lettre;
 
@@ -50,9 +117,9 @@ function getNextCodeLabo(fournisseur, isScan = false) {
 }
 
 function getCodeLaboContext() {
-  const now = new Date();
-  const jour = now.getDate();
-  const lettre = getCodeLaboLetterForDay(jour);
+  const lettre = getCurrentCodeLaboLetter();
+  // Si override actif, on calque "jour" sur le jour correspondant à la lettre override
+  const jour = _dayForLetter(lettre);
   // Lettres probables : aujourd'hui (très probable), hier et demain (probable)
   const hier = jour > 1 ? getCodeLaboLetterForDay(jour - 1) : getCodeLaboLetterForDay(31);
   const demain = jour < 31 ? getCodeLaboLetterForDay(jour + 1) : getCodeLaboLetterForDay(1);
