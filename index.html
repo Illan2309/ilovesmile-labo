@@ -101,9 +101,9 @@
     <label class="btn-header-secondary" style="position:relative;">
       🖼️ Galerie
       <input type="file" id="photo-input-gallery" accept="image/*,application/pdf,text/html" multiple style="display:none;" onchange="handleGalleryInput(this)">
-      <div id="lettre-jour-wrap" title="Lettre du jour utilisée pour les codes labo des scans. Modifiable manuellement (reset chaque jour)." onclick="event.preventDefault();event.stopPropagation();" style="position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:white;border:1.5px solid #0d7a8a;border-radius:10px;padding:5px 12px 5px 12px;box-shadow:0 3px 8px rgba(0,0,0,0.2);white-space:nowrap;min-width:160px;z-index:10;">
-        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:#0d7a8a;letter-spacing:0.5px;font-weight:700;">LETTRE</span>
-        <select id="lettre-jour-select" onclick="event.stopPropagation();" onchange="setLettreJourOverride(this.value);event.stopPropagation();" style="background:#f0f9fa;border:1px solid #0d7a8a;color:#0d3d45;font-family:'DM Mono',monospace;font-size:0.95rem;font-weight:700;cursor:pointer;padding:3px 6px;border-radius:6px;min-width:105px;"></select>
+      <div id="lettre-jour-wrap" title="Lettre du jour utilisée pour les codes labo des scans. Modifiable manuellement (reset chaque jour)." onclick="event.preventDefault();event.stopPropagation();" style="position:absolute;top:calc(100% + 3px);left:0;right:0;display:flex;align-items:center;justify-content:center;gap:4px;background:white;border:1px solid #0d7a8a;border-radius:6px;padding:2px 4px;box-shadow:0 1px 3px rgba(0,0,0,0.15);white-space:nowrap;z-index:10;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:#0d7a8a;font-weight:700;">L</span>
+        <select id="lettre-jour-select" onclick="event.stopPropagation();" onchange="setLettreJourOverride(this.value);event.stopPropagation();" style="background:transparent;border:none;color:#0d3d45;font-family:'DM Mono',monospace;font-size:0.72rem;font-weight:700;cursor:pointer;padding:0;flex:1;min-width:0;"></select>
       </div>
     </label>
     <button onclick="ouvrirSelecteurDossiers()" class="btn-header-outline" title="Sélectionner un ou plusieurs dossiers">
