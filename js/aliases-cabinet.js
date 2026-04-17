@@ -12,6 +12,13 @@ var DEFAULT_CABINET_ALIASES = {
   // Exemples de base — l'utilisateur peut en ajouter via la modal
 };
 
+// Praticien par défaut quand l'IA ne peut pas identifier le dentiste
+// (raw = "Dr ???" ou fuzzy match < seuil). Utilisé uniquement en fallback.
+// Clé = nom exact du cabinet dans CONTACTS_DENTISTES.
+var DEFAULT_PRATICIEN_CABINET = {
+  "FONTENAY O' DENT' AIR": "Dr SMADJA YONI"
+};
+
 function _nAccAlias(s) {
   return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 }
@@ -252,6 +259,13 @@ function standardizePraticien(rawPraticien, cabinetName) {
   // Seuil minimum pour valider le match
   var _seuil = 50;
   if (bestScore >= _seuil) return bestMatch;
+
+  // Fallback : défaut praticien configuré pour ce cabinet (ex: FONTENAY → Dr SMADJA YONI)
+  var _defPrat = DEFAULT_PRATICIEN_CABINET[matchKey] || DEFAULT_PRATICIEN_CABINET[cabinetName];
+  if (_defPrat && contacts.includes(_defPrat)) {
+    console.log('[PRATICIEN] Fallback défaut cabinet "' + matchKey + '" → ' + _defPrat);
+    return _defPrat;
+  }
 
   // Pas de fallback global — si le praticien n'est pas trouvé dans ce cabinet, retourner Dr ???
   return 'Dr ???';

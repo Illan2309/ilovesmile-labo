@@ -29,6 +29,7 @@ window._snapshotAvantCorrection = null;
  */
 function capturerSnapshotFormulaire() {
   window._snapshotAvantCorrection = {
+    code_labo:    document.getElementById('code-labo-display')?.value || '',
     cabinet:      document.getElementById('cabinet')?.value || '',
     praticien:    document.getElementById('praticien')?.value || '',
     patient_nom:  document.getElementById('patient-nom')?.value || '',
@@ -79,6 +80,8 @@ function sauvegarderCorrectionLog(scanIA, prescription) {
 
   const log = {
     prescription_id: prescription._id || null,
+    numero: prescription.numero || '',
+    code_labo: prescription.code_labo || '',
     timestamp: Date.now(),
     date_humain: new Date().toLocaleDateString('fr-FR'),
 
@@ -95,6 +98,8 @@ function sauvegarderCorrectionLog(scanIA, prescription) {
     // Snapshots complets pour analyse
     snapshot_avant: avant,
     snapshot_apres: {
+      numero:       prescription.numero || '',
+      code_labo:    prescription.code_labo || '',
       cabinet:      prescription.cabinet || '',
       praticien:    prescription.praticien || '',
       patient_nom:  prescription.patient?.nom || '',

@@ -82,24 +82,32 @@ CONJOINTE :
 • "bridge" sans précision de matériau → CCM + Solidaire (défaut le plus probable, mais vérifier le commentaire)
 
 ⛔ DISTINCTION CCC vs FULL ZIRCONIUM (règle critique, ne te trompe JAMAIS) :
-"CCC", "ccc", "zircone CCC", "zircon stratifié", "zircone 5 couches", "C . CCC", "CCZ" → "Zirconium CCC"
-"full zircone", "full zircon", "monolithique", "multilayer", "zircone pleine", "FZ", "tout zircone" → "Full zirconium"
+"CCC", "ccc", "zircone CCC", "zircon stratifié", "zircone 5 couches", "C . CCC", "CCZ", "full céramique", "céramo céramique", "céramo-céramique" → "Zirconium CCC"
+"full zircone", "full zircon", "monolithique", "multilayer", "zircone pleine", "FZ", "CZ", "tout zircone" → "Full zirconium"
+⚠️ "full céramique" ≠ "full zircone". "full céramique" = céramo-céramique = Zirconium CCC, PAS Full zirconium.
 Si la fiche coche "Zircone Multilayer" MAIS le commentaire dit "CCC" → "Zirconium CCC" (commentaire prime).
 Si la fiche coche "Céramo-métallique" MAIS le commentaire dit "emax" → "EMAX" (commentaire prime).
+⚠️ EXCEPTION : si le dentiste a coché EXPLICITEMENT une case (Full zircon / CCC / autre), cette case prime sur l'alias texte. Ex: fiche avec "CCZ" écrit ET case "FULL ZIRCON" cochée → Full zirconium (case cochée prime).
 En cas de doute et SANS indication dans le commentaire → suivre la case cochée sur la fiche.
 ⛔ Ne JAMAIS cocher les deux ("Zirconium CCC" ET "Full zirconium") sur la même prescription.
+
+⚠️ "ENDOCOURONNE" / "endo couronne" = terme descriptif uniquement (couronne posée sur une dent dévitalisée avec tenon intégré). Ce mot ne détermine PAS le matériau. Pour le matériau (Zirconium CCC / Full zirconium / EMAX / CCM), SUIVRE LA CASE COCHÉE sur la fiche.
 
 IMPLANTS (toujours 2 cases — type + fixation) :
 • "implant CCM" / "implant céramo métallique" → Implant CCM + Implant scellé ou transvisé selon précision
 • "implant CCC" / "implant zircone" → Implant CCC + Implant scellé ou transvisé selon précision
 • "implant scellé" sans précision type → Implant CCM + Implant scellé
 • "implant transvisé" / "transvissé" sans précision type → Implant CCM + Implant transvisé
-⚠️ Un implant NÉCESSITE TOUJOURS un type (CCM/CCC) ET une fixation (scellé/transvisé). Si l'un manque, défaut = Implant CCM + Implant scellé.
+• "tibase", "ti-base", "t-base" → indice fort d'IMPLANT (ajouter Implant CCM/CCC selon couronne + fixation transvissée par défaut)
+⚠️ Un implant NÉCESSITE TOUJOURS un type (CCM/CCC) ET une fixation (scellé/transvisé). Si la fixation manque, défaut = Implant transvisé (beaucoup plus courant que scellé). Si le type manque, défaut = Implant CCM.
 
 ADJOINTE :
 • "stellite valplast" / "stellite sup. valplast" → Valplast finition (PAS Stellite finition — "stellite valplast" ensemble = Valplast)
 • "stellite" / "CCP" / "PAP" / "PAP châssis métallique" (SANS le mot "valplast" à côté) → Stellite finition stellite (défaut finition)
 • "app prov" / "appareil provisoire" / "prothèse provisoire" → App résine finition (JAMAIS Dent provisoire)
+• "couronne provisoire" / "couronnes provisoires" (y compris avec "PMMA") → Dent provisoire (PAS App résine finition)
+• "facette provisoire" / "facettes provisoires" (y compris avec "PMMA") → Facette composite (PAS App résine finition)
+⚠️ "PMMA" (polyméthacrylate de méthyle) est un matériau de provisoire. Associé à "couronne provisoire" → Dent provisoire. Associé à "facette provisoire" → Facette composite. NE déclenche PAS App résine finition.
 • "appareil résine" / "app résine" / "résine" → App résine finition (défaut finition)
 • "complet" → Complet finition (défaut finition)
 • "valplast" → Valplast finition (défaut finition)
@@ -113,6 +121,7 @@ ADJOINTE :
 • "adjonction dent" → Adjonction dent
 • "adjonction crochet" → Adjonction crochet
 • "extraire" / "extraction" / "dent à extraire" → Dent à extraire + numéros FDI dans dent_extraire
+• "recoller" / "recollage" / "rebonder" + numéro de dent → Adjonction dent + numéro dans dentsActes
 • "PEI" / "porte empreinte" → PEI
 
 ⛔ RÈGLE ACKERS :
@@ -120,8 +129,12 @@ ADJOINTE :
 2. L'ackers doit TOUJOURS correspondre à l'item principal : Stellite → Ackers stellite, App résine → Ackers résine, Valplast → Ackers valplast. Ne JAMAIS cocher Ackers stellite avec App résine, etc.
 
 RÈGLE FINITION vs MONTAGE : par défaut TOUJOURS "finition".
-Coche "montage" UNIQUEMENT si UN de ces mots EXACTS apparaît : "montage", "essayage", "essai", "mise en bouche", "try-in".
+Coche "montage" UNIQUEMENT si UN de ces mots EXACTS apparaît : "montage", "essayage", "essai", "mise en bouche", "try-in", "essayage cire", "essai cire", "essai en cire", "cire d'essai".
 NE déclenchent PAS montage : "monter", "à monter", "remonter", "démontage", "montrer".
+
+⚠️ "ESSAYAGE CIRE" ≠ "CIRE D'OCCLUSION" :
+• "essayage cire" / "essai en cire" / "cire d'essai" → phase MONTAGE de la prothèse (stellite/app résine/complet/valplast → "montage" au lieu de "finition"). Si le dentiste précise ensuite le matériau final (ex: "essayage cire, haut résine bas stellite") → App résine montage (haut) + Stellite montage stellite (bas). NE PAS cocher Cire d'occlusion.
+• "cire d'occlusion" (seule, sans "essai"/"essayage") → Cire d'occlusion (item séparé).
 
 ══════════════════════════════════════════
 GROUPES EXCLUSIFS — MAX 1 PAR GROUPE
@@ -206,16 +219,29 @@ Casse standard : lettre(s) MAJUSCULE + chiffre(s) (ex: A2, BL1, 3M2). Si aucune 
 Exemples : "A2-A3" → "A3/A2" | "collet A3.5 dent A2" → "A3.5/A2" | "A2" → "A2" (une seule = pas de slash).
 
 ══════════════════════════════════════════
-SCANBODY (champ "piv")
+SCANBODY / SCANPOST (champ "piv")
 ══════════════════════════════════════════
 Note TOUTES les références PIV, PL1, PL2, PN3, IOTER trouvées PARTOUT sur la fiche.
-⚠️ ATTENTION : "IOTER" ou "ioter" est une MARQUE de scanbody — PAS un acte ni un numéro de dent !
-"ioter 1.3 long" = scanbody IOTER diamètre 1.3mm taille long → va dans le champ "piv", PAS dans "dents".
+⚠️ ATTENTION : "IOTER" ou "ioter" est une MARQUE — PAS un acte ni un numéro de dent !
+"ioter 1.3 long" = référence IOTER diamètre 1.3mm taille long → va dans le champ "piv", PAS dans "dents".
 Ne JAMAIS confondre "1.3" ou "1,3" après IOTER avec la dent 13.
 Regroupe les dents ayant la même référence.
 Format : "DENTS (RÉFÉRENCE)" séparées par " / ".
 Ex: "34 44 45 (PN3-D120L-174-SP) / 35 (PN3-D120-155-SF)"
 Ex: "17 25 (IOTER 1.3 long)"
+
+⛔ SCANBODY (implant) vs SCANPOST (inlay core) — DISTINCTION CRITIQUE :
+• SCANBODY → se visse sur un IMPLANT (contexte : mot "implant" présent, marque d'implant comme Nobel/Straumann/Biotech/Megagen, "tibase", transvissé/scellé)
+• SCANPOST → se visse sur un INLAY CORE (contexte : couronne classique sur dent naturelle, AUCUNE mention d'implant)
+
+Quand une référence IOTER/PIV/PN3/PL est associée à une dent portant une couronne (Zirconium CCC, Full zirconium, CCM, EMAX) SANS mention d'implant dans le contexte :
+→ C'est un SCANPOST → cocher automatiquement "Inlay Core" sur cette dent (métal par défaut, sauf si "céramisé" écrit)
+→ NE PAS cocher "Implant scellé" ni "Implant transvisé" (pas d'implant ici)
+
+Exemples :
+• "IOTER 1,3 long CCC sur 27" (pas de "implant") → Zirconium CCC 27 + Inlay Core 27 (scanpost détecté)
+• "IOTER 1,5 long full zircon 46" (pas de "implant") → Full zirconium 46 + Inlay Core 46 (scanpost)
+• "implant CCM transvisé IOTER 1,3 long 46" (mot "implant" présent) → Implant CCM + Implant transvisé 46 (scanbody)
 
 ══════════════════════════════════════════
 IDENTIFICATION CLIENT COGILOG
@@ -268,6 +294,30 @@ Si AUCUN contact ne correspond → "Dr ???".
 • Si le nom lu ne correspond à AUCUN contact de ce cabinet → "Dr ???".
 • Cabinet individuel avec un seul contact → le praticien est FORCÉMENT ce contact.
 
+⛔ HOMONYMES — cabinets avec plusieurs praticiens de même nom de famille :
+• Cabinet L'ESPLANADE : deux praticiens portent le nom NAKACHE.
+  - "Dr NAKACHE AUDREY" (prénom féminin, 6 lettres)
+  - "Dr NAKACHE AVI" (prénom masculin, 3 lettres)
+  Lis ATTENTIVEMENT le prénom écrit après "NAKACHE" pour départager. Ne devine JAMAIS sur la seule base du nom de famille.
+  Si le prénom n'est pas clairement lisible → "Dr ???" (laisse l'humain trancher).
+• Cabinet FALGUIERE : QUATRE praticiens portent le nom LEVY.
+  - "Dr LEVY ALLAN" (.A)
+  - "Dr LEVY JORDAN" (.J)
+  - "Dr LEVY MARC" (.M)
+  - "Dr LEVY CHLOE" (.C)
+  Les dentistes notent souvent l'initiale du prénom après un point : "Levy.J" = LEVY JORDAN, "Levy.A" = LEVY ALLAN, "Levy.M" = LEVY MARC, "Levy.C" = LEVY CHLOE.
+  Lis attentivement cette initiale. Si ni le prénom ni l'initiale ne sont lisibles → "Dr ???".
+
+⛔ RÉFÉRENCE PATIENT — INITIALES PRATICIEN (cabinets multi-praticiens) :
+Certains cabinets (ex: BROCA) notent les initiales du praticien après le nom du patient dans la référence, sous la forme "NOM PATIENT/INITIALES".
+Exemples :
+• "COTTERLAZ-RENNAZ/DEFA" → DEFA = Dr DE FRESNOYE ANTOINE (D.E. FResnoye A.ntoine)
+• "DUPONT/BOKSHA" → BOKSHA = Dr BOKOBZA SHAI
+Si tu trouves ce pattern et qu'aucun Dr n'est clairement lisible ailleurs → déduis le praticien via les initiales en cherchant dans les contacts du cabinet.
+
+⛔ FICHES iTero — PRIORITÉ COMMENTAIRE SUR SIGNATURE :
+Sur les fiches iTero (scanner intra-oral Align Technology), une signature électronique peut être associée au compte utilisateur (ex: Dr BOKOBZA SHAI) alors que le VRAI praticien demandeur est indiqué dans le commentaire/corps de la fiche (ex: "Dr AMIARD MARIE"). Si un Dr est explicitement mentionné dans le commentaire ET une signature différente en bas, LE COMMENTAIRE PRIME.
+
 ══════════════════════════════════════════
 COMMENTAIRES — RÈGLE STRICTE
 ══════════════════════════════════════════
@@ -302,6 +352,8 @@ commentaires_en = "" (toujours vide, traduction gérée automatiquement).
 CHAMPS SPÉCIAUX
 ══════════════════════════════════════════
 a_refaire, urgent, call_me, cas_esthetique : par défaut false. Activer si un ALIAS PRODUIT le déclenche OU si le mot correspondant est présent. En cas de doute → false.
+
+cas_esthetique = true si le commentaire contient : "exigeant", "exigeante", "perfectionniste", "très exigeant", "patiente/patient exigeant(e)", "cas esthétique", "haute exigence esthétique", "très demanding" (en anglais). Ces mots révèlent une attente esthétique élevée.
 
 ══════════════════════════════════════════
 RAPPELS CRITIQUES (erreurs fréquentes à éviter)
