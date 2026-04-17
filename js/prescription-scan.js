@@ -183,7 +183,7 @@ async function buildPrescriptionFromScan(data, photoDataUrl = null, scanIA = nul
   // ── Post-correction code labo (3 étapes) ──
   if (!ignoreCodeLabo && data.code_labo) {
     let _clFixed = data.code_labo.toUpperCase().trim();
-    const _clJour = getCodeLaboLetterForDay(new Date().getDate());
+    const _clJour = (typeof getCurrentCodeLaboLetter === 'function') ? getCurrentCodeLaboLetter() : getCodeLaboLetterForDay(new Date().getDate());
 
     // Extraire lettre(s) + chiffres (ex: "CM2" → lettre="CM", num="2" / "C106" → lettre="C", num="106")
     const _clParts = _clFixed.match(/^([A-Z]+)(\d+)$/);
