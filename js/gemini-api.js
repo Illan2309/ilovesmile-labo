@@ -39,12 +39,12 @@ function initLettreJourSelect() {
   if (!sel) return;
   const todayDay = new Date().getDate();
   const todayLetter = getCodeLaboLetterForDay(todayDay);
-  // Construire la liste des 31 lettres possibles
+  // Construire la liste des 31 lettres possibles — format "A (1)", avec ⭐ pour aujourd'hui
   const opts = [];
   for (let d = 1; d <= 31; d++) {
     const l = getCodeLaboLetterForDay(d);
-    const mark = (d === todayDay) ? ' (auj.)' : '';
-    opts.push('<option value="' + l + '">' + l + mark + '</option>');
+    const star = (d === todayDay) ? ' ⭐' : '';
+    opts.push('<option value="' + l + '">' + l + ' (' + d + ')' + star + '</option>');
   }
   sel.innerHTML = opts.join('');
   // Restaurer l'override seulement si on est encore le même jour
