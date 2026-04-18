@@ -122,13 +122,15 @@ async function gcChargerGroupes() {
       db.collection('meta').doc('gc_groupes').get(),
       db.collection('meta').doc('gc_groupes_ordre').get()
     ]);
-    if (docGroupes.exists) {
-      window._gcGroupes = docGroupes.data() || {};
+    if (docGroupes.exists && docGroupes.data().tenant_id === window.TENANT_ID) {
+      const _grpData = Object.assign({}, docGroupes.data());
+      delete _grpData.tenant_id;
+      window._gcGroupes = _grpData || {};
       Object.keys(window._gcGroupes).forEach(g => {
         if (window._gcGroupesOuverts[g] === undefined) window._gcGroupesOuverts[g] = true;
       });
     }
-    if (docOrdre.exists && docOrdre.data().ordre) {
+    if (docOrdre.exists && docOrdre.data().tenant_id === window.TENANT_ID && docOrdre.data().ordre) {
       window._gcGroupesOrdre = docOrdre.data().ordre;
     } else {
       window._gcGroupesOrdre = Object.keys(window._gcGroupes).sort((a,b) => a.localeCompare(b,'fr'));
@@ -140,7 +142,7 @@ async function gcSauvegarderGroupes() {
   const db = getDB();
   if (!db) return;
   try {
-    await db.collection('meta').doc('gc_groupes').set(window._gcGroupes);
+    await db.collection('meta').doc('gc_groupes').set(window.withTenant(window._gcGroupes));
   } catch(e) { showToast('Erreur sauvegarde groupes', true); }
 }
 
@@ -334,7 +336,7 @@ function gcOuvrirGroupes() {
 async function gcSauvegarderOrdre() {
   const db = getDB();
   if (!db) return;
-  try { await db.collection('meta').doc('gc_groupes_ordre').set({ ordre: window._gcGroupesOrdre || [] }); }
+  try { await db.collection('meta').doc('gc_groupes_ordre').set(window.withTenant({ ordre: window._gcGroupesOrdre || [] })); }
   catch(e) {}
 }
 
@@ -737,9 +739,9 @@ function gcValiderAjoutClient() {
   const db = getDB();
   if (db) {
     db.collection('contacts').doc('cogilog_clients_custom').set(
-      Object.fromEntries(
+      window.withTenant(Object.fromEntries(
         Object.entries(COGILOG_CLIENTS).filter(([k]) => !window.COGILOG_CLIENTS_ORIGINAL || !window.COGILOG_CLIENTS_ORIGINAL[k])
-      )
+      ))
     ).catch(e => console.warn('Erreur sauvegarde clients custom:', e));
   }
 
@@ -914,13 +916,13 @@ function gcValiderEditionClient(code) {
   const db = getDB();
   if (db) {
     db.collection('contacts').doc('cogilog_clients_custom').set(
-      Object.fromEntries(
+      window.withTenant(Object.fromEntries(
         Object.entries(COGILOG_CLIENTS).filter(([k]) =>
           !window.COGILOG_CLIENTS_ORIGINAL ||
           !window.COGILOG_CLIENTS_ORIGINAL[k] ||
           (window.COGILOG_CLIENTS_MODIFIED && window.COGILOG_CLIENTS_MODIFIED[k])
         )
-      )
+      ))
     ).catch(e => console.warn('Erreur sauvegarde clients custom:', e));
   }
 
@@ -994,7 +996,7 @@ async function gcEnregistrerLiaison() {
   const db = getDB();
   if (db) {
     try {
-      await db.collection('contacts').doc('mapping').set(MAPPING_CONTACTS_TARIFS);
+      await db.collection('contacts').doc('mapping').set(window.withTenant(MAPPING_CONTACTS_TARIFS));
       showToast(`✅ "${cab}" lié à "${sel.value}"`);
     } catch(e) { showToast('Liaison OK (non sauvegardée cloud)', true); }
   }
@@ -1306,7 +1308,7 @@ function gcChangerStatut(cab, statut) {
   window._gcStatuts[cab] = statut;
   // Sauvegarder dans Firebase
   const db = getDB();
-  if (db) db.collection('meta').doc('gc_meta').set({ statuts: window._gcStatuts, notes: window._gcNotes || {} }, { merge: true }).catch(()=>{});
+  if (db) db.collection('meta').doc('gc_meta').set(window.withTenant({ statuts: window._gcStatuts, notes: window._gcNotes || {} }), { merge: true }).catch(()=>{});
   gcConstruireListe(document.getElementById('gc-search')?.value?.toLowerCase() || '');
 }
 
@@ -1314,7 +1316,7 @@ function gcSauvegarderNotes(cab, val) {
   if (!window._gcNotes) window._gcNotes = {};
   window._gcNotes[cab] = val;
   const db = getDB();
-  if (db) db.collection('meta').doc('gc_meta').set({ statuts: window._gcStatuts || {}, notes: window._gcNotes }, { merge: true }).catch(()=>{});
+  if (db) db.collection('meta').doc('gc_meta').set(window.withTenant({ statuts: window._gcStatuts || {}, notes: window._gcNotes }), { merge: true }).catch(()=>{});
   showToast('📝 Note sauvegardée');
 }
 
@@ -1323,7 +1325,7 @@ var _gcNoteAutosaveDebounced = debounce((cab, val) => {
   if (!window._gcNotes) window._gcNotes = {};
   window._gcNotes[cab] = val;
   const db = getDB();
-  if (db) db.collection('meta').doc('gc_meta').set({ statuts: window._gcStatuts || {}, notes: window._gcNotes }, { merge: true }).catch(()=>{});
+  if (db) db.collection('meta').doc('gc_meta').set(window.withTenant({ statuts: window._gcStatuts || {}, notes: window._gcNotes }), { merge: true }).catch(()=>{});
   const st = document.getElementById('gc-note-status');
   if (st) { st.textContent = '✅ sauvegardé'; setTimeout(() => { if (st) st.textContent = ''; }, 2000); }
 }, 1500);
@@ -1425,7 +1427,7 @@ function getContactAliases() {
 function saveContactAliases(aliases) {
   localStorage.setItem('contact_aliases', JSON.stringify(aliases));
   var db = getDB();
-  if (db) db.collection('meta').doc('aliases_contact').set(aliases).catch(function(){});
+  if (db) db.collection('meta').doc('aliases_contact').set(window.withTenant(aliases)).catch(function(){});
 }
 function _decB64(b64) { return decodeURIComponent(escape(atob(b64))); }
 function toggleContactAlias(drB64, idx) {
@@ -1544,18 +1546,19 @@ async function supprimerCabinetContact() {
   try {
     // Sauvegarder CONTACTS sans ce cabinet
     if (Object.keys(CONTACTS).length > 0) {
-      await db.collection('contacts').doc('dentistes').set(CONTACTS);
+      await db.collection('contacts').doc('dentistes').set(window.withTenant(CONTACTS));
     }
     // Persister la liste noire
-    await db.collection('meta').doc('clients_supprimes').set({ liste: [...window._gcClientsSupprimes] });
+    await db.collection('meta').doc('clients_supprimes').set(window.withTenant({ liste: [...window._gcClientsSupprimes] }));
     // Supprimer de cogilog_clients_custom si present
     if (_codeToDelete) {
       var customDoc = await db.collection('contacts').doc('cogilog_clients_custom').get();
       if (customDoc.exists) {
-        var customData = customDoc.data();
+        var customData = Object.assign({}, customDoc.data());
+        delete customData.tenant_id;
         if (customData[_codeToDelete]) {
           delete customData[_codeToDelete];
-          await db.collection('contacts').doc('cogilog_clients_custom').set(customData);
+          await db.collection('contacts').doc('cogilog_clients_custom').set(window.withTenant(customData));
         }
       }
     }
@@ -1573,7 +1576,7 @@ async function sauvegarderContacts() {
   const db = getDB();
   if (db) {
     try {
-      await db.collection('contacts').doc('dentistes').set(CONTACTS);
+      await db.collection('contacts').doc('dentistes').set(window.withTenant(CONTACTS));
       showToast('✅ Contacts sauvegardés dans le cloud !');
     } catch(e) {
       console.error('Firebase contacts error:', e);
@@ -1761,7 +1764,7 @@ async function sauvegarderTarifs() {
   const db = getDB();
   if (!db) { showToast('⚠️ Firebase non disponible', true); return; }
   try {
-    await db.collection('tarifs').doc('surcharges').set(surcharges);
+    await db.collection('tarifs').doc('surcharges').set(window.withTenant(surcharges));
     const nbMod = Object.values(surcharges).reduce((s,v) => s + Object.keys(v).length, 0);
     showToast(`✅ Tarifs sauvegardés (${nbMod} modification${nbMod>1?'s':''})`);
     const ind = document.getElementById('gc-tarif-autosave');

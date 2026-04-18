@@ -41,7 +41,7 @@ function _setMemoire(mem) {
   window._iaMemoreSaveTimeout = setTimeout(() => {
     const db = getDB();
     if (db) {
-      db.collection('meta').doc('ia_memory').set(mem)
+      db.collection('meta').doc('ia_memory').set(window.withTenant(mem))
         .catch(e => {});
     }
   }, 1000);
@@ -157,7 +157,7 @@ function _saveCustomRules() {
   try {
     localStorage.setItem('custom_rules', JSON.stringify(window._customRules));
     const db = getDB();
-    if (db) db.collection('meta').doc('custom_rules').set({ rules: window._customRules }).catch(() => {});
+    if (db) db.collection('meta').doc('custom_rules').set(window.withTenant({ rules: window._customRules })).catch(() => {});
   } catch(e) {}
 }
 

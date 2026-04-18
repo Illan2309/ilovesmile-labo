@@ -27,8 +27,9 @@ function initFirebase() {
 
   // Charger les contacts depuis Firebase
   _db.collection('contacts').doc('dentistes').get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = { ...doc.data() };
+      delete data.tenant_id;
       Object.assign(CONTACTS, data);
       Object.assign(CONTACTS_DENTISTES, data);
       console.log('Contacts chargés depuis Firebase :', Object.keys(data).length, 'cabinets');
@@ -37,8 +38,9 @@ function initFirebase() {
 
   // Charger les surcharges tarifaires depuis Firebase (au-dessus de TARIFS_BASE)
   _db.collection('tarifs').doc('surcharges').get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = { ...doc.data() };
+      delete data.tenant_id;
       Object.entries(data).forEach(([cab, actes]) => {
         if (TARIFS[cab]) Object.assign(TARIFS[cab], actes);
         else TARIFS[cab] = Object.assign({}, TARIFS_BASE[cab] || {}, actes);
@@ -50,7 +52,7 @@ function initFirebase() {
   // Charger la liste des clients masqués (supprimés)
   window._gcClientsSupprimes = new Set();
   _db.collection('meta').doc('clients_supprimes').get().then(doc => {
-    if (doc.exists && doc.data().liste) {
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().liste) {
       window._gcClientsSupprimes = new Set(doc.data().liste);
       gcConstruireListe();
     }
@@ -58,9 +60,10 @@ function initFirebase() {
 
   // Charger le mapping contacts→tarifs depuis Firebase
   _db.collection('contacts').doc('mapping').get().then(doc => {
-    if (doc.exists) {
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
       // Ne pas écraser les defaults avec des valeurs vides
-      const firebaseMapping = doc.data();
+      const firebaseMapping = { ...doc.data() };
+      delete firebaseMapping.tenant_id;
       Object.entries(firebaseMapping).forEach(([cab, grille]) => {
         if (grille && typeof grille === 'string' && grille.trim()) {
           MAPPING_CONTACTS_TARIFS[cab] = grille;
@@ -72,8 +75,9 @@ function initFirebase() {
 
   // Charger les clients custom (ajoutés/modifiés via Gestion Clients) depuis Firebase
   _db.collection('contacts').doc('cogilog_clients_custom').get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = { ...doc.data() };
+      delete data.tenant_id;
       // Fusionner dans COGILOG_CLIENTS (écrase les valeurs hardcodées si même code)
       Object.assign(COGILOG_CLIENTS, data);
       // Mémoriser les codes originaux pour ne sauvegarder que les custom
@@ -91,7 +95,7 @@ function initFirebase() {
 
   // Charger les métadonnées clients (statuts, notes) depuis Firebase
   _db.collection('meta').doc('gc_meta').get().then(doc => {
-    if (doc.exists) {
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
       const data = doc.data();
       window._gcStatuts = data.statuts || {};
       window._gcNotes   = data.notes   || {};
@@ -110,7 +114,7 @@ function initFirebase() {
 
   // Charger les règles personnalisées depuis Firebase
   _db.collection('meta').doc('custom_rules').get().then(doc => {
-    if (doc.exists && doc.data().rules) {
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().rules) {
       window._customRules = doc.data().rules;
       try { localStorage.setItem('custom_rules', JSON.stringify(window._customRules)); } catch(e) {}
       console.log('📝 Règles personnalisées chargées :', window._customRules.length);
@@ -119,8 +123,9 @@ function initFirebase() {
 
   // Charger la mémoire IA depuis Firebase
   _db.collection('meta').doc('ia_memory').get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = { ...doc.data() };
+      delete data.tenant_id;
       window._iaMemoireCache = data;
       // Synchroniser aussi le localStorage pour le fallback hors-ligne
       try { localStorage.setItem('ia_memory', JSON.stringify(data)); } catch(e) {}
@@ -134,7 +139,7 @@ function initFirebase() {
           const parsed = JSON.parse(local);
           window._iaMemoireCache = parsed;
           // Uploader vers Firebase immédiatement
-          _db.collection('meta').doc('ia_memory').set(parsed)
+          _db.collection('meta').doc('ia_memory').set(window.withTenant(parsed))
             .then(() => console.log('🧠 Mémoire IA migrée localStorage → Firebase'))
             .catch(e => console.warn('Erreur migration mémoire IA:', e));
         } else {
@@ -149,7 +154,7 @@ function initFirebase() {
 
   // Écoute temps réel des prescriptions
   let _renderPending = false;
-  _prescriptionsCol.onSnapshot((snapshot) => {
+  window.tenantQuery(_prescriptionsCol).onSnapshot((snapshot) => {
     const data = [];
     snapshot.forEach(d => data.push(d.data()));
     data.sort((a, b) => (b._ts || 0) - (a._ts || 0));
@@ -209,7 +214,7 @@ function initFirebase() {
 
   // Écoute nextNum
   _metaDoc.onSnapshot((snap) => {
-    if (snap.exists) {
+    if (snap.exists && snap.data().tenant_id === window.TENANT_ID) {
       const d = snap.data();
       if (d && d.nextNum && d.nextNum > (window.nextNum || 0)) window.nextNum = d.nextNum;
     }
@@ -269,7 +274,7 @@ function initFirebase() {
         const snap = await tx.get(_metaDoc);
         const current = (snap.exists && snap.data().nextNum) ? snap.data().nextNum : (window.nextNum || 31461);
         debut = current;
-        tx.set(_metaDoc, { nextNum: current + n }, { merge: true });
+        tx.set(_metaDoc, window.withTenant({ nextNum: current + n }), { merge: true });
       });
       window.nextNum = debut + n;
       return debut;
@@ -366,7 +371,7 @@ function initFirebase() {
       };
       // Nettoyer les undefined (Firebase les refuse)
       Object.keys(pSans).forEach(k => { if (pSans[k] === undefined) pSans[k] = null; });
-      await _prescriptionsCol.doc(p._id).set(pSans);
+      await _prescriptionsCol.doc(p._id).set(window.withTenant(pSans));
       // Debounce l'écriture de nextNum pour éviter le rate-limit 429 en scan batch
       _debounceSaveNextNum();
     } catch(e) {
@@ -380,7 +385,7 @@ function initFirebase() {
   function _debounceSaveNextNum() {
     clearTimeout(_nextNumTimer);
     _nextNumTimer = setTimeout(function() {
-      _metaDoc.set({ nextNum: window.nextNum || 31461 }, { merge: true })
+      _metaDoc.set(window.withTenant({ nextNum: window.nextNum || 31461 }), { merge: true })
         .catch(function(e) { console.warn('nextNum sync échoué:', e.message); });
     }, 3000);
   }
@@ -390,7 +395,7 @@ function initFirebase() {
       for (const p of (window.prescriptions || [])) {
         if (!p._id) p._id = 'id_' + Date.now() + Math.random().toString(36).slice(2);
         const pSans = { ...p, photo: p.photo ? '__photo__' : null };
-        await _prescriptionsCol.doc(p._id).set(pSans);
+        await _prescriptionsCol.doc(p._id).set(window.withTenant(pSans));
       }
       _debounceSaveNextNum();
     } catch(e) {

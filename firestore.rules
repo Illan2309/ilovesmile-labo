@@ -1,0 +1,133 @@
+rules_version = '2';
+
+// Phase 0 — Fondations multi-tenant
+// Version transitoire : les custom claims (Task 13) ne sont pas encore deployes,
+// donc on lit le tenant_id et le role depuis le profil Firestore users/{uid}
+// plutot que depuis request.auth.token.tenant_id.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──
+    function isAuthed() { return request.auth != null; }
+
+    // Profil du user courant (lu via un get). Peut etre null si pas de profil.
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Tenant_id du user courant (depuis son profil Firestore).
+    function userTenant() { return userProfile().tenant_id; }
+    function userRole()   { return userProfile().role; }
+
+    function isSuperAdmin() {
+      return isAuthed()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userRole() == 'super_admin';
+    }
+
+    function isAdminOfTenant(t) {
+      return isAuthed()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userRole() == 'admin_labo'
+        && userTenant() == t;
+    }
+
+    function isUserOfTenant(t) {
+      return isAuthed()
+        && (isSuperAdmin()
+            || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+                && userTenant() == t));
+    }
+
+    // Phase 0 transitoire : si un user authentifie n'a PAS encore de profil,
+    // on le laisse passer sur les docs "lab_ilovesmile" (migration douce).
+    // A durcir en Phase 0.4 quand tous les profils sont provisionnes.
+    function isAuthedNoProfile() {
+      return isAuthed()
+        && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // ── Prescriptions ──
+    match /prescriptions/{id} {
+      allow read:   if isUserOfTenant(resource.data.tenant_id) || isAuthedNoProfile();
+      allow create: if isAuthed()
+                    && request.resource.data.tenant_id != null
+                    && (isAuthedNoProfile() || request.resource.data.tenant_id == userTenant());
+      allow update: if (isUserOfTenant(resource.data.tenant_id) || isAuthedNoProfile())
+                    && request.resource.data.tenant_id == resource.data.tenant_id;
+      allow delete: if isAdminOfTenant(resource.data.tenant_id) || isSuperAdmin() || isAuthedNoProfile();
+    }
+
+    // ── Contacts (dentistes, mapping, cogilog_clients_custom) ──
+    match /contacts/{id} {
+      allow read: if isAuthed()
+                  && (isAuthedNoProfile()
+                      || !("tenant_id" in resource.data)
+                      || resource.data.tenant_id == userTenant()
+                      || isSuperAdmin());
+      allow write: if isAuthed()
+                   && (isAuthedNoProfile()
+                       || (request.resource.data.tenant_id == userTenant())
+                       || isSuperAdmin());
+    }
+
+    // ── Tarifs ──
+    match /tarifs/{id} {
+      allow read: if isAuthed()
+                  && (isAuthedNoProfile()
+                      || !("tenant_id" in resource.data)
+                      || resource.data.tenant_id == userTenant()
+                      || isSuperAdmin());
+      allow write: if isAuthed()
+                   && (isAuthedNoProfile()
+                       || (request.resource.data.tenant_id == userTenant())
+                       || isSuperAdmin());
+    }
+
+    // ── Meta (config, gc_meta, custom_rules, aliases, ui_prefs, implants, etc.) ──
+    match /meta/{id} {
+      allow read: if isAuthed()
+                  && (isAuthedNoProfile()
+                      || !("tenant_id" in resource.data)
+                      || resource.data.tenant_id == userTenant()
+                      || isSuperAdmin());
+      allow write: if isAuthed()
+                   && (isAuthedNoProfile()
+                       || (request.resource.data.tenant_id == userTenant())
+                       || isSuperAdmin());
+    }
+
+    // ── Tenants ──
+    // Ce document EST le tenant, il n'a pas lui-meme de champ tenant_id.
+    match /tenants/{tenantId} {
+      allow read:  if isAuthed() && (isAuthedNoProfile() || isUserOfTenant(tenantId));
+      allow write: if isAdminOfTenant(tenantId) || isSuperAdmin();
+    }
+
+    // ── Users (profils) ──
+    match /users/{uid} {
+      allow read:   if isAuthed() && (request.auth.uid == uid || isSuperAdmin());
+      // Phase 0 transitoire : un user authentifie peut CREER son propre profil
+      // (bootstrap). Ensuite, seul super_admin peut modifier.
+      allow create: if isAuthed() && request.auth.uid == uid;
+      allow update: if isSuperAdmin() || (isAuthed() && request.auth.uid == uid);
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── Correction logs (feature existante) ──
+    match /correction_logs/{id} {
+      allow read:  if isAuthed();
+      allow write: if isAuthed();
+    }
+
+    // ── Digilab orders (feature existante non encore multi-tenant) ──
+    // Traite en Phase 2 quand le Worker sera mis a jour pour injecter tenant_id.
+    match /digilab_orders/{id} {
+      allow read:  if isAuthed();
+      allow write: if isAuthed();
+    }
+
+    // Tout le reste : bloque par defaut.
+  }
+}

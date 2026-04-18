@@ -733,7 +733,7 @@ function sauverFiltrePeriode() {
   var from = (document.getElementById('filter-date-from')?.value || '').trim();
   var to = (document.getElementById('filter-date-to')?.value || '').trim();
   if (window._db) {
-    window._db.collection('meta').doc('ui_prefs').set({ filtre_date_from: from, filtre_date_to: to }, { merge: true })
+    window._db.collection('meta').doc('ui_prefs').set(window.withTenant({ filtre_date_from: from, filtre_date_to: to }), { merge: true })
       .catch(function(e) { console.warn('Erreur sauvegarde filtre période:', e); });
   }
 }
@@ -748,7 +748,7 @@ function clearFiltrePeriode() {
 function chargerFiltrePeriode() {
   if (!window._db) return;
   window._db.collection('meta').doc('ui_prefs').get().then(function(doc) {
-    if (doc.exists) {
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
       var data = doc.data();
       var f = document.getElementById('filter-date-from');
       var t = document.getElementById('filter-date-to');

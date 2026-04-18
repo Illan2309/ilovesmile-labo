@@ -25,13 +25,51 @@
     // Persistence locale — reste connecte meme apres fermeture du navigateur
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
+    // Expose l'etat courant pour le reste de l'app
+    window._currentUser = null;
+    window._currentUserProfile = null;
+
     // Detecter l'etat de connexion
-    firebase.auth().onAuthStateChanged(function(user) {
+    firebase.auth().onAuthStateChanged(async function(user) {
       var loginScreen = document.getElementById('login-screen');
       var appContent = document.getElementById('app-content');
 
       if (user) {
+        // Phase 0 multi-tenant : verifier le profil + le tenant_id
+        try {
+          var profileDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+          if (profileDoc.exists) {
+            var profile = profileDoc.data();
+            window._currentUserProfile = profile;
+            // Securite : si le user appartient a un autre tenant, refuser la connexion
+            if (profile.tenant_id && profile.tenant_id !== window.TENANT_ID) {
+              console.warn('[AUTH] Rejet : user tenant_id=' + profile.tenant_id +
+                           ' ne correspond pas au tenant courant ' + window.TENANT_ID);
+              alert('Ce compte n\'est pas autorise pour ce laboratoire.');
+              await firebase.auth().signOut();
+              return;
+            }
+            if (profile.actif === false) {
+              console.warn('[AUTH] Rejet : user desactive');
+              alert('Ce compte a ete desactive.');
+              await firebase.auth().signOut();
+              return;
+            }
+          } else {
+            // Phase 0 transitoire : pas encore de profil Firestore
+            // On autorise la connexion mais on log un warning.
+            // En Phase 0.4 (rules strictes), ce cas sera bloque.
+            console.warn('[AUTH] Aucun profil users/' + user.uid +
+                         ' dans Firestore — autorise en Phase 0 transitoire');
+            window._currentUserProfile = null;
+          }
+        } catch (e) {
+          console.error('[AUTH] Erreur chargement profil', e);
+          // Ne pas bloquer en Phase 0 si Firestore pas accessible
+        }
+
         // Connecte → afficher l'app
+        window._currentUser = user;
         console.log('[AUTH] Connecte : ' + user.email);
         if (loginScreen) loginScreen.style.display = 'none';
         if (appContent) appContent.style.display = 'block';
@@ -41,6 +79,8 @@
         }
       } else {
         // Non connecte → afficher le login
+        window._currentUser = null;
+        window._currentUserProfile = null;
         console.log('[AUTH] Non connecte');
         if (loginScreen) loginScreen.style.display = 'flex';
         if (appContent) appContent.style.display = 'none';

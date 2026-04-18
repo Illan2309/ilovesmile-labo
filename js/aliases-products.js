@@ -19,7 +19,7 @@ function _syncAliasesToFirebase(type) {
     if (!db) return;
     try {
       var data = JSON.parse(localStorage.getItem(key) || '{}');
-      db.collection('meta').doc(docName).set(data)
+      db.collection('meta').doc(docName).set(window.withTenant(data))
         .then(function() { console.log('☁️ Alias ' + type + ' synchronisés'); })
         .catch(function(e) { console.warn('Erreur sync alias ' + type + ':', e); });
     } catch(e) {}
@@ -32,8 +32,9 @@ function _chargerAliasesFirebase() {
   if (!db) return;
   // Alias cabinet
   db.collection('meta').doc('aliases_cabinet').get().then(function(doc) {
-    if (doc.exists) {
-      var data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      var data = Object.assign({}, doc.data());
+      delete data.tenant_id;
       var local = JSON.parse(localStorage.getItem('cabinet_aliases') || '{}');
       var merged = Object.assign({}, data, local);
       localStorage.setItem('cabinet_aliases', JSON.stringify(merged));
@@ -42,8 +43,9 @@ function _chargerAliasesFirebase() {
   }).catch(function() {});
   // Alias produit
   db.collection('meta').doc('aliases_produit').get().then(function(doc) {
-    if (doc.exists) {
-      var data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      var data = Object.assign({}, doc.data());
+      delete data.tenant_id;
       var local = JSON.parse(localStorage.getItem('product_aliases') || '{}');
       // Merge : Firebase + local (local écrase Firebase si conflit)
       var merged = Object.assign({}, data, local);
@@ -53,8 +55,9 @@ function _chargerAliasesFirebase() {
   }).catch(function() {});
   // Alias contacts (praticiens)
   db.collection('meta').doc('aliases_contact').get().then(function(doc) {
-    if (doc.exists) {
-      var data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      var data = Object.assign({}, doc.data());
+      delete data.tenant_id;
       var local = JSON.parse(localStorage.getItem('contact_aliases') || '{}');
       var merged = Object.assign({}, data, local);
       localStorage.setItem('contact_aliases', JSON.stringify(merged));
