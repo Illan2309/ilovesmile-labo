@@ -126,7 +126,7 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_archive').get();
-      if (doc.exists) {
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
         _impArchive = new Set(doc.data().keys || []);
       }
     } catch (e) {
@@ -138,7 +138,7 @@
   async function impSauverArchive() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_archive').set({ keys: Array.from(_impArchive) });
+      await db.collection('meta').doc('implant_archive').set(window.withTenant({ keys: Array.from(_impArchive) }));
     } catch (e) {
       showToast('❌ Erreur sauvegarde archive : ' + e.message, true);
     }
@@ -289,7 +289,7 @@
         quantite: r.quantite || 0, cabinet: r.cabinet || '', _dateMs: r._dateMs || 0,
         _manualCabinet: r._manualCabinet || false, _manualPatient: r._manualPatient || false
       }));
-      await db.collection('meta').doc('implant_tracking_data').set({ rows: data, updatedAt: Date.now() });
+      await db.collection('meta').doc('implant_tracking_data').set(window.withTenant({ rows: data, updatedAt: Date.now() }));
     } catch (e) {
       console.warn('[Implants] Erreur sauvegarde tracking:', e.message);
     }
@@ -299,7 +299,7 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_tracking_data').get();
-      if (doc.exists && doc.data().rows) {
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().rows) {
         _impRawRows = doc.data().rows;
         // Forcer reset cabinet/patient pour re-enrichir proprement a chaque chargement
         // Re-enrichir seulement les lignes qui n'ont PAS de cabinet/patient deja sauvegarde
@@ -329,7 +329,7 @@
   async function impSauverStockDB() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_stock_data').set({ stock: _impStock, updatedAt: Date.now() });
+      await db.collection('meta').doc('implant_stock_data').set(window.withTenant({ stock: _impStock, updatedAt: Date.now() }));
     } catch (e) {
       console.warn('[Implants] Erreur sauvegarde stock:', e.message);
     }
@@ -339,7 +339,7 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_stock_data').get();
-      if (doc.exists && doc.data().stock) {
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().stock) {
         _impStock = doc.data().stock;
         // Reconstruire le dictionnaire de references
         _impRefDict = {};
@@ -1496,7 +1496,7 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_fournisseurs').get();
-      _impFournisseurs = doc.exists ? (doc.data().list || []) : [];
+      _impFournisseurs = (doc.exists && doc.data().tenant_id === window.TENANT_ID) ? (doc.data().list || []) : [];
     } catch (e) {
       _impFournisseurs = [];
     }
@@ -1506,7 +1506,7 @@
   async function impSauverFournisseursDB() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_fournisseurs').set({ list: _impFournisseurs });
+      await db.collection('meta').doc('implant_fournisseurs').set(window.withTenant({ list: _impFournisseurs }));
     } catch (e) {
       showToast('❌ Erreur sauvegarde fournisseurs : ' + e.message, true);
     }
@@ -1738,13 +1738,13 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_stock_archive').get();
-      if (doc.exists) _impStockArchive = new Set(doc.data().refs || []);
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID) _impStockArchive = new Set(doc.data().refs || []);
     } catch(e) { _impStockArchive = new Set(); }
   }
   async function impSauverStockArchive() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_stock_archive').set({ refs: Array.from(_impStockArchive) });
+      await db.collection('meta').doc('implant_stock_archive').set(window.withTenant({ refs: Array.from(_impStockArchive) }));
     } catch(e) {}
   }
 
@@ -1755,13 +1755,13 @@
     try {
       var db = window._db || firebase.firestore();
       var doc = await db.collection('meta').doc('implant_fournisseurs_archive').get();
-      if (doc.exists) _impFournisseursArchive = new Set(doc.data().ids || []);
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID) _impFournisseursArchive = new Set(doc.data().ids || []);
     } catch(e) { _impFournisseursArchive = new Set(); }
   }
   async function impSauverFournisseursArchive() {
     try {
       var db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_fournisseurs_archive').set({ ids: Array.from(_impFournisseursArchive) });
+      await db.collection('meta').doc('implant_fournisseurs_archive').set(window.withTenant({ ids: Array.from(_impFournisseursArchive) }));
     } catch(e) {}
   }
 
@@ -2078,7 +2078,7 @@
   async function impSauverRefCats() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_ref_cats').set({ cats: _impRefCats, updatedAt: Date.now() });
+      await db.collection('meta').doc('implant_ref_cats').set(window.withTenant({ cats: _impRefCats, updatedAt: Date.now() }));
     } catch(e) {}
   }
   async function impChargerRefCats() {
@@ -2091,7 +2091,7 @@
       // 2. Charger Firebase — les modifs manuelles de l'utilisateur ECRASENT les defaults
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_ref_cats').get();
-      if (doc.exists && doc.data().cats) {
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().cats) {
         const saved = doc.data().cats;
         Object.keys(saved).forEach(ref => {
           _impRefCats[ref] = saved[ref];
@@ -2138,13 +2138,13 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_cat_order').get();
-      if (doc.exists) _impCatOrder = doc.data().order || [];
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID) _impCatOrder = doc.data().order || [];
     } catch(e) {}
   }
   async function impSauverCatOrder() {
     try {
       const db = window._db || firebase.firestore();
-      await db.collection('meta').doc('implant_cat_order').set({ order: _impCatOrder });
+      await db.collection('meta').doc('implant_cat_order').set(window.withTenant({ order: _impCatOrder }));
     } catch(e) {}
   }
 
@@ -2396,7 +2396,7 @@
       const db = window._db || firebase.firestore();
       const dict = window.IMPLANT_REF_DICT || {};
       // Sauvegarder TOUT le dictionnaire (statique + edits) pour que les modifs persistent
-      await db.collection('meta').doc('implant_ref_dict').set({ dict, updatedAt: Date.now() });
+      await db.collection('meta').doc('implant_ref_dict').set(window.withTenant({ dict, updatedAt: Date.now() }));
     } catch (e) {
       console.warn('[Implants] Erreur sauvegarde dict refs:', e.message);
     }
@@ -2408,7 +2408,7 @@
     try {
       const db = window._db || firebase.firestore();
       const doc = await db.collection('meta').doc('implant_ref_dict').get();
-      if (doc.exists && doc.data().dict) {
+      if (doc.exists && doc.data().tenant_id === window.TENANT_ID && doc.data().dict) {
         const saved = doc.data().dict;
         if (!window.IMPLANT_REF_DICT) window.IMPLANT_REF_DICT = {};
         // Les edits Firebase ecrasent le statique (c'est l'utilisateur qui a edite)

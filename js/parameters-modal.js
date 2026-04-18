@@ -278,17 +278,17 @@ async function pmSauvegarderTout() {
     const mappingANettoyer = Object.fromEntries(
       Object.entries(_pmMappingData || {}).map(([k,v]) => [k, v || ''])
     );
-    await db.collection('meta').doc('cogilog_mapping').set(mappingANettoyer);
+    await db.collection('meta').doc('cogilog_mapping').set(window.withTenant(mappingANettoyer));
     sauvegarderCodesCogilogData(mappingANettoyer);
     // Mettre à jour en mémoire
     Object.assign(COGILOG_CODES_DEFAULT, mappingANettoyer);
 
     // 2. Labels actes → Firebase
-    await db.collection('meta').doc('acte_labels').set(window.ACTE_LABELS || {});
+    await db.collection('meta').doc('acte_labels').set(window.withTenant(window.ACTE_LABELS || {}));
 
     // 3. Préférences → Firebase
     if (window._appPrefs) {
-      await db.collection('meta').doc('app_prefs').set(window._appPrefs);
+      await db.collection('meta').doc('app_prefs').set(window.withTenant(window._appPrefs));
     }
 
     const st = document.getElementById('pm-save-status');
@@ -304,8 +304,9 @@ async function pmSauvegarderTout() {
 function pmChargerDepuisFirebase(db) {
   // Mapping Cogilog
   db.collection('meta').doc('cogilog_mapping').get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = Object.assign({}, doc.data());
+      delete data.tenant_id;
       Object.assign(COGILOG_CODES_DEFAULT, data);
       sauvegarderCodesCogilogData(data);
       console.log('🗂 Mapping Cogilog chargé depuis Firebase :', Object.keys(data).length, 'entrées');
@@ -314,15 +315,23 @@ function pmChargerDepuisFirebase(db) {
 
   // Labels actes
   db.collection('meta').doc('acte_labels').get().then(doc => {
-    if (doc.exists) {
-      Object.assign(window.ACTE_LABELS, doc.data());
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = Object.assign({}, doc.data());
+      delete data.tenant_id;
+      Object.assign(window.ACTE_LABELS, data);
       console.log('🏷️ Labels actes chargés depuis Firebase');
     }
   }).catch(() => {});
 
   // Préférences
   db.collection('meta').doc('app_prefs').get().then(doc => {
-    window._appPrefs = doc.exists ? doc.data() : {};
+    if (doc.exists && doc.data().tenant_id === window.TENANT_ID) {
+      const data = Object.assign({}, doc.data());
+      delete data.tenant_id;
+      window._appPrefs = data;
+    } else {
+      window._appPrefs = {};
+    }
     console.log('🎛️ Préférences chargées depuis Firebase');
   }).catch(() => { window._appPrefs = {}; });
 }
@@ -388,7 +397,7 @@ async function nettoyerFauxARefaire() {
   );
 
   try {
-    await db.collection('prescriptions').doc('data').set({ prescriptions: prescCopy });
+    await db.collection('prescriptions').doc('data').set(window.withTenant({ prescriptions: prescCopy }));
     window.prescriptions = prescCopy;
     renderList();
     showToast('✅ ' + total + ' prescription(s) réinitialisée(s)');

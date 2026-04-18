@@ -133,7 +133,7 @@ function sauvegarderCorrectionLog(scanIA, prescription) {
   }
 
   const docId = 'corr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  db.collection('correction_logs').doc(docId).set(log)
+  db.collection('correction_logs').doc(docId).set(window.withTenant(log))
     .then(() => {
       console.log('[CORRECTION-LOG] Sauvegardé :', docId, '—', diffs.length, 'correction(s) humaine(s)');
     })
