@@ -362,18 +362,26 @@ Ces points seront tranchés au moment opportun, pas maintenant :
 
 - [x] **Brainstorming** — Terminé 2026-04-18
 - [x] **Spec stratégique (ce document)** — Écrit 2026-04-18
-- [ ] **Plan d'implémentation Phase 0** — À créer (prochaine étape)
-- [ ] **Phase 0 — Étape 0.1 : Migration Cloudflare Pages**
-- [ ] **Phase 0 — Étape 0.2 : Introduction tenant_id**
-- [ ] **Phase 0 — Étape 0.3 : Authentification Firebase**
-- [ ] **Phase 0 — Étape 0.4 : Custom claims + règles**
-- [ ] **Phase 0 — Étape 0.5 : Détection tenant**
-- [ ] **Phase 0 — Étape 0.6 : Tests de non-régression**
+- [x] **Plan d'implémentation Phase 0** — [docs/superpowers/plans/2026-04-18-phase-0-fondations-invisibles.md](../plans/2026-04-18-phase-0-fondations-invisibles.md)
+- [x] **Phase 0 — Étape 0.1 : Migration Cloudflare Pages** ✅ prod sur `ilovesmile-labo.pages.dev`
+- [x] **Phase 0 — Étape 0.2 : Introduction tenant_id** ✅ 1540 docs migrés + queries scopées
+- [x] **Phase 0 — Étape 0.3 : Authentification Firebase** ✅ préservé l'existant + ajout vérif tenant_id
+- [x] **Phase 0 — Étape 0.4 : firestore.rules multi-tenant** ✅ déployées
+- [ ] **Phase 0 — Étape 0.5 : Détection tenant** — reporté Phase 2 (un seul tenant actuellement)
+- [ ] **Phase 0 — Étape 0.6 : Tests de non-régression d'isolation** — reporté Phase 2 (test réel avec 2e tenant)
+- [ ] **Phase 0 — Custom claims (Cloud Functions)** — reporté, sécurité assurée via profil Firestore
 - [ ] **Phase 1 — Migration données hardcodées**
-- [ ] **Phase 2 — White-label / branding**
-- [ ] **Phase 3 — Premier labo externe**
+- [ ] **Phase 2 — White-label / branding + détection sous-domaine + 1er onboarding labo**
+- [ ] **Phase 3 — Premier labo externe en production**
 - [ ] **Phase 4 — Protection du code**
 - [ ] **Phase 5 — Interface dentiste** (futur lointain)
+
+### Décisions d'exécution Phase 0 (2026-04-18)
+
+- **Tasks 11, 12 (UI login + branchement)** skippées : l'app avait déjà un écran login existant (`#login-screen`, `loginUser()`, `logoutUser()`), juste adapté pour ajouter la vérification `tenant_id`
+- **Task 13 (Cloud Functions + customClaims)** reportée : la sécurité est assurée via profil Firestore `users/{uid}`. Les customClaims sont une optimisation perf (éviter un `get()` Firestore par requête dans les rules), à faire en Phase 1+ si nécessaire
+- **Task 15 (détection sous-domaine)** reportée en Phase 2 : un seul tenant actif actuellement, pas d'urgence
+- **Test d'isolation strict (Tasks 16-18)** reporté en Phase 2 : test réel avec un vrai 2e tenant sera plus significatif
 
 ### Comment mettre à jour ce document
 
