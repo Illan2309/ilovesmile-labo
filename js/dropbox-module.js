@@ -1,7 +1,6 @@
 // ══════════════════════════════════════════
-// MODULE DROPBOX — Envoi fichiers fournisseur
-// Upload prescriptions vérifiées + fichiers scan
-// vers Dropbox avec lien partagé
+// MODULE ENVOI FOURNISSEUR — prepare ZIP + impression + WeTransfer
+// (anciennement Dropbox, l'envoi se fait maintenant via WeTransfer manuel)
 // ══════════════════════════════════════════
 
 (function() {
@@ -9,11 +8,6 @@
 
   var WORKER_URL = 'https://digilab-webhook.cohenillan29.workers.dev';
   var AUTH_KEY = 'ils_webhook_2026_Sm1leL4b';
-
-  var EMAILS_FOURNISSEURS = {
-    'MERDENTAL': 'kerry@merdental.com',
-    'HUILE': 'customerdata@microunion.com'
-  };
 
   // ═══════════════════════════════════════════
   // OUVRIR LA MODALE D'ENVOI
@@ -26,11 +20,6 @@
       showToast('Selectionnez des prescriptions a envoyer', true);
       return;
     }
-
-    // Charger les emails depuis les prefs Firebase
-    var prefs = window._appPrefs || {};
-    if (prefs.email_fournisseur_merdental) EMAILS_FOURNISSEURS.MERDENTAL = prefs.email_fournisseur_merdental;
-    if (prefs.email_fournisseur_huile) EMAILS_FOURNISSEURS.HUILE = prefs.email_fournisseur_huile;
 
     // Créer/afficher la modale
     var existing = document.getElementById('modal-dropbox');
@@ -51,7 +40,7 @@
       resumeHtml += '</div>';
     });
 
-    // Grouper par fournisseur
+    // Grouper par fournisseur (juste pour le récap visuel)
     var byFournisseur = {};
     selected.forEach(function(p) {
       var f = p.fournisseur || 'INCONNU';
@@ -63,9 +52,8 @@
     Object.entries(byFournisseur).forEach(function(entry) {
       var f = entry[0];
       var ps = entry[1];
-      var email = EMAILS_FOURNISSEURS[f] || '?';
       fournisseurResume += '<div style="background:#f8fafb;border:1px solid #e0e8ee;border-radius:8px;padding:8px 12px;margin-bottom:8px;">';
-      fournisseurResume += '<strong style="color:#1a5c8a;">' + _esc(f) + '</strong> <span style="color:#999;font-size:0.72rem;">(' + ps.length + ' prescription' + (ps.length > 1 ? 's' : '') + ' → ' + _esc(email) + ')</span>';
+      fournisseurResume += '<strong style="color:#1a5c8a;">' + _esc(f) + '</strong> <span style="color:#999;font-size:0.72rem;">(' + ps.length + ' prescription' + (ps.length > 1 ? 's' : '') + ')</span>';
       fournisseurResume += '</div>';
     });
 
