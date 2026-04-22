@@ -234,6 +234,20 @@ function pmRenderPrefs() {
         </div>
       </div>
 
+      <!-- Clés API & expirations -->
+      <div style="background:#f8f4ff; border:1px solid #d0c0e8; border-radius:10px; padding:16px; margin-bottom:14px;">
+        <div style="font-size:0.8rem; font-weight:700; color:#6a1b9a; margin-bottom:12px;">🔑 Clés API & expirations</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:0.72rem; color:#888; display:block; margin-bottom:2px;">Expiration clé Digilab API <span id="pm-digilab-expiry-info" style="color:#bbb; font-size:0.68rem;"></span></label>
+            <input type="date" id="pm-digilab-expiry" value="${prefs.digilab_api_key_expires_at || '2027-04-22'}"
+              onchange="pmUpdatePref('digilab_api_key_expires_at', this.value); pmMajExpiryInfo()"
+              style="width:100%; padding:6px 10px; border:1px solid #d0c0e8; border-radius:8px; font-size:0.78rem; box-sizing:border-box;">
+            <div style="font-size:0.68rem; color:#888; margin-top:4px;">Une alerte rouge apparaitra 30 jours avant expiration. À renouveler en contactant Digilab pour obtenir une nouvelle clé <code>dlb_live_*</code>, puis la mettre à jour dans Cloudflare (secret <code>DIGILAB_API_KEY</code>).</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Dropbox / Fournisseurs -->
       <div style="background:#f8f4ff; border:1px solid #d0c0e8; border-radius:10px; padding:16px; margin-bottom:14px;">
         <div style="font-size:0.8rem; font-weight:700; color:#6a1b9a; margin-bottom:12px;">📤 Envoi Dropbox / Fournisseurs</div>
@@ -259,6 +273,8 @@ function pmRenderPrefs() {
       </div>
     </div>
   `;
+  // Mise à jour de l'indicateur jours restants pour la clé Digilab
+  if (typeof pmMajExpiryInfo === 'function') pmMajExpiryInfo();
 }
 
 function pmUpdatePref(key, val) {
@@ -266,6 +282,58 @@ function pmUpdatePref(key, val) {
   window._appPrefs[key] = val;
   pmMarquerModifie();
 }
+
+// Affiche "(expire dans Xj)" ou "(EXPIRÉE)" à côté du label
+function pmMajExpiryInfo() {
+  const el = document.getElementById('pm-digilab-expiry-info');
+  if (!el) return;
+  const dateStr = (window._appPrefs && window._appPrefs.digilab_api_key_expires_at) || '2027-04-22';
+  const exp = new Date(dateStr);
+  if (isNaN(exp)) { el.textContent = ''; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  exp.setHours(0,0,0,0);
+  const days = Math.round((exp - today) / 86400000);
+  if (days < 0) {
+    el.textContent = '⚠️ EXPIRÉE depuis ' + Math.abs(days) + ' jour(s)';
+    el.style.color = '#c62828'; el.style.fontWeight = '700';
+  } else if (days <= 30) {
+    el.textContent = '⚠️ Expire dans ' + days + ' jour(s)';
+    el.style.color = '#e65100'; el.style.fontWeight = '700';
+  } else {
+    el.textContent = '(expire dans ' + days + ' jours)';
+    el.style.color = '#888'; el.style.fontWeight = '400';
+  }
+}
+
+// Vérifie l'expiration de la clé Digilab au chargement de l'app et alerte si proche.
+// Re-affiche l'alerte tous les 7 jours (anti-spam via localStorage).
+window.checkDigilabApiKeyExpiry = function() {
+  try {
+    const dateStr = (window._appPrefs && window._appPrefs.digilab_api_key_expires_at) || '2027-04-22';
+    const exp = new Date(dateStr);
+    if (isNaN(exp)) return;
+    const today = new Date(); today.setHours(0,0,0,0);
+    exp.setHours(0,0,0,0);
+    const days = Math.round((exp - today) / 86400000);
+
+    // Anti-spam : ne pas re-alerter si on a déjà alerté < 7 jours
+    const lastAlert = parseInt(localStorage.getItem('digilab_expiry_last_alert') || '0', 10);
+    const daysSinceLastAlert = (Date.now() - lastAlert) / 86400000;
+
+    if (days < 0) {
+      // Expirée : alerte à chaque démarrage (critique)
+      if (typeof showToast === 'function') {
+        showToast('🚨 Clé API Digilab EXPIRÉE depuis ' + Math.abs(days) + ' j — renouveler chez Digilab puis mettre à jour le secret DIGILAB_API_KEY dans Cloudflare', true);
+      }
+    } else if (days <= 30 && daysSinceLastAlert >= 7) {
+      // Proche expiration : 1 alerte tous les 7 jours
+      if (typeof showToast === 'function') {
+        showToast('⚠️ Clé API Digilab expire dans ' + days + ' jour(s) — pense à la renouveler', true);
+      }
+      localStorage.setItem('digilab_expiry_last_alert', String(Date.now()));
+    }
+  } catch (e) { /* silencieux */ }
+};
 
 // ── SAUVEGARDE GLOBALE ────────────────────────────────────────────
 
@@ -333,6 +401,10 @@ function pmChargerDepuisFirebase(db) {
       window._appPrefs = {};
     }
     console.log('🎛️ Préférences chargées depuis Firebase');
+    // Vérifier expiration de la clé Digilab API (alerte si <30j ou expirée)
+    if (typeof window.checkDigilabApiKeyExpiry === 'function') {
+      setTimeout(window.checkDigilabApiKeyExpiry, 1500);
+    }
   }).catch(() => { window._appPrefs = {}; });
 }
 
