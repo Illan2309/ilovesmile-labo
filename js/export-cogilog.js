@@ -451,11 +451,13 @@ function exportCogilogTSV() {
     const actesAvecCode = tousActes.filter(acte => codes[acte] && codes[acte].trim() !== '');
 
     // Articles adjointe → quantité = 1 appareil (pas comptage par dent)
+    // NOTE : RA (Adjonction dent) et ACRO (Adjonction crochet) NE sont PAS ici —
+    // ils se comptent par dent/crochet ajoute (2 dents = qty 2), pas par appareil.
     const ARTICLES_MACHOIRE = new Set([
       '1-GOB','1-GORD','1-GOBL','1-GORC','1-GORD',
       '1-VALPLAST','1-PAP1','1-PAP11A3','2-COMPL','2-COMPLV','2-COMPSTEPN',
       'STPN','1-STFDC','STVAL','1-PEI','1-PEICIRE','1-CIRE',
-      'GM','REP','RE','RM','CRAC','CRM','CRVALP','RA','ACRO',
+      'GM','REP','RE','RM','CRAC','CRM','CRVALP',
       '8-000ESSST','8-000ESSPAP','8-000ESSCO','8-000ESSVA','8-000',
       '1GORO','GOBO','1-GORC','1GOAM','PDH','MED','4-PROORTHO',
       // Codes "a refaire" des articles amovibles (quantite = 1, pas par dent)
