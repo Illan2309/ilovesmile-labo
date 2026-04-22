@@ -1037,6 +1037,7 @@
       const cabTd = editable.replace('{{FIELD}}', 'cabinet').replace('{{STYLE}}', (cab ? 'font-weight:600;font-size:0.72rem;' : 'font-weight:400;font-size:0.72rem;color:#bbb;font-style:italic;') + archClass);
       const patTd = editable.replace('{{FIELD}}', 'patient').replace('{{STYLE}}', archClass);
       const refTd = editable.replace('{{FIELD}}', 'reference').replace('{{STYLE}}', 'font-family:\'DM Mono\',monospace;font-size:0.7rem;' + archClass);
+      const codeLaboTd = editable.replace('{{FIELD}}', 'codeLabo').replace('{{STYLE}}', archClass);
 
       const cabText = cab ? escT(wrapLongName(cab, 2)) : '(non trouvé)';
       const patText = escT(wrapLongName(row.patient || '', 2)) || '<span style="color:#bbb;font-style:italic;">(vide)</span>';
@@ -1046,7 +1047,7 @@
       html += '<tr' + altClass + '>' +
         '<td style="font-family:\'DM Mono\',monospace;font-size:0.68rem;color:#888;white-space:nowrap;' + archClass + '">' + escT(row.dateStr || '') + '</td>' +
         '<td ' + cabTd + '>' + cabText + '</td>' +
-        '<td style="' + archClass + '"><span style="font-family:\'DM Mono\',monospace;font-size:0.72rem;background:#e3f2fd;padding:2px 6px;border-radius:4px;">' + codeLaboHtml + '</span></td>' +
+        '<td ' + codeLaboTd + '><span style="font-family:\'DM Mono\',monospace;font-size:0.72rem;background:#e3f2fd;padding:2px 6px;border-radius:4px;">' + codeLaboHtml + '</span></td>' +
         '<td style="font-family:\'DM Mono\',monospace;font-size:0.7rem;' + archClass + '">' + codeFicheHtml + '</td>' +
         '<td ' + patTd + '>' + patText + '</td>' +
         '<td style="font-size:0.7rem;' + archClass + '">' + piecesHtml + '</td>' +
@@ -1074,6 +1075,8 @@
     const row = _impGrouped[rowIdx];
     if (!row) return;
     const oldVal = row[field] || '';
+    // Memo du codeLabo AVANT edit (utilise pour retrouver les lignes brutes liees)
+    const oldCodeLabo = (row.codeLabo || '').toUpperCase();
     const input = document.createElement('input');
     input.type = 'text';
     input.value = oldVal;
@@ -1118,21 +1121,55 @@
       if (saved) return;
       saved = true;
       if (dropdown) dropdown.remove();
-      const newVal = input.value.trim();
+      let newVal = input.value.trim();
+      // Pour codeLabo : uppercase systematique
+      if (field === 'codeLabo') newVal = newVal.toUpperCase();
       row[field] = newVal;
+
+      // Cle de lookup vers les lignes brutes : pour codeLabo il faut utiliser
+      // l'ANCIEN codeLabo (les brutes ont encore l'ancien avant propagation).
+      const lookupCodeLabo = (field === 'codeLabo' ? oldCodeLabo : (row.codeLabo || '').toUpperCase());
+
       // Propager dans les lignes brutes
       _impRawRows.forEach(r => {
-        if ((r.codeLabo || '').toUpperCase() === (row.codeLabo || '').toUpperCase()) {
+        if ((r.codeLabo || '').toUpperCase() === lookupCodeLabo) {
           const mk = r._dateMs ? new Date(r._dateMs).toISOString().slice(0, 7) : 'no-date';
           const rk = row.dateMs ? new Date(row.dateMs).toISOString().slice(0, 7) : 'no-date';
           if (mk === rk) {
             if (field === 'cabinet') { r.cabinet = newVal; r._manualCabinet = true; }
             if (field === 'patient') { r.patient = newVal; r._manualPatient = true; }
             if (field === 'reference') r.codeRX = newVal;
+            if (field === 'codeLabo') {
+              r.codeLabo = newVal;
+              // Si le cabinet/patient n'etait pas edite manuellement, vider
+              // pour permettre le re-enrichissement depuis le nouveau code.
+              if (!r._manualCabinet) r.cabinet = '';
+              if (!r._manualPatient) r.patient = '';
+            }
           }
         }
       });
-      // Mettre a jour la cellule + corriger le style
+
+      // Cas special codeLabo : re-enrichir + re-grouper + re-render complet
+      if (field === 'codeLabo') {
+        enrichImplantRows(_impRawRows);
+        // Sauvegarde + refresh affichage complet
+        clearTimeout(window._impSaveTimer);
+        window._impSaveTimer = setTimeout(() => impSauverTrackingDB(), 500);
+        if (typeof window.impAppliquerFiltres === 'function') {
+          window.impAppliquerFiltres();
+        }
+        // Toast indicatif
+        const raw = _impRawRows.find(r => (r.codeLabo || '').toUpperCase() === newVal.toUpperCase());
+        if (raw && raw.cabinet) {
+          showToast('✓ Nouveau match : ' + raw.cabinet);
+        } else if (newVal) {
+          showToast('Code ' + newVal + ' : aucun match trouvé', true);
+        }
+        return;
+      }
+
+      // Mettre a jour la cellule + corriger le style (autres champs)
       if (field === 'cabinet') {
         td.style.fontWeight = newVal ? '600' : '400';
         td.style.color = newVal ? '' : '#bbb';
@@ -1161,8 +1198,11 @@
 
   // Navigation Tab entre cellules editables
   function impEditNextCell(currentTd, rowIdx, field, reverse) {
-    const fields = ['cabinet', 'patient', 'reference'];
+    // Pas de Tab-nav depuis codeLabo : le tableau est re-rendu apres edit
+    if (field === 'codeLabo') return;
+    const fields = ['cabinet', 'codeLabo', 'patient'];
     let fi = fields.indexOf(field);
+    if (fi < 0) fi = 0;
     let ri = rowIdx;
     if (reverse) {
       fi--;
@@ -1176,8 +1216,8 @@
     const tbody = document.getElementById('imp-order-tbody');
     const tr = tbody.children[ri];
     if (!tr) return;
-    // Colonnes editables : cabinet=1, patient=3, reference=4
-    const colMap = { cabinet: 1, patient: 3, reference: 4 };
+    // Colonnes editables : 0=date, 1=cabinet, 2=codeLabo, 3=codeFiche, 4=patient, 5=pieces
+    const colMap = { cabinet: 1, codeLabo: 2, patient: 4 };
     const td = tr.children[colMap[fields[fi]]];
     if (td) setTimeout(() => impEditCell(td, ri, fields[fi]), 10);
   }
