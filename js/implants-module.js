@@ -1391,7 +1391,16 @@
 
     drawHdr();
     let ci = 0;
-    const tableTop = y;
+    // Haut du tableau sur la page COURANTE (re-init a chaque addPage) — pour la bordure exterieure.
+    let currentPageTableTop = y;
+
+    // Dessine la bordure arrondie exterieure du tableau sur la page courante.
+    function finalizePageBorder(endY) {
+      if (endY > currentPageTableTop) {
+        doc.setDrawColor(...B); doc.setLineWidth(0.5);
+        doc.roundedRect(mL, currentPageTableTop, W, endY - currentPageTableTop, 2, 2);
+      }
+    }
 
     // Grouper les lignes par cabinet pour fusion — SEULEMENT si le cabinet est renseigne
     // Les cas "non trouve" (cabinet vide) restent seuls, pas de fusion
@@ -1415,7 +1424,9 @@
       const rowHeights = block.rows.map(r => rowH(r));
 
       if (y + rowHeights[0] > pageH - mB) {
+        finalizePageBorder(y);
         doc.addPage(); y = mT; drawHdr();
+        currentPageTableTop = y;
       }
 
       // Separateur cabinet : degradé fin bleu → teal
@@ -1443,7 +1454,9 @@
           if (isMerged) {
             _drawMergedCab(doc, FN, fs, lnH, mL, cols, block, blockStartY, wrap, wrapLongName);
           }
+          finalizePageBorder(y);
           doc.addPage(); y = mT; drawHdr();
+          currentPageTableTop = y;
           blockStartY = y; // Reset pour la nouvelle page
         }
 
@@ -1492,9 +1505,9 @@
       }
     });
 
-    // Bordure exterieure arrondie (bleu I Love Smile)
-    doc.setDrawColor(...B); doc.setLineWidth(0.5);
-    doc.roundedRect(mL, tableTop, W, y - tableTop, 2, 2);
+    // Bordure exterieure arrondie (bleu I Love Smile) — sur la derniere page seulement ici.
+    // Les pages precedentes ont deja leur bordure via finalizePageBorder().
+    finalizePageBorder(y);
 
     doc.save('Commandes_Implants_' + new Date().toISOString().slice(0, 10) + '.pdf');
     showToast('📄 PDF exporté');
@@ -2526,14 +2539,19 @@
 
   window.impEnvoyerEmailCommande = function() {
     // Commandes en cours (non archivees)
-    var rows = (_impGrouped || []).filter(function(r) { return !r._archived; });
-    if (!rows.length) { showToast('Aucune commande en cours.', true); return; }
+    var rowsAll = (_impGrouped || []).filter(function(r) { return !r._archived; });
+    if (!rowsAll.length) { showToast('Aucune commande en cours.', true); return; }
 
-    // Verifier que toutes les lignes sont enrichies (cabinet + patient)
-    var nonEnrichies = rows.filter(function(r) { return !r.cabinet || !r.patient; });
-    if (nonEnrichies.length) {
-      showToast('Impossible : ' + nonEnrichies.length + ' ligne(s) sans cabinet ou patient. Completez-les avant d\'envoyer.', true);
+    // Ignorer (sans bloquer) les lignes non enrichies (cabinet ou patient manquant)
+    var rows = rowsAll.filter(function(r) { return r.cabinet && r.patient; });
+    var nbIgnorees = rowsAll.length - rows.length;
+    if (!rows.length) {
+      showToast('Aucune ligne complete a envoyer (toutes sans cabinet ou patient).', true);
       return;
+    }
+    if (nbIgnorees > 0) {
+      // Avertissement rouge bien visible (mais non bloquant, email quand meme envoye)
+      showToast('⚠️ Attention : ' + nbIgnorees + ' cas non rempli(s) ignore(s) — completez-les puis renvoyez', true);
     }
 
     // Regrouper par marque
