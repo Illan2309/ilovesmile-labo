@@ -550,15 +550,27 @@
       return conj.some(v => typeof v === 'string' && v.toLowerCase().includes('implant'));
     }
 
-    // Verifier coherence de date :
+    // Verifier coherence de date — comparaison en JOURS CALENDAIRES :
     // La prescription est creee AVANT la ligne Excel (on envoie le cas, le fournisseur pioche dans le stock)
     // Delai typique : 0 a 10 jours. On prend 20 jours de marge.
-    // Donc : dateExcel >= datePrescription ET dateExcel <= datePrescription + 20 jours
-    const WINDOW_AFTER_MS = 20 * 24 * 60 * 60 * 1000;
+    // On floor aux jours pour tolerer les heures differentes (Excel a 00:00, prescription a 16:24 etc.)
+    // Donc : jourExcel >= jourPrescription ET jourExcel <= jourPrescription + 20 jours
+    const MS_PER_DAY = 86400000;
+    function toCalendarDay(ms) {
+      const d = new Date(ms);
+      return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / MS_PER_DAY);
+    }
     function datesCoherent(rowDateMs, prescTs) {
       if (!rowDateMs || !prescTs) return false;
-      const delta = rowDateMs - prescTs; // positif si Excel apres prescription
-      return delta >= 0 && delta <= WINDOW_AFTER_MS;
+      // Fenetre [-3j, +20j] en jours calendaires :
+      // - Borne basse -3 : tolere la saisie retroactive (prescription entree 1 a 3 jours
+      //   apres la sortie stock fournisseur — ex WE, oubli, saisie groupee le lundi).
+      // - Borne haute +20 : delai typique de 0-10j entre prescription et commande,
+      //   +10j de marge. Reste bien sous la demi-periode de recyclage mensuel
+      //   du code labo pour eviter tout faux match cross-mois.
+      // findBestMatch choisit ensuite la candidate la plus proche en temps absolu.
+      const deltaDays = toCalendarDay(rowDateMs) - toCalendarDay(prescTs);
+      return deltaDays >= -3 && deltaDays <= 20;
     }
 
     // Index par code_labo — prescriptions avec implants uniquement
