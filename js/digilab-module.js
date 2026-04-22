@@ -305,20 +305,32 @@
     var service = (c.service || '').toLowerCase();
     var needsFilter = SERVICES_NEED_FICHE.some(function(s) { return service.includes(s); });
 
-    // Récupérer les fichiers depuis les données webhook (Firebase)
-    var files = (c.files || []).filter(function(f) { return f.url; });
+    showToast('Récupération des fichiers Digilab...');
 
-    if (files.length === 0 && c.file_archive) {
-      // Fallback : URL d'archive directe
-      files = [{ name: patient + '_files.zip', url: c.file_archive }];
-    }
-
-    if (files.length === 0) {
-      showToast('Aucun fichier disponible — clé API Digilab nécessaire', true);
+    // Récupérer la liste fraîche des fichiers via l'API Digilab (URLs signées valides 1h)
+    // GET /v1/digilab/cases/:id/files (proxy vers /public/v1/cases/:id/files)
+    var files = [];
+    try {
+      var apiResp = await fetch(WORKER_URL + '/v1/digilab/cases/' + encodeURIComponent(caseId) + '/files?key=' + AUTH_KEY);
+      if (!apiResp.ok) {
+        if (apiResp.status === 404) {
+          showToast('Cas introuvable côté Digilab (peut-être purgé)', true);
+        } else {
+          showToast('Erreur API Digilab : HTTP ' + apiResp.status, true);
+        }
+        return;
+      }
+      var apiData = await apiResp.json();
+      files = (apiData.files || []).filter(function(f) { return f.url; });
+    } catch (e) {
+      showToast('Erreur réseau : ' + e.message, true);
       return;
     }
 
-    showToast('Téléchargement des fichiers...');
+    if (files.length === 0) {
+      showToast('Aucun fichier disponible pour ce cas', true);
+      return;
+    }
 
     try {
       // Filtrer les fichiers POF pour medit/dscore/shining
@@ -333,26 +345,12 @@
         }
       }
 
-      // Si 1 seul fichier ZIP et pas de filtrage → télécharger directement via proxy
-      if (files.length === 1 && !needsFilter) {
-        // Télécharger via POST pour éviter les problèmes d'URL longues
-        try {
-          var _dlResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: files[0].url })
-          });
-          if (_dlResp.ok) {
-            var _dlBlob = await _dlResp.blob();
-            var _dlA = document.createElement('a');
-            _dlA.href = URL.createObjectURL(_dlBlob);
-            _dlA.download = patient + '_files.zip';
-            _dlA.click();
-            URL.revokeObjectURL(_dlA.href);
-          }
-        } catch(e) { console.error('[DIGILAB] Download error', e); }
-        showToast('Téléchargement lancé : ' + patient);
+      if (files.length === 0) {
+        showToast('Aucun fichier à télécharger après filtrage POF', true);
         return;
       }
+
+      showToast('Téléchargement ' + files.length + ' fichier(s)...');
 
       // Télécharger chaque fichier via proxy et recréer un ZIP propre (aplati, sans POF)
       var zip = new JSZip();
@@ -452,64 +450,44 @@
       var photoDataUrl = null;
 
       if (originalFile) {
-        // ── FLOW FICHE ORIGINALE : staging Dropbox (fiable) > URL Digilab (expire) ──
+        // ── FLOW FICHE ORIGINALE : re-query API Digilab pour une URL fraîche (1h) ──
         console.log('[DIGILAB] Fiche originale trouvée:', originalFile.name);
         try {
           var fileData = null;
 
-          // PRIORITÉ 1 : Staging Dropbox (toujours disponible)
-          var _db = window.getDB ? window.getDB() : null;
-          if (_db) {
-            var _caseSnap = await _db.collection('digilab_orders').doc(caseId).get();
-            if (_caseSnap.exists) {
-              var _stagingPath = (_caseSnap.data() || {})._dropboxStagingPath;
-              if (_stagingPath) {
-                try {
-                  var _listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: _stagingPath })
-                  });
-                  if (_listResp.ok) {
-                    var _entries = ((await _listResp.json()).entries || []);
-                    // Chercher la fiche : POF HTML > HTML > POF PDF > PDF (même logique que _findOriginalFile)
-                    var _origName = (originalFile.name || '').toLowerCase();
-                    var _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase() === _origName; });
-                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && /^pof[_\s]/i.test(e.name) && e.name.toLowerCase().endsWith('.html') && !/^full/i.test(e.name); });
-                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.html') && !/^full/i.test(e.name); });
-                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.pdf'); });
-                    if (!_match) _match = _entries.find(function(e) { return e['.tag'] === 'file' && e.name.toLowerCase().endsWith('.html'); });
-                    if (_match) {
-                      console.log('[DIGILAB] Fiche depuis staging Dropbox:', _match.name);
-                      var _dlResp = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ path: _match.path_lower || _match.path_display })
-                      });
-                      if (_dlResp.ok) {
-                        var _blob = await _dlResp.blob();
-                        var _nameLower = _match.name.toLowerCase();
-                        var _mediaType = _nameLower.endsWith('.html') ? 'text/html' : (_nameLower.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
-                        _blob = new Blob([_blob], { type: _mediaType });
-                        var _dataUrl = await _blobToDataUrl(_blob);
-                        fileData = { base64: _dataUrl.split(',')[1], mediaType: _mediaType, dataUrl: _dataUrl };
-                      }
-                    }
-                  }
-                } catch(dbxErr) { console.warn('[DIGILAB] Staging Dropbox échoué:', dbxErr.message); }
+          // Re-query /cases/:id/files pour obtenir une URL fraîche du fichier (non expirée)
+          var _freshUrl = null;
+          try {
+            var _apiResp = await fetch(WORKER_URL + '/v1/digilab/cases/' + encodeURIComponent(caseId) + '/files?key=' + AUTH_KEY);
+            if (_apiResp.ok) {
+              var _apiData = await _apiResp.json();
+              var _freshFiles = _apiData.files || [];
+              var _origName = (originalFile.name || '').toLowerCase();
+              // Chercher le fichier par nom exact, puis fallback POF HTML / HTML / PDF
+              var _match = _freshFiles.find(function(f) { return (f.name || '').toLowerCase() === _origName; });
+              if (!_match) _match = _freshFiles.find(function(f) { return /^pof[_\s]/i.test(f.name || '') && /\.html$/i.test(f.name || '') && !/^full/i.test(f.name || ''); });
+              if (!_match) _match = _freshFiles.find(function(f) { return /\.html$/i.test(f.name || '') && !/^full/i.test(f.name || ''); });
+              if (!_match) _match = _freshFiles.find(function(f) { return /\.pdf$/i.test(f.name || ''); });
+              if (!_match) _match = _freshFiles.find(function(f) { return /\.html$/i.test(f.name || ''); });
+              if (_match && _match.url) {
+                _freshUrl = _match.url;
+                originalFile = { name: _match.name || originalFile.name, url: _match.url };
+                console.log('[DIGILAB] URL fraîche obtenue via API:', _match.name);
               }
             }
-          }
+          } catch(apiErr) { console.warn('[DIGILAB] Re-query API échoué:', apiErr.message); }
 
-          // PRIORITÉ 2 : URL Digilab directe (fallback, peut être expirée)
-          if (!fileData && originalFile.url) {
+          // Télécharger via l'URL fraîche (via proxy worker)
+          var _urlToUse = _freshUrl || originalFile.url;
+          if (_urlToUse) {
             try {
-              fileData = await _downloadFileAsBase64(originalFile.url, originalFile.name);
-              console.log('[DIGILAB] Fiche depuis URL Digilab directe');
+              fileData = await _downloadFileAsBase64(_urlToUse, originalFile.name);
             } catch(urlErr) {
-              console.warn('[DIGILAB] URL Digilab aussi expirée:', urlErr.message);
+              console.warn('[DIGILAB] Téléchargement fiche échoué:', urlErr.message);
             }
           }
 
-          if (!fileData) throw new Error('Fiche introuvable (staging + URL)');
+          if (!fileData) throw new Error('Fiche introuvable via API Digilab');
           var isHTML = fileData.mediaType === 'text/html';
           photoDataUrl = fileData.dataUrl;
 

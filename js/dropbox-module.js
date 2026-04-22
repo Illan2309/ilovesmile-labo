@@ -385,110 +385,38 @@
   };
 
   // Ajouter les fichiers scan Digilab dans un folder JSZip
-  // Priorité : Dropbox staging (sauvegardé au webhook) > URLs Digilab (peut être expiré)
+  // Source unique : API Digilab GET /v1/digilab/cases/:id/files (URLs signées valides 1h)
   async function _addDigilabFilesToZip(caseId, zipFolder) {
-    console.log('[DROPBOX] _addDigilabFilesToZip called for caseId:', caseId);
+    console.log('[DIGILAB] _addDigilabFilesToZip called for caseId:', caseId);
     var db = window.getDB ? window.getDB() : null;
-    if (!db) { console.log('[DROPBOX] No DB'); return; }
-
-    var docSnap = await db.collection('digilab_orders').doc(caseId).get();
-    if (!docSnap.exists) { console.log('[DROPBOX] Case not found in Firebase:', caseId); return; }
-
-    var caseData = docSnap.data();
-    var stagingPath = caseData._dropboxStagingPath || '';
-    console.log('[DROPBOX] stagingPath:', stagingPath);
-
-    // MÉTHODE 1 : depuis Dropbox staging (fiable)
-    if (stagingPath) {
-      try {
-        var listResp = await fetch(WORKER_URL + '/v1/dropbox/list-folder?key=' + AUTH_KEY, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: stagingPath })
-        });
-        if (listResp.ok) {
-          var listData = await listResp.json();
-          var entries = listData.entries || [];
-
-          // Prendre le premier ZIP _scan et le dézipper
-          var scanZip = entries.find(function(e) { return e['.tag'] === 'file' && /_scan\.zip$/i.test(e.name); });
-          if (!scanZip) scanZip = entries.find(function(e) { return e['.tag'] === 'file' && e.name.endsWith('.zip'); });
-
-          if (scanZip) {
-            try {
-              var dlResp = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: scanZip.path_lower || scanZip.path_display })
-              });
-              if (dlResp.ok) {
-                var zipBlob = await dlResp.blob();
-                var innerZip = await JSZip.loadAsync(zipBlob);
-                var count = 0;
-                var promises = [];
-                innerZip.forEach(function(path, entry) {
-                  if (entry.dir) return;
-                  var name = path.split('/').pop();
-                  promises.push(entry.async('blob').then(function(b) {
-                    zipFolder.file(name, b);
-                    count++;
-                    console.log('[DROPBOX] Extracted:', name, Math.round(b.size / 1024) + 'KB');
-                  }));
-                });
-                await Promise.all(promises);
-                console.log('[DROPBOX] Extracted', count, 'files from', scanZip.name);
-              }
-            } catch (e) { console.warn('[DROPBOX] ZIP extract error:', e.message); }
-          } else {
-            // Pas de ZIP → prendre les fichiers individuels (sans les .zip)
-            for (var i = 0; i < entries.length; i++) {
-              var entry = entries[i];
-              if (entry['.tag'] !== 'file') continue;
-              if (entry.name.endsWith('.zip')) continue;
-              try {
-                var dlResp2 = await fetch(WORKER_URL + '/v1/dropbox/download?key=' + AUTH_KEY, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ path: entry.path_lower || entry.path_display })
-                });
-                if (dlResp2.ok) {
-                  var blob = await dlResp2.blob();
-                  zipFolder.file(entry.name, blob);
-                }
-              } catch (e) { console.warn('[DROPBOX] Skip:', entry.name); }
-            }
-          }
-          return;
-        }
-      } catch (e) { console.warn('[DROPBOX] Staging fallback:', e.message); }
+    var caseData = {};
+    if (db) {
+      var docSnap = await db.collection('digilab_orders').doc(caseId).get();
+      if (docSnap.exists) caseData = docSnap.data() || {};
     }
-
-    // MÉTHODE 2 : fallback URLs Digilab (souvent expirées — tester 1 seul fichier d'abord)
-    var files = caseData.files || [];
     var service = (caseData.service || '').toLowerCase();
     var needsFilter = ['medit', 'dscore2', 'shining3d'].some(function(s) { return service.includes(s); });
 
-    // Tester avec le premier fichier valide — si 400, toutes les URLs sont expirées
-    var firstValid = files.find(function(f) { return f.url; });
-    if (firstValid) {
-      try {
-        var testResp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: firstValid.url })
-        });
-        if (!testResp.ok) {
-          console.warn('[DROPBOX] URLs Digilab expirées pour', caseId, '— skip');
-          return;
-        }
-      } catch(e) {
-        console.warn('[DROPBOX] URLs Digilab inaccessibles pour', caseId);
+    // Récupérer la liste fraîche des fichiers via l'API Digilab
+    var files = [];
+    try {
+      var apiResp = await fetch(WORKER_URL + '/v1/digilab/cases/' + encodeURIComponent(caseId) + '/files?key=' + AUTH_KEY);
+      if (!apiResp.ok) {
+        console.warn('[DIGILAB] API /cases/:id/files retourne HTTP', apiResp.status, 'pour', caseId);
         return;
       }
+      var apiData = await apiResp.json();
+      files = (apiData.files || []).filter(function(f) { return f.url; });
+    } catch (e) {
+      console.warn('[DIGILAB] Erreur réseau API:', e.message);
+      return;
     }
 
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
       var name = (f.name || '').split('/').pop();
+      if (!name) continue;
       if (needsFilter && /^(POF_|FULL_POF_)/i.test(name)) continue;
-      if (!f.url) continue;
-      if (name.endsWith('.zip') && files.some(function(ff) { return ff.name && /\.(ply|stl|obj|dcm)$/i.test(ff.name); })) continue;
 
       try {
         var resp = await fetch(WORKER_URL + '/v1/digilab/proxy-file?key=' + AUTH_KEY, {
@@ -497,9 +425,29 @@
         });
         if (resp.ok) {
           var blob = await resp.blob();
-          zipFolder.file(name, blob);
+          // Si c'est un ZIP → aplatir son contenu dans le folder cible
+          if (/\.zip$/i.test(name) && typeof JSZip !== 'undefined') {
+            try {
+              var innerZip = await JSZip.loadAsync(blob);
+              var promises = [];
+              innerZip.forEach(function(path, entry) {
+                if (entry.dir) return;
+                var innerName = path.split('/').pop();
+                if (needsFilter && /^(POF_|FULL_POF_)/i.test(innerName)) return;
+                promises.push(entry.async('blob').then(function(b) {
+                  zipFolder.file(innerName, b);
+                }));
+              });
+              await Promise.all(promises);
+            } catch (ze) {
+              // Pas un vrai ZIP ou erreur → garder tel quel
+              zipFolder.file(name, blob);
+            }
+          } else {
+            zipFolder.file(name, blob);
+          }
         }
-      } catch (e) { console.warn('[DROPBOX] Skip:', name); }
+      } catch (e) { console.warn('[DIGILAB] Skip:', name); }
     }
   }
 
