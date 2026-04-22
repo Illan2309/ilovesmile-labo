@@ -20,6 +20,16 @@ function fermerModalAliases() {
   if (m) m.style.display = 'none';
 }
 
+// Helper d'echappement HTML pour eviter les XSS et bugs syntaxiques sur attributs
+function _escAlias(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderAliasList(filter) {
   const container = document.getElementById('alias-list-items');
   if (!container) return;
@@ -48,32 +58,57 @@ function renderAliasList(filter) {
     }
     froms.sort();
     var cabinetName = (COGILOG_CLIENTS[code] && COGILOG_CLIENTS[code][3]) ? COGILOG_CLIENTS[code][3] : '';
+    var codeEsc = _escAlias(code);
+    var cabNameEsc = _escAlias(cabinetName);
     html += '<div style="background:#f6f8fc;border:1px solid #e0e4ed;border-radius:8px;padding:8px 10px;margin-bottom:8px;">';
     html += '<div style="font-size:0.78rem;font-weight:700;color:#1a5c8a;margin-bottom:4px;">'
-      + code + (cabinetName ? ' <span style="font-weight:400;color:#666;">— ' + cabinetName + '</span>' : '')
+      + codeEsc + (cabNameEsc ? ' <span style="font-weight:400;color:#666;">— ' + cabNameEsc + '</span>' : '')
       + '</div>';
     froms.forEach(function(from) {
-      var esc = from.replace(/'/g, "\\'");
+      var fromEsc = _escAlias(from);
       var isDefault = DEFAULT_CABINET_ALIASES[from] !== undefined && !stored[from];
+      // Utiliser data-attributes + event delegation (plus de probleme d'echappement onclick)
       html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 0 3px 12px;">'
         + '<span style="flex:1;font-size:0.74rem;color:#333;min-width:0;overflow:hidden;text-overflow:ellipsis;">'
-        + '\u2192 <b>' + from + '</b>'
+        + '\u2192 <b>' + fromEsc + '</b>'
         + (isDefault ? ' <span style="color:#bbb;font-size:0.62rem;">(défaut)</span>' : '')
         + '</span>'
-        + '<button type="button" onclick="editerAlias(\'' + esc + '\',\'' + code + '\')" '
+        + '<button type="button" data-alias-action="edit" data-alias-from="' + fromEsc + '" data-alias-code="' + codeEsc + '" '
         + 'style="flex-shrink:0;background:#e3f2fd;border:none;border-radius:5px;padding:2px 7px;font-size:0.66rem;color:#1565c0;cursor:pointer;">Modif.</button>'
-        + '<button type="button" onclick="supprimerAlias(\'' + esc + '\')" '
+        + '<button type="button" data-alias-action="delete" data-alias-from="' + fromEsc + '" '
         + 'style="flex-shrink:0;background:#fce4ec;border:none;border-radius:5px;padding:2px 7px;font-size:0.66rem;color:#c62828;cursor:pointer;">Suppr.</button>'
         + '</div>';
     });
     // Bouton ajouter un alias supplémentaire à ce cabinet
     html += '<div style="padding:3px 0 0 12px;">'
-      + '<button type="button" onclick="ajouterAliasPourCabinet(\'' + code + '\')" '
+      + '<button type="button" data-alias-action="add" data-alias-code="' + codeEsc + '" '
       + 'style="background:none;border:none;color:#1a5c8a;font-size:0.68rem;cursor:pointer;padding:2px 0;text-decoration:underline;">+ Ajouter un alias</button>'
       + '</div>';
     html += '</div>';
   });
   container.innerHTML = html;
+  // Attacher un seul event listener delegue (idempotent grace au flag)
+  if (!container._aliasDelegated) {
+    container.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-alias-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-alias-action');
+      var from = btn.getAttribute('data-alias-from') || '';
+      var code = btn.getAttribute('data-alias-code') || '';
+      // data-attributes contiennent du HTML escape : il faut decoder pour usage JS
+      var decode = function(s) {
+        var t = document.createElement('textarea');
+        t.innerHTML = s;
+        return t.value;
+      };
+      from = decode(from);
+      code = decode(code);
+      if (action === 'edit') editerAlias(from, code);
+      else if (action === 'delete') supprimerAlias(from);
+      else if (action === 'add') ajouterAliasPourCabinet(code);
+    });
+    container._aliasDelegated = true;
+  }
 }
 
 var _aliasEditingKey = null; // clé en cours d'édition (null = mode ajout)
