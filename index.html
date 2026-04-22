@@ -1129,6 +1129,21 @@
   </div>
 </div>
 
+<!-- Modal comptes clients par fournisseur -->
+<div id="modal-comptes-clients" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:955; justify-content:center; align-items:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:white; border-radius:14px; padding:24px; max-width:620px; width:94%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.25);" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 4px; font-size:1rem; color:var(--accent);" id="imp-comptes-title">Comptes clients</h3>
+    <p style="margin:0 0 14px; font-size:0.76rem; color:#888;">Pour chaque cabinet ayant un compte chez cette marque, associez son numéro de compte.</p>
+    <input type="hidden" id="imp-comptes-four-id">
+    <div id="imp-comptes-list" style="flex:1; overflow-y:auto; padding-right:4px;"></div>
+    <button onclick="impAjouterLigneCompteClient()" style="margin-top:8px; padding:7px 12px; background:#e3f2fd; color:#0277bd; border:none; border-radius:8px; cursor:pointer; font-size:0.78rem; font-weight:600; align-self:flex-start;">+ Ajouter un cabinet</button>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+      <button onclick="document.getElementById('modal-comptes-clients').style.display='none'" style="background:#f5f5f5; border:1px solid #ddd; border-radius:8px; padding:7px 16px; font-size:0.78rem; cursor:pointer;">Annuler</button>
+      <button onclick="impSauverComptesClients()" style="background:var(--accent); color:white; border:none; border-radius:8px; padding:7px 16px; font-size:0.78rem; font-weight:600; cursor:pointer;">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal stock fournisseur -->
 <div id="modal-stock-fournisseur" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:950; justify-content:center; align-items:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:white; border-radius:14px; width:96vw; max-width:700px; height:80vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.25); overflow:hidden;" onclick="event.stopPropagation()">

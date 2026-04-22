@@ -1627,6 +1627,8 @@
       siteUrl: document.getElementById('imp-edit-four-site').value.trim(),
       catalogueUrl: document.getElementById('imp-edit-four-catalogue').value.trim() || existing.catalogueUrl || '',
       notes: document.getElementById('imp-edit-four-notes').value.trim(),
+      // Preserver les comptes clients existants (editables via modal-comptes-clients)
+      comptesClients: existing.comptesClients || {},
       createdAt: existing.createdAt || Date.now()
     };
 
@@ -1641,6 +1643,109 @@
     impRenderFournisseurs();
     document.getElementById('modal-edit-fournisseur').style.display = 'none';
     showToast('✅ Fournisseur enregistré');
+  };
+
+  // ══════════════════════════════════════
+  // COMPTES CLIENTS PAR MARQUE (mapping cabinet → numero de compte)
+  // ══════════════════════════════════════
+
+  // Helper autocomplete cabinet reutilisable (utilise par la modale comptes clients)
+  function _impAttachCabAutocomplete(input) {
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = 'position:absolute;z-index:9999;background:white;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.12);max-height:180px;overflow-y:auto;min-width:220px;display:none;';
+    document.body.appendChild(dropdown);
+
+    function positionDropdown() {
+      const r = input.getBoundingClientRect();
+      dropdown.style.top = (r.bottom + window.scrollY + 2) + 'px';
+      dropdown.style.left = (r.left + window.scrollX) + 'px';
+      dropdown.style.width = r.width + 'px';
+    }
+
+    const allCabs = impGetCogilogCabinets();
+    input.addEventListener('input', function() {
+      const q = this.value.trim().toUpperCase();
+      if (q.length < 1) { dropdown.style.display = 'none'; return; }
+      const matches = allCabs.filter(c => c.includes(q)).slice(0, 10);
+      if (!matches.length) { dropdown.style.display = 'none'; return; }
+      dropdown.innerHTML = matches.map(c =>
+        '<div style="padding:6px 10px;font-size:0.78rem;cursor:pointer;" onmouseover="this.style.background=\'#e3f2fd\'" onmouseout="this.style.background=\'white\'">' + escT(c) + '</div>'
+      ).join('');
+      dropdown.querySelectorAll('div').forEach(d => {
+        d.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          input.value = this.textContent;
+          dropdown.style.display = 'none';
+        });
+      });
+      positionDropdown();
+      dropdown.style.display = 'block';
+    });
+    input.addEventListener('blur', function() {
+      setTimeout(function() { dropdown.style.display = 'none'; }, 150);
+    });
+    // Nettoyage si l'input est detache du DOM
+    const observer = new MutationObserver(function() {
+      if (!document.body.contains(input)) {
+        dropdown.remove();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  window.impOuvrirComptesClients = function(fourId) {
+    const f = _impFournisseurs.find(x => x.id === fourId);
+    if (!f) return;
+    document.getElementById('imp-comptes-four-id').value = fourId;
+    document.getElementById('imp-comptes-title').textContent = 'Comptes clients — ' + f.nom;
+    const list = document.getElementById('imp-comptes-list');
+    list.innerHTML = '';
+    const entries = Object.entries(f.comptesClients || {}).sort((a, b) => a[0].localeCompare(b[0]));
+    if (!entries.length) {
+      window.impAjouterLigneCompteClient();
+    } else {
+      entries.forEach(([cab, num]) => window.impAjouterLigneCompteClient(cab, num));
+    }
+    document.getElementById('modal-comptes-clients').style.display = 'flex';
+  };
+
+  window.impAjouterLigneCompteClient = function(cabinet, numero) {
+    const list = document.getElementById('imp-comptes-list');
+    const row = document.createElement('div');
+    row.className = 'imp-compte-row';
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+    row.innerHTML =
+      '<input type="text" class="imp-compte-cabinet" placeholder="Nom cabinet" value="' +
+        escT(cabinet || '') + '" style="flex:2;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:0.8rem;">' +
+      '<input type="text" class="imp-compte-numero" placeholder="N° de compte" value="' +
+        escT(numero || '') + '" style="flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:0.8rem;">' +
+      '<button type="button" title="Supprimer" style="background:#fce4ec;color:#c62828;border:none;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:0.8rem;">✕</button>';
+    row.querySelector('button').addEventListener('click', function() { row.remove(); });
+    list.appendChild(row);
+    _impAttachCabAutocomplete(row.querySelector('.imp-compte-cabinet'));
+  };
+
+  window.impSauverComptesClients = async function() {
+    const fourId = document.getElementById('imp-comptes-four-id').value;
+    const f = _impFournisseurs.find(x => x.id === fourId);
+    if (!f) return;
+    const rows = document.querySelectorAll('#imp-comptes-list .imp-compte-row');
+    const comptes = {};
+    rows.forEach(function(row) {
+      const cab = row.querySelector('.imp-compte-cabinet').value.trim().toUpperCase();
+      const num = row.querySelector('.imp-compte-numero').value.trim();
+      if (cab && num) comptes[cab] = num;
+    });
+    f.comptesClients = comptes;
+    try {
+      await impSauverFournisseursDB();
+      document.getElementById('modal-comptes-clients').style.display = 'none';
+      impRenderFournisseurs();
+      showToast('✓ Comptes clients enregistrés (' + Object.keys(comptes).length + ')');
+    } catch (e) {
+      showToast('❌ Erreur sauvegarde : ' + e.message, true);
+    }
   };
 
   function impRenderFournisseurs() {
@@ -1682,6 +1787,10 @@
       btns += '<button onclick="impMailFournisseur(\'' + idEsc + '\')" title="Envoyer un mail" style="color:#0277bd;">✉️</button>';
       btns += '<button onclick="impVoirStock(\'' + nomEsc + '\')" title="Voir stock">📦</button>';
       if (f.catalogueUrl) btns += '<button onclick="impOuvrirCatalogue(\'' + idEsc + '\')" title="Catalogue PDF" style="color:#6a1b9a;">📖</button>';
+      // Bouton comptes clients avec badge (nb de cabinets configures)
+      var nbComptes = Object.keys(f.comptesClients || {}).length;
+      var badgeC = nbComptes ? '<span style="background:#2e7d32;color:white;border-radius:10px;padding:0 5px;font-size:0.62rem;margin-left:3px;vertical-align:top;">' + nbComptes + '</span>' : '';
+      btns += '<button onclick="impOuvrirComptesClients(\'' + idEsc + '\')" title="Gérer les comptes clients" style="color:#2e7d32;">💳' + badgeC + '</button>';
       btns += '<button onclick="impEditerFournisseur(\'' + idEsc + '\')" title="Modifier">✏️</button>';
       if (isArchived) {
         btns += '<button onclick="impDesarchiverFournisseur(\'' + idEsc + '\')" title="Desarchiver" style="color:#2e7d32;">↩</button>';
@@ -2563,7 +2672,20 @@
     body += 'Facturation : ' + cabNom;
     if (cabAdresse) body += ' - ' + cabAdresse;
     if (cabTel) body += ' - ' + cabTel;
-    body += '\n\n';
+    body += '\n';
+
+    // Numero de compte pour cette marque (si configure)
+    if (fournisseur.comptesClients && cabNom) {
+      var cabUp = (cabNom || '').toUpperCase();
+      var compte = fournisseur.comptesClients[cabUp];
+      if (!compte) {
+        var k = Object.keys(fournisseur.comptesClients).find(function(x) { return x.toUpperCase() === cabUp; });
+        if (k) compte = fournisseur.comptesClients[k];
+      }
+      if (compte) body += 'N° de compte : ' + compte + '\n';
+    }
+    body += '\n';
+
     body += 'Patient : \n\n';
     body += 'Pi\u00e8ces \u00e0 commander :\n\n\n\n';
     body += 'Livraison laboratoire I LOVE SMILE, 23 RUE BOURSAULT 75017\n';
@@ -2703,7 +2825,20 @@
       body += 'Facturation : ' + cab;
       if (adresse) body += ' - ' + adresse;
       if (tel) body += ' - ' + tel;
-      body += '\n\n';
+      body += '\n';
+
+      // Numero de compte pour cette marque (si configure) — lookup case-insensitive.
+      // Si absent : pas de mention (comportement inchange).
+      if (fournisseur && fournisseur.comptesClients) {
+        var cabUp = cab.toUpperCase();
+        var compte = fournisseur.comptesClients[cabUp];
+        if (!compte) {
+          var k = Object.keys(fournisseur.comptesClients).find(function(x) { return x.toUpperCase() === cabUp; });
+          if (k) compte = fournisseur.comptesClients[k];
+        }
+        if (compte) body += 'N° de compte : ' + compte + '\n';
+      }
+      body += '\n';
 
       // Patients sur une ligne, separes par /
       var patients = [];
