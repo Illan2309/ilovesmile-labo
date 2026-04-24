@@ -1082,8 +1082,11 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
         let bx = x + 5 + labelW + 3;
         var _bxStart = bx; // pour wrap
 
-        // Parser les dents de cet acte
+        // Parser les dents de cet acte puis trier en ORDRE ANATOMIQUE FDI
+        // (peu importe ce que l'IA renvoie — ex: "11 12 13 14" devient "14-11"
+        // anatomiquement, la molaire étant au fond de l'arcade).
         const dentsList = parseDentsString(item.teeth); // gère espaces ET plages FDI ex: 16-14
+        dentsList.sort((a, b) => _fdiPos(a) - _fdiPos(b));
 
         // Grouper les dents consécutives du même solidGroup
         const dentGroups = []; // [{dents:[], type:'solid'|'unit'|null}]
