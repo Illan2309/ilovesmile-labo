@@ -744,16 +744,38 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
 
   // ─── SECTION 3 : FIXED + REMOVABLE ───────────────────────────────────────
 
-  // Helper : compacter une liste de dents en plage "21-27" si consécutives
+  // Helper : compacter une liste de dents en plage "17-27" si consécutives
+  // Utilise l'ORDRE ANATOMIQUE FDI (pas l'ordre numérique) pour que les bridges
+  // traversant la ligne médiane soient affichés comme 1 plage continue.
+  //   Haut : 18 17 16 15 14 13 12 11 | 21 22 23 24 25 26 27 28
+  //   Bas  : 48 47 46 45 44 43 42 41 | 31 32 33 34 35 36 37 38
+  // Ex : [11,12,...,17,21,...,27] → "17-27" (PAS "11-17 21-27" qui suggère
+  // à tort 2 bridges séparés).
+  const _FDI_H = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+  const _FDI_B = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+  function _fdiPos(d) {
+    var i = _FDI_H.indexOf(d);
+    if (i !== -1) return i;
+    i = _FDI_B.indexOf(d);
+    return i !== -1 ? _FDI_H.length + i : -1;
+  }
   const _compactDents = (arr) => {
     if (!arr.length) return '';
-    const sorted = [...arr].sort((a,b)=>a-b);
+    // Tri anatomique : les dents sont classées selon leur position sur l'arcade
+    const sorted = arr.slice().filter(function(d) { return _fdiPos(d) !== -1; })
+      .sort(function(a, b) { return _fdiPos(a) - _fdiPos(b); });
+    if (!sorted.length) return '';
+    // Grouper les dents consécutives anatomiquement
     const groups = [];
     let start = sorted[0], prev = sorted[0];
     for (let i = 1; i <= sorted.length; i++) {
-      if (sorted[i] === prev + 1) { prev = sorted[i]; continue; }
+      const curr = sorted[i];
+      if (curr !== undefined && _fdiPos(curr) === _fdiPos(prev) + 1) {
+        prev = curr;
+        continue;
+      }
       groups.push(start === prev ? String(start) : start + '-' + prev);
-      start = prev = sorted[i];
+      start = prev = curr;
     }
     return groups.join(' ');
   };
