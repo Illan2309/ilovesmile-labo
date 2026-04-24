@@ -856,11 +856,41 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     } else {
       // Sous-items restants : Inlay Core clavette, Implant scellé/transvisé, Épaulement, Ailette
       const parentNoGroup = ['Inlay Core clavette','Inlay Onlay métal'].includes(v);
+
+      // Cas spécial : 'Inlay Core clavette' (pin keys). Il peut couvrir des dents qui
+      // appartiennent à 'Inlay Core' (POST CORE) ET/OU 'Inlay Core céramisé'
+      // (POST CORE ceramised). On split en 1 ou 2 sous-items distincts pour que
+      // chacun soit affiché sous son parent réel avec le bon préfixe.
+      if (v === 'Inlay Core clavette') {
+        const _splitDents = (s) => (s || '').replace(/^[^|]*\|/, '').split(/[\s,]+/).map(Number).filter(d => d > 0);
+        const clavetteDents = _splitDents(teeth);
+        const icDents       = _splitDents(_dentsAct['Inlay Core'] || '');
+        const icCerDents    = _splitDents(_dentsAct['Inlay Core céramisé'] || '');
+        const forIC    = clavetteDents.filter(d => icDents.includes(d));
+        const forCer   = clavetteDents.filter(d => icCerDents.includes(d));
+        const orphan   = clavetteDents.filter(d => !icDents.includes(d) && !icCerDents.includes(d));
+
+        const pushClavette = (dentsArr, parentVal, parentLabel) => {
+          if (!dentsArr.length) return;
+          fixedItems.push({
+            label: parentLabel + ' pin keys',
+            teeth: dentsArr.sort((a,b) => a - b).join(' '),
+            bold: false, indent: true, tag: '',
+            isFinition: false, noGroupColor: true,
+            _origVal: 'Inlay Core clavette',
+            _parentVal: parentVal
+          });
+        };
+        pushClavette(forIC,  'Inlay Core',          'POST CORE');
+        pushClavette(forCer, 'Inlay Core céramisé', 'POST CORE ceramised');
+        pushClavette(orphan, null,                  'POST CORE');
+        return; // skip le push générique
+      }
+
       let subLabel = label;
       // Préfixer avec le nom du parent si le sous-item commence par des espaces
       if (subLabel.startsWith('  ')) {
         const parentMap = {
-          'Inlay Core clavette': 'POST CORE',
           'Inlay Onlay métal': 'INLAY ONLAY',
           'Implant scellé': 'IMPLANT', 'Implant transvisé': 'IMPLANT',
         };
@@ -871,12 +901,28 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     }
   });
 
-  // Trier : Inlay Core + ses variantes/sous-items en premier
+  // Trier : Inlay Core parents + clavettes associées, interleavés
+  // Ordre voulu :
+  //   Inlay Core main  →  ses pin keys (dents qui matchent Inlay Core)
+  //   Inlay Core céramisé main  →  ses pin keys (dents qui matchent céramisé)
+  //   Clavettes orphelines (si aucune dent parent) à la fin
   const _icVals = new Set(['Inlay Core','Inlay Core céramisé','Inlay Core clavette']);
   const icItems = fixedItems.filter(i => _icVals.has(i._val) || _icVals.has(i._origVal));
   const otherItems = fixedItems.filter(i => !_icVals.has(i._val) && !_icVals.has(i._origVal));
+
+  const icMain        = icItems.find(i => i._val === 'Inlay Core');
+  const icCerMain     = icItems.find(i => i._val === 'Inlay Core céramisé');
+  const icClavettes   = icItems.filter(i => i._origVal === 'Inlay Core clavette' && i._parentVal === 'Inlay Core');
+  const icCerClavettes= icItems.filter(i => i._origVal === 'Inlay Core clavette' && i._parentVal === 'Inlay Core céramisé');
+  const orphanClavs   = icItems.filter(i => i._origVal === 'Inlay Core clavette' && !i._parentVal);
+
+  const orderedIc = [];
+  if (icMain)    { orderedIc.push(icMain);    orderedIc.push(...icClavettes); }
+  if (icCerMain) { orderedIc.push(icCerMain); orderedIc.push(...icCerClavettes); }
+  if (orphanClavs.length) orderedIc.push(...orphanClavs);
+
   fixedItems.length = 0;
-  fixedItems.push(...icItems, ...otherItems);
+  fixedItems.push(...orderedIc, ...otherItems);
 
   // ── Build REMOVABLE items ──
   const removItems = [];
