@@ -349,6 +349,14 @@ function exportCogilogTSV() {
     // Cloner les codes pour chaque prescription (évite pollution entre bons à refaire et normaux)
     const codes = { ...chargerCodesCogilog() };
 
+    // Garde-fou : certains actes ont une logique métier couplée au code (ex:
+    // 'Inlay Core clavette' DOIT produire la ligne 1-IC/INLAY CORE METAL car
+    // la section 8 ajoute automatiquement une ligne CL/CLAVETTE distincte).
+    // Si le mapping utilisateur a été corrompu (ex: clavette → CL) on aurait
+    // 2 lignes CL et plus de ligne Inlay Core. On force donc ici les codes
+    // pour les actes à logique spéciale, indépendamment du mapping user.
+    codes['Inlay Core clavette'] = '1-IC';
+
     const codeClient = (p.code_cogilog || '').trim();
     if (!codeClient) sansCodes.push(p.code_labo || p.numero || '?');
 
