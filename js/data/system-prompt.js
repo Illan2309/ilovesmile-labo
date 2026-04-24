@@ -153,7 +153,14 @@ NE CONCERNE PAS : Inlay Core, Inlay Onlay, Facette, Ceramic Rose Collet. Si SEUL
 RÈGLE : sans mention explicite "solidaire"/"bridge" → Unitaire par défaut.
 Solidaire nécessite minimum 2 dents. 1 seule dent → toujours Unitaire.
 
-⛔ EXCLUSIVITÉ ABSOLUE : une même dent NE PEUT JAMAIS être à la fois dans un groupe "unit" ET dans un groupe "solid". Si une dent fait partie d'un bridge (solid), elle n'existe plus comme unitaire. Vérifie-le systématiquement avant de renvoyer solidGroups. Exemple INTERDIT : solidGroups:[{"type":"unit","dents":[12]},{"type":"solid","dents":[11,12,21,22]}] (la 12 ne peut pas être dans les 2).
+⛔ EXCLUSIVITÉ ABSOLUE : une même dent NE PEUT JAMAIS être à la fois dans un groupe "unit" ET dans un groupe "solid". Si une dent fait partie d'un bridge (solid), elle n'existe plus comme unitaire. Vérifie-le systématiquement avant de renvoyer solidGroups.
+⛔ CONTINUITÉ ANATOMIQUE DU BRIDGE : un groupe solid doit contenir des dents CONSÉCUTIVES sur l'arcade. Ordre anatomique :
+  Haut : 18 17 16 15 14 13 12 11 | 21 22 23 24 25 26 27 28
+  Bas  : 48 47 46 45 44 43 42 41 | 31 32 33 34 35 36 37 38
+Un bridge ne peut pas "sauter" une dent. Si le praticien veut unitaire au milieu de dents solidarisées, c'est impossible anatomiquement — relire le commentaire.
+✅ Exemple VALIDE : unit:[12] + solid:[11,21,22] (la 12 est à l'extrémité du bridge, continuité OK).
+⛔ Exemple INVALIDE : unit:[12] + solid:[11,12,21,22] (la 12 ne peut pas être dans les 2).
+⛔ Exemple INVALIDE : unit:[21] + solid:[11,12,22] (pour avoir 21 unitaire seule au milieu, il faudrait deux bridges séparés — analyser le commentaire).
 • "bridge 13-15" ou "solidarisées" → Solidaire + solidGroups: [{"type":"solid","dents":[13,14,15]}]
 • "14 15 16 unitaires" ou pas de mention → Unitaire + solidGroups: [{"type":"unit","dents":[14]},{"type":"unit","dents":[15]},{"type":"unit","dents":[16]}]
 • 1 seule dent → Unitaire + solidGroups: [{"type":"unit","dents":[21]}]

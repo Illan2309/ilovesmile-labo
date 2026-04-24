@@ -94,37 +94,97 @@ function enforceCoherenceMetier(prescription) {
   });
 
   // ── RÈGLE 3bis : Une dent NE PEUT PAS être à la fois Unitaire ET Solidaire ──
-  // L'IA oublie parfois cette exclusivité (ex: Unitaire 12 + Solidaire 11 12 21 22).
-  // Priorité au SOLID (bridge/solidarisée) : le solid reste, la dent est retirée du unit.
+  // Heuristique anatomique : on préfère retirer la dent du SOLID (un bridge
+  // ne peut pas "sauter" une dent — continuité obligatoire), MAIS seulement
+  // si le bridge reste continu après retrait. Sinon on retire du UNIT.
+  //
+  // Ordre anatomique FDI sur chaque arcade :
+  //   Haut : 18 17 16 15 14 13 12 11 | 21 22 23 24 25 26 27 28
+  //   Bas  : 48 47 46 45 44 43 42 41 | 31 32 33 34 35 36 37 38
+  // Un bridge est physiquement possible seulement si ses dents sont
+  // consécutives dans cet ordre.
   (function() {
-    var solidDentsSet = {};
-    solidGroups.forEach(function(g) {
-      if (g.type === 'solid' && g.dents) g.dents.forEach(function(d) { solidDentsSet[d] = true; });
-    });
-    var dentsConflit = [];
-    solidGroups.forEach(function(g) {
-      if (g.type === 'unit' && g.dents) {
-        var before = g.dents.length;
-        g.dents = g.dents.filter(function(d) {
-          if (solidDentsSet[d]) { dentsConflit.push(d); return false; }
-          return true;
-        });
+    var DENT_ORDER = {};
+    [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28].forEach(function(d,i) { DENT_ORDER[d] = i; });
+    [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38].forEach(function(d,i) { DENT_ORDER[d] = i + 100; });
+
+    function isBridgeContinu(dents) {
+      if (!dents || dents.length < 2) return true;
+      var idx = dents.map(function(d) { return DENT_ORDER[d]; })
+        .filter(function(i) { return i !== undefined; })
+        .sort(function(a,b) { return a - b; });
+      for (var k = 1; k < idx.length; k++) {
+        if (idx[k] !== idx[k-1] + 1) return false;
       }
+      return true;
+    }
+
+    // Indexer quelles dents sont dans quel groupe unit (pour retirer si besoin)
+    var unitDentsMap = {};
+    solidGroups.forEach(function(g) {
+      if (g.type === 'unit' && g.dents) g.dents.forEach(function(d) { unitDentsMap[d] = g; });
     });
-    // Nettoyer les groupes unit vides
-    solidGroups = solidGroups.filter(function(g) {
-      return g.type !== 'unit' || (g.dents && g.dents.length > 0);
+    var dentsRetireesDuSolid = [], dentsRetireesDuUnit = [];
+
+    solidGroups.forEach(function(g) {
+      if (g.type !== 'solid' || !g.dents) return;
+      var nouvDents = g.dents.slice();
+      // Pour chaque dent aussi présente en unit, décider si on peut la retirer du solid
+      g.dents.forEach(function(d) {
+        if (!unitDentsMap[d]) return;
+        var testBridge = nouvDents.filter(function(x) { return x !== d; });
+        if (testBridge.length >= 2 && isBridgeContinu(testBridge)) {
+          // Retrait safe : le bridge reste continu → on retire la dent du solid
+          nouvDents = testBridge;
+          dentsRetireesDuSolid.push(d);
+        } else {
+          // Retrait impossible (casserait la continuité) → on retire du unit
+          var unitG = unitDentsMap[d];
+          unitG.dents = unitG.dents.filter(function(x) { return x !== d; });
+          dentsRetireesDuUnit.push(d);
+        }
+      });
+      g.dents = nouvDents;
     });
-    // Si aucune unit restante mais 'Unitaire' dans conjointe → retirer le flag
-    var hasUnitGroup = solidGroups.some(function(g) { return g.type === 'unit'; });
+
+    // Nettoyage groupes vides / invalides
+    solidGroups = solidGroups.reduce(function(acc, g) {
+      if (g.type === 'unit' && (!g.dents || g.dents.length === 0)) return acc;
+      if (g.type === 'solid' && (!g.dents || g.dents.length === 0)) return acc;
+      if (g.type === 'solid' && g.dents.length === 1) {
+        // Solid retombé à 1 dent → convertir en unit si pas déjà
+        var exists = acc.some(function(gg) {
+          return gg.type === 'unit' && gg.dents && gg.dents.indexOf(g.dents[0]) !== -1;
+        });
+        if (!exists) acc.push({ type: 'unit', dents: g.dents });
+        return acc;
+      }
+      acc.push(g);
+      return acc;
+    }, []);
+
+    // Maj flags conjointe si besoin
+    var hasSolidGroup = solidGroups.some(function(g) { return g.type === 'solid' && g.dents.length >= 2; });
+    var hasUnitGroup  = solidGroups.some(function(g) { return g.type === 'unit'  && g.dents.length >= 1; });
+    if (!hasSolidGroup && conjointe.includes('Solidaire')) {
+      conjointe = conjointe.filter(function(c) { return c !== 'Solidaire'; });
+    }
     if (!hasUnitGroup && conjointe.includes('Unitaire')) {
       conjointe = conjointe.filter(function(c) { return c !== 'Unitaire'; });
     }
-    if (dentsConflit.length) {
+
+    if (dentsRetireesDuSolid.length) {
       corrections.push({
         champ: 'solidGroups',
-        regle: 'unit-solid-exclusif',
-        message: 'Dent(s) ' + dentsConflit.join(',') + ' à la fois unitaire et solidaire → retirée(s) de l\'unitaire (priorité au bridge)'
+        regle: 'unit-solid-exclusif-solid',
+        message: 'Dent(s) ' + dentsRetireesDuSolid.join(',') + ' déjà en unitaire → retirée(s) du bridge (anatomie préservée)'
+      });
+    }
+    if (dentsRetireesDuUnit.length) {
+      corrections.push({
+        champ: 'solidGroups',
+        regle: 'unit-solid-exclusif-unit',
+        message: 'Dent(s) ' + dentsRetireesDuUnit.join(',') + ' au milieu du bridge → retirée(s) de l\'unitaire (bridge continu impossible sinon)'
       });
     }
   })();
