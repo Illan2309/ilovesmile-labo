@@ -349,13 +349,19 @@ function exportCogilogTSV() {
     // Cloner les codes pour chaque prescription (évite pollution entre bons à refaire et normaux)
     const codes = { ...chargerCodesCogilog() };
 
-    // Garde-fou : certains actes ont une logique métier couplée au code (ex:
-    // 'Inlay Core clavette' DOIT produire la ligne 1-IC/INLAY CORE METAL car
-    // la section 8 ajoute automatiquement une ligne CL/CLAVETTE distincte).
-    // Si le mapping utilisateur a été corrompu (ex: clavette → CL) on aurait
-    // 2 lignes CL et plus de ligne Inlay Core. On force donc ici les codes
-    // pour les actes à logique spéciale, indépendamment du mapping user.
-    codes['Inlay Core clavette'] = '1-IC';
+    // Garde-fou : 'Inlay Core clavette' implique toujours un Inlay Core (metal
+    // ou céramisé). Le code dépend du contexte :
+    // - Si 'Inlay Core céramisé' est aussi coché → clavette redondante, on
+    //   laisse céramisé produire la ligne 1-ICCER (filtrage plus bas).
+    // - Sinon → clavette produit 1-IC (metal par défaut).
+    // Dans tous les cas, une ligne CL séparée est ajoutée en section 8.
+    // Ce hardcode protège aussi contre un mapping utilisateur corrompu.
+    const _tousActes = [...new Set([...(p.conjointe || []), ...(p.adjointe || [])])];
+    if (_tousActes.includes('Inlay Core clavette')) {
+      codes['Inlay Core clavette'] = _tousActes.includes('Inlay Core céramisé')
+        ? '1-ICCER'   // sera filtré de toute façon (cf. section 6), mais cohérent
+        : '1-IC';     // metal par défaut quand clavette est seule ou avec IC
+    }
 
     const codeClient = (p.code_cogilog || '').trim();
     if (!codeClient) sansCodes.push(p.code_labo || p.numero || '?');
@@ -626,6 +632,10 @@ function exportCogilogTSV() {
       if (!code || code.trim() === '') return false; // pas de code = pas de ligne
       if (acte === 'Inlay Onlay' && (tousActes.includes('Inlay Onlay composite') || tousActes.includes('Inlay Onlay céramique') || tousActes.includes('Inlay Onlay métal'))) return false;
       if (acte === 'Inlay Core' && (tousActes.includes('Inlay Core céramisé') || tousActes.includes('Inlay Core clavette'))) return false;
+      // Si céramisé présent : 'Inlay Core clavette' est redondant (sinon on aurait
+      // à la fois 1-IC et 1-ICCER). La ligne 1-ICCER vient de 'Inlay Core céramisé'
+      // et la CL est ajoutée séparément en section 8.
+      if (acte === 'Inlay Core clavette' && tousActes.includes('Inlay Core céramisé')) return false;
       // Stellite mère → supprimée si finition ou montage présent
       if (acte === 'Stellite' && (tousActes.includes('Stellite finition stellite') || tousActes.includes('Stellite montage stellite') || tousActes.includes('Stellite sup. valplast'))) return false;
       // Valplast/App résine/Complet mère → supprimée si finition ou montage présent

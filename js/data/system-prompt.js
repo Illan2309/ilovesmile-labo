@@ -72,7 +72,7 @@ CONJOINTE :
 • "IO" / "onlay" / "inlay" sans matériau précisé → Inlay Onlay composite (défaut)
 • "IC" / "inlay core" / "inlay core métal" → Inlay Core
 • "inlay core céramisé" / "IC céramisé" / "IC céramique" → Inlay Core céramisé (SEULEMENT si "céramisé"/"céramique" EXPLICITEMENT écrit, sinon Inlay Core simple)
-• "inlay core clavette" / "IC clavette" → Inlay Core clavette
+• "inlay core clavette" / "IC clavette" / "clavette" (seul) → Inlay Core clavette + AUSSI Inlay Core (ou Inlay Core céramisé si "céramisé"/"céramique" présent). Une clavette implique toujours un inlay core : ne jamais cocher clavette sans son inlay core parent.
 • "facette composite" → Facette composite
 • "facette céramique" / "facette porcelaine" → Facette céramique
 • "provisoire" / "temporaire" (couronne) → Dent provisoire
