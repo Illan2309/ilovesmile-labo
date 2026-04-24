@@ -1,4 +1,17 @@
 window._dentsActesCourant = {};
+// Quantités manuelles par acte (Stellite/App résine/Valplast) — édition
+// via la bulle clic-droit. Prime sur le calcul auto à l'export Cogilog.
+window._quantitesActesCourant = window._quantitesActesCourant || {};
+
+// Liste des actes où on peut éditer la quantité manuellement
+// (amovibles éligibles : cas comme Valplast coupé en 2, etc.)
+window._ACTES_QTY_EDITABLE = new Set([
+  'Stellite', 'Stellite plaque nue',
+  'Stellite finition', 'Stellite finition stellite',
+  'Stellite montage stellite', 'Stellite sup. valplast', 'Stellite Valplast',
+  'App résine', 'App résine finition', 'App résine montage',
+  'Valplast', 'Valplast finition', 'Valplast montage',
+]);
 
 // Tous les items adjointe ont Haut/Bas + dent optionnel (sauf ACTES_SANS_DETAIL)
 // Items conjointe avec leur propre numéro de dent
@@ -156,6 +169,10 @@ function ouvrirBulleActe(cb, triggerEvent) {
   const isAdjDent = acteIsAdjointegDent(val);
   const isOpt = isAdjDent || isSousDent; // champ dent optionnel
 
+  // Quantité manuelle éditable pour certains amovibles (Stellite/PAP/Valplast)
+  const isQtyEditable = window._ACTES_QTY_EDITABLE && window._ACTES_QTY_EDITABLE.has(val);
+  const currentQty = (window._quantitesActesCourant && window._quantitesActesCourant[val]) || '';
+
   popup.innerHTML = `
     <div style="font-size:0.72rem;font-weight:700;color:#1a5c8a;margin-bottom:8px;display:flex;justify-content:space-between;">
       <span>📌 ${val}</span>
@@ -185,6 +202,16 @@ function ouvrirBulleActe(cb, triggerEvent) {
         autocomplete="off">
       <div id="acte-qty-preview" style="font-size:0.68rem;color:#2e7d32;min-height:14px;margin-bottom:6px;"></div>
     `}
+    ${isQtyEditable ? `
+      <div style="border-top:1px dashed #d0e0ea;margin:6px 0 4px;padding-top:6px;">
+        <div style="font-size:0.68rem;color:#888;margin-bottom:3px;">Quantité facturée Cogilog <span style="color:#aaa;font-style:italic;">(optionnel)</span></div>
+        <input type="number" min="1" max="9" id="acte-qty-manual" placeholder="auto (haut=1, haut+bas=2)"
+          value="${currentQty}"
+          onkeydown="if(event.key==='Enter'){validerBulleActe();}"
+          style="width:100%;box-sizing:border-box;padding:4px 7px;font-size:0.78rem;border:1px solid #c8daf8;border-radius:7px;margin-bottom:4px;font-family:inherit;" autocomplete="off">
+        <div style="font-size:0.64rem;color:#aaa;">Ex : Valplast coupé en 2 → qty = 2</div>
+      </div>
+    ` : ''}
     <div class="acte-popup-actions">
       <button class="acte-popup-ok" onclick="validerBulleActe()">✓ OK</button>
       <button class="acte-popup-clear" onclick="effacerDetailActe(decodeURIComponent('${_enc(val)}'))">✕ Effacer</button>
@@ -258,6 +285,20 @@ function validerBulleActe() {
     window._dentsActesCourant[_bulleCurrentCb.value] = stored;
     syncQtyFromDents(_bulleCurrentCb.value, parseDentsString(machDents), jaw);
   }
+
+  // Quantité manuelle (Stellite/PAP/Valplast) — prime sur le calcul auto Cogilog
+  const qtyInp = document.getElementById('acte-qty-manual');
+  if (qtyInp) {
+    window._quantitesActesCourant = window._quantitesActesCourant || {};
+    const qtyVal = parseInt((qtyInp.value || '').trim());
+    if (qtyVal && qtyVal > 0) {
+      window._quantitesActesCourant[_bulleCurrentCb.value] = qtyVal;
+    } else {
+      // Vide ou invalide → retour au calcul auto
+      delete window._quantitesActesCourant[_bulleCurrentCb.value];
+    }
+  }
+
   window._jawTmp = null;
   rafraichirBadgeActe(_bulleCurrentCb);
   fermerBulleActe();
@@ -265,6 +306,7 @@ function validerBulleActe() {
 
 function effacerDetailActe(val) {
   delete window._dentsActesCourant[val];
+  if (window._quantitesActesCourant) delete window._quantitesActesCourant[val];
   if (_bulleCurrentCb) {
     rafraichirBadgeActe(_bulleCurrentCb);
 
@@ -305,8 +347,12 @@ function rafraichirBadgeActe(cb) {
   lbl.appendChild(badge);
 }
 
-function appliquerDentsActes(dentsActes) {
+function appliquerDentsActes(dentsActes, quantites) {
   window._dentsActesCourant = Object.assign({}, dentsActes || {});
+  // Restaurer aussi les quantités manuelles (Stellite/PAP/Valplast) si présentes
+  if (quantites && typeof quantites === 'object') {
+    window._quantitesActesCourant = Object.assign({}, quantites);
+  }
   // Supprimer TOUS les badges existants (cases cochées ET non cochées)
   document.querySelectorAll('input[name="conjointe"], input[name="adjointe"]').forEach(cb => {
     const lbl = cb.closest('label');

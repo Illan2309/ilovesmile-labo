@@ -664,6 +664,7 @@ function fillFormFromScan(data, _ignoreCodeLabo = false) {
   // Reset complet — badges, groupes, sélection
   clearTimeout(window._dentsActesTimeout);
   window._dentsActesCourant = {};
+  window._quantitesActesCourant = {};
   window._solidGroups = [];
   window._usSelection = new Set();
   document.querySelectorAll('.acte-detail-badge').forEach(b => b.remove());

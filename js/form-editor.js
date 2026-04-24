@@ -244,6 +244,14 @@ function savePrescription() {
           q[inp.dataset.acte] = parseInt(inp.value) || 1;
         }
       });
+      // Merger les quantités manuelles saisies via la bulle clic-droit
+      // (Stellite/App résine/Valplast — cas rare du Valplast coupé en 2 etc.)
+      if (window._quantitesActesCourant) {
+        Object.keys(window._quantitesActesCourant).forEach(function(acte) {
+          var v = parseInt(window._quantitesActesCourant[acte]);
+          if (v && v > 0) q[acte] = v;
+        });
+      }
       return q;
     })(),
     dentExtraire: (window._dentsActesCourant || {})['Dent à extraire'] || document.getElementById('dent-extraire').value.trim(),
@@ -678,6 +686,7 @@ function editPrescription(i) {
   // Reset badges/groupes AVANT de cocher les cases
   clearTimeout(window._dentsActesTimeout);
   window._dentsActesCourant = {};
+  window._quantitesActesCourant = {};
   window._solidGroups = [];
   window._usSelection = new Set();
   document.querySelectorAll('.acte-detail-badge').forEach(b => b.remove());
@@ -697,7 +706,7 @@ function editPrescription(i) {
   });
 
   // Appliquer dentsActes et solidGroups APRÈS les cases cochées
-  appliquerDentsActes(p.dentsActes);
+  appliquerDentsActes(p.dentsActes, p.quantites);
   appliquerSolidGroups(p.solidGroups);
 
   // Quantités — restaurer les valeurs et afficher/masquer les inputs

@@ -493,7 +493,13 @@ function exportCogilogTSV() {
       }
       const _posRaw = rawD.includes('|') ? rawD.split('|')[0].trim() : rawD;
 
-      if (isAmovible) {
+      // Quantité manuelle saisie dans la bulle clic-droit (Stellite/PAP/Valplast
+      // principalement). Si définie et > 0, elle prime sur TOUT calcul auto.
+      const _manualQty = (p.quantites && p.quantites[libelle] != null)
+        ? parseInt(p.quantites[libelle]) : null;
+      if (_manualQty != null && _manualQty > 0) {
+        qty = _manualQty;
+      } else if (isAmovible) {
         // Amovible haut+bas → quantité 2
         if (_posRaw === 'haut+bas') qty = 2;
       } else if (!qty || qty === 1) {
