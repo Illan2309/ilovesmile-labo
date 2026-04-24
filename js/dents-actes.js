@@ -3,14 +3,13 @@ window._dentsActesCourant = {};
 // via la bulle clic-droit. Prime sur le calcul auto à l'export Cogilog.
 window._quantitesActesCourant = window._quantitesActesCourant || {};
 
-// Liste des actes où on peut éditer la quantité manuellement
-// (amovibles éligibles : cas comme Valplast coupé en 2, etc.)
+// Liste des actes où on peut éditer la quantité manuellement.
+// Restreint aux 3 actes de finition d'appareil amovible : cas rare
+// d'un appareil coupé en 2 (ackers) qui doit être facturé en 2 unités.
 window._ACTES_QTY_EDITABLE = new Set([
-  'Stellite', 'Stellite plaque nue',
-  'Stellite finition', 'Stellite finition stellite',
-  'Stellite montage stellite', 'Stellite sup. valplast', 'Stellite Valplast',
-  'App résine', 'App résine finition', 'App résine montage',
-  'Valplast', 'Valplast finition', 'Valplast montage',
+  'Stellite finition stellite',
+  'App résine finition',
+  'Valplast finition',
 ]);
 
 // Tous les items adjointe ont Haut/Bas + dent optionnel (sauf ACTES_SANS_DETAIL)
