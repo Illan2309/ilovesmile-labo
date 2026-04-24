@@ -748,13 +748,45 @@ function exportCogilogTSV() {
     // 10. Générer les lignes produit
     const quantites = p.quantites || {};
 
+    // Tri anatomique FDI (visuel uniquement — source en Firestore inchangée)
+    //   Haut : 18 17 16 15 14 13 12 11 | 21 22 23 24 25 26 27 28
+    //   Bas  : 48 47 46 45 44 43 42 41 | 31 32 33 34 35 36 37 38
+    const _COG_FDI_H = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+    const _COG_FDI_B = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+    function _cogFdiPos(d) {
+      var i = _COG_FDI_H.indexOf(d);
+      if (i !== -1) return i;
+      i = _COG_FDI_B.indexOf(d);
+      return i !== -1 ? _COG_FDI_H.length + i : 999;
+    }
+    function _cogSortAnat(arr) {
+      return arr.slice().sort(function(a, b) { return _cogFdiPos(a) - _cogFdiPos(b); });
+    }
+    // Trie les dents dans une string (ex: "31 11 12" → "12 11 31"),
+    // préservant les non-numériques.
+    function _cogSortStr(str) {
+      if (!str || typeof str !== 'string') return str;
+      var tokens = str.split(/(\s+)/);
+      var dentNums = [], dentIdx = [];
+      tokens.forEach(function(t, i) {
+        var n = parseInt(t);
+        if (/^\d{2}$/.test(t) && n >= 11 && n <= 48 && _cogFdiPos(n) !== 999) {
+          dentNums.push(n); dentIdx.push(i);
+        }
+      });
+      if (dentNums.length < 2) return str;
+      var sorted = _cogSortAnat(dentNums);
+      sorted.forEach(function(d, k) { tokens[dentIdx[k]] = String(d); });
+      return tokens.join('');
+    }
+
     // Formater les dents solidarisées en groupes (ex: "(34-35) (44-45)")
     const _formatDentsSolid = (dentsActeStr) => {
       if (!dentsActeStr) return dentsFormate;
       const nums = dentsActeStr.trim().split(/[,\s]+/).filter(x => /^\d+$/.test(x)).map(Number);
       if (nums.length === 0) return dentsFormate;
       const groups = (p.solidGroups || []);
-      if (!estSolidaire || groups.length === 0) return nums.join(' ');
+      if (!estSolidaire || groups.length === 0) return _cogSortAnat(nums).join(' ');
       // Associer chaque dent à son groupe solidaire
       const dentToGroup = {};
       groups.forEach((g, i) => { (g.dents || []).forEach(d => { dentToGroup[d] = i; }); });
@@ -772,10 +804,10 @@ function exportCogilogTSV() {
       });
       const parts = [];
       Object.keys(buckets).sort((a,b) => a-b).forEach(gi => {
-        const sorted = buckets[gi].sort((a,b) => a-b);
+        const sorted = _cogSortAnat(buckets[gi]);
         parts.push('(' + sorted.join('-') + ')');
       });
-      if (noGroup.length) parts.push(noGroup.join(' '));
+      if (noGroup.length) parts.push(_cogSortAnat(noGroup).join(' '));
       return parts.join(' ');
     };
 
@@ -787,7 +819,9 @@ function exportCogilogTSV() {
         if (pipeIdx >= 0) {
           const mPart = detailActe.substring(0, pipeIdx).trim();
           const dPart = detailActe.substring(pipeIdx + 1).trim();
-          lc[23] = (mPart ? mPart + ' ' : '') + dPart;
+          // Tri anatomique de la partie dents (préserve les éventuels séparateurs)
+          const dPartSorted = _cogSortStr(dPart);
+          lc[23] = (mPart ? mPart + ' ' : '') + dPartSorted;
         } else if (ARTICLES_MACHOIRE.has(code)) {
           lc[23] = detailActe;
         } else {
@@ -849,8 +883,8 @@ function exportCogilogTSV() {
         COGILOG_LIBELLES[code] || code,
         annexeQty
       );
-      // Appliquer les dents/mâchoire si renseignées
-      if (dentVal) lc[23] = dentVal;
+      // Appliquer les dents/mâchoire si renseignées (avec tri anatomique)
+      if (dentVal) lc[23] = _cogSortStr(dentVal);
       lignes.push(lc);
     }
 
