@@ -497,7 +497,7 @@
           // 3b. Fusionner : IA pour les actes/dents, mapping Digilab pour cabinet/praticien/dates
           if (parsed) {
             // Champs où le MAPPING DIGILAB est plus fiable → toujours garder le mapping si renseigné
-            var mappingPriority = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+            var mappingPriority = ['cabinet', 'praticien', 'date_empreinte', 'date_livraison'];
             mappingPriority.forEach(function(field) {
               if (mapped[field]) {
                 parsed[field] = mapped[field];
@@ -516,7 +516,7 @@
               var pdfB64Fb = photoDataUrl.split(',')[1];
               var parsedFb = await callGemini(pdfB64Fb, 'application/pdf', false);
               if (parsedFb) {
-                var fbFields = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+                var fbFields = ['cabinet', 'praticien', 'date_empreinte', 'date_livraison'];
                 fbFields.forEach(function(f) { if (mapped[f]) parsedFb[f] = mapped[f]; });
                 mapped = parsedFb;
               }
@@ -548,7 +548,7 @@
             var parsedPdf = await callGemini(pdfBase64, 'application/pdf', false);
             if (parsedPdf) {
               // Mapping Digilab prioritaire pour cabinet/praticien/dates
-              var mappingPriority2 = ['cabinet_nom', 'praticien', 'date_empreinte', 'date_livraison'];
+              var mappingPriority2 = ['cabinet', 'praticien', 'date_empreinte', 'date_livraison'];
               mappingPriority2.forEach(function(field) {
                 if (mapped[field]) {
                   parsedPdf[field] = mapped[field];
@@ -728,10 +728,44 @@
     // Teinte : IA complète si pas trouvée dans les données structurées
     if (!mapped.teinte && ia.teinte) mapped.teinte = ia.teinte;
 
-    // Praticien : l'IA peut mieux matcher via la base Cogilog
-    if (ia.praticien && ia.praticien !== 'Dr ???') mapped.praticien = ia.praticien;
-    if (ia.cabinet) mapped.cabinet = ia.cabinet;
-    if (ia.code_cogilog) mapped.code_cogilog = ia.code_cogilog;
+    // Praticien : Digilab prime s'il a une valeur, sinon fallback IA
+    if (!mapped.praticien && ia.praticien && ia.praticien !== 'Dr ???') {
+      mapped.praticien = ia.praticien;
+    }
+
+    // Cabinet + code_cogilog : on accepte l'IA SEULEMENT si cohérent avec Digilab.
+    // Si Digilab a un cabinet et que l'IA propose un code Cogilog dont le nom
+    // n'est pas lié (ex: Digilab "PREMIER SANTE Pedro Mendes" vs IA "CLAMART MAIRIE"),
+    // on rejette l'IA pour éviter les faux matches fuzzy (ex: "Mendes" mal routé).
+    var _digilabCabUp = (mapped.cabinet || '').toUpperCase().trim();
+    var _accepteIA = true;
+    if (_digilabCabUp && ia.code_cogilog && typeof COGILOG_CLIENTS !== 'undefined'
+        && COGILOG_CLIENTS[ia.code_cogilog]) {
+      var _cogNom = (COGILOG_CLIENTS[ia.code_cogilog][3] || '').toUpperCase().trim();
+      // Match : au moins un mot significatif (>=4 chars) du nom Cogilog doit apparaître
+      // dans le cabinet Digilab, OU inversement.
+      var _motsCog = _cogNom.split(/[\s\-_,]+/).filter(function(w) { return w.length >= 4; });
+      var _motsDig = _digilabCabUp.split(/[\s\-_,]+/).filter(function(w) { return w.length >= 4; });
+      var _overlap = _motsCog.some(function(w) { return _digilabCabUp.indexOf(w) !== -1; })
+                  || _motsDig.some(function(w) { return _cogNom.indexOf(w) !== -1; });
+      if (!_overlap) {
+        console.warn('[DIGILAB] IA propose code Cogilog', ia.code_cogilog,
+          '(' + _cogNom + ') incohérent avec Digilab "' + _digilabCabUp + '" — on rejette.');
+        _accepteIA = false;
+      }
+    }
+
+    if (_accepteIA) {
+      if (ia.cabinet && !mapped.cabinet) mapped.cabinet = ia.cabinet;
+      if (ia.code_cogilog) {
+        mapped.code_cogilog = ia.code_cogilog;
+        // Enrichir le cabinet avec le nom officiel Cogilog (plus propre que "PREMIER SANTE Pedro Mendes")
+        if (typeof COGILOG_CLIENTS !== 'undefined' && COGILOG_CLIENTS[ia.code_cogilog]
+            && COGILOG_CLIENTS[ia.code_cogilog][3]) {
+          mapped.cabinet = COGILOG_CLIENTS[ia.code_cogilog][3];
+        }
+      }
+    }
 
     // Commentaires filtrés par l'IA (plus propres)
     if (ia.commentaires !== undefined) mapped.commentaires = ia.commentaires;
