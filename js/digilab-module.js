@@ -614,9 +614,12 @@
       praticienFromName = 'Dr ' + slashMatch[2].trim();
     }
 
-    // Chercher aussi le praticien dans le commentaire
+    // Chercher aussi le praticien dans le commentaire.
+    // On ne prend QUE le premier mot après "Dr"/"Docteur" : le 2e mot est
+    // trop souvent un mot parasite (ex: "Dr PEREZ Case" où "Case" vient de
+    // "Case Name:" qui suit). Noms composés à tirets (SAINT-MARTIN) supportés.
     var praticienFromComment = '';
-    var drMatch = comment.match(/(?:DR\.?\s+|Docteur\s+)([A-Z][A-Za-zÀ-ÿ\-]+(?:\s+[A-Z][A-Za-zÀ-ÿ\-]+)?)/i);
+    var drMatch = comment.match(/(?:DR\.?\s+|Docteur\s+)([A-Za-zÀ-ÿ\-]+)/i);
     if (drMatch) praticienFromComment = 'Dr ' + drMatch[1].trim();
 
     // Aussi dans "Case Name: Cas de NOM / DR NOM"
