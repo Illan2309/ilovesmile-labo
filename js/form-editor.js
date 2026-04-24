@@ -119,30 +119,11 @@ function _autoLearnAliases(ancienne, corrigee) {
     }
   }
 
-  // 2. PRATICIEN : raw_praticien (lecture brute) → praticien corrigé (max 5 alias par contact)
-  var rawPrat = _norm((scanIA.raw_praticien || '').replace(/^dr\.?\s*/i, ''));
-  var pratCorrige = (corrigee.praticien || '').replace(/^Dr\.?\s*/i, '').trim();
-  if (rawPrat && rawPrat.length >= 3 && pratCorrige && pratCorrige !== '???' && rawPrat !== _norm(pratCorrige)) {
-    var _isExistingContact = false;
-    var _allContacts = window.CONTACTS_DENTISTES || {};
-    Object.values(_allContacts).forEach(function(drList) {
-      (drList || []).forEach(function(dr) {
-        if (dr !== 'Dr ???' && _norm(dr.replace(/^Dr\.?\s*/i, '')) === rawPrat) {
-          _isExistingContact = true;
-        }
-      });
-    });
-    if (!_isExistingContact) {
-      var contactAliases = JSON.parse(localStorage.getItem('contact_aliases') || '{}');
-      var drKey = corrigee.praticien;
-      if (!contactAliases[drKey]) contactAliases[drKey] = [];
-      if (contactAliases[drKey].length < 5 && !contactAliases[drKey].includes(rawPrat)) {
-        contactAliases[drKey].push(rawPrat);
-        saveContactAliases(contactAliases);
-        showToast('🧠 Alias contact auto : "' + rawPrat + '" → ' + drKey);
-      }
-    }
-  }
+  // 2. PRATICIEN : la création auto d'alias contact est DÉSACTIVÉE.
+  // Décision : 86% des alias créés automatiquement étaient du bruit jamais
+  // matché, et certains étaient dangereux (ex: alias 3-lettres "rou").
+  // Les alias contacts restent éditables manuellement via l'UI contacts
+  // (ex: "defa" pour Dr DE FRESNOYE ANTOINE).
 }
 
 function savePrescription() {
