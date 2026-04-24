@@ -759,9 +759,10 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     i = _FDI_B.indexOf(d);
     return i !== -1 ? _FDI_H.length + i : -1;
   }
-  // Trie une string "31 11 12" en ordre anatomique FDI → "12 11 31"
-  // Préserve les mots non-numériques (ex: "haut+bas : 31 11 12" inchangé sauf
-  // les dents elles-mêmes). Utilisé pour les badges de la section REMOVABLE.
+  // Trie une string "31 11 12" en ordre anatomique FDI → "12 11 | 31"
+  // Insère automatiquement un '|' visuel entre les dents du haut et celles du
+  // bas pour rendre la lecture immédiate (utile sur les amovibles haut+bas).
+  // Préserve les mots non-numériques (ex: "UPPER + LOWER : 12 11 31 41").
   function _sortTeethAnatomic(str) {
     if (!str || typeof str !== 'string') return str;
     var tokens = str.split(/(\s+)/); // garde les séparateurs
@@ -777,6 +778,21 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     var sorted = dentTokens.slice().sort(function(a, b) { return _fdiPos(a) - _fdiPos(b); });
     // Replacer les dents dans leur ordre trié en respectant les positions d'origine
     sorted.forEach(function(d, k) { tokens[dentIdx[k]] = String(d); });
+    // Ajouter un séparateur '|' entre haut et bas si les 2 arcades présentes
+    var isBas = function(d) { return _FDI_B.indexOf(d) !== -1; };
+    for (var j = 0; j < sorted.length - 1; j++) {
+      if (!isBas(sorted[j]) && isBas(sorted[j + 1])) {
+        // Insérer '|' juste après la dent d'index dentIdx[j]
+        var insertAt = dentIdx[j];
+        // Remplacer le token suivant (espace) par ' | ' pour délimiter visuellement
+        if (tokens[insertAt + 1] !== undefined && /^\s+$/.test(tokens[insertAt + 1])) {
+          tokens[insertAt + 1] = ' | ';
+        } else {
+          tokens[insertAt] = tokens[insertAt] + ' |';
+        }
+        break;
+      }
+    }
     return tokens.join('');
   }
   const _compactDents = (arr) => {
