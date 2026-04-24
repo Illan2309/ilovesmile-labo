@@ -759,6 +759,26 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
     i = _FDI_B.indexOf(d);
     return i !== -1 ? _FDI_H.length + i : -1;
   }
+  // Trie une string "31 11 12" en ordre anatomique FDI → "12 11 31"
+  // Préserve les mots non-numériques (ex: "haut+bas : 31 11 12" inchangé sauf
+  // les dents elles-mêmes). Utilisé pour les badges de la section REMOVABLE.
+  function _sortTeethAnatomic(str) {
+    if (!str || typeof str !== 'string') return str;
+    var tokens = str.split(/(\s+)/); // garde les séparateurs
+    var dentTokens = [], dentIdx = [];
+    tokens.forEach(function(t, i) {
+      var n = parseInt(t);
+      if (/^\d{2}$/.test(t) && n >= 11 && n <= 48 && _fdiPos(n) !== -1) {
+        dentTokens.push(n);
+        dentIdx.push(i);
+      }
+    });
+    if (dentTokens.length < 2) return str;
+    var sorted = dentTokens.slice().sort(function(a, b) { return _fdiPos(a) - _fdiPos(b); });
+    // Replacer les dents dans leur ordre trié en respectant les positions d'origine
+    sorted.forEach(function(d, k) { tokens[dentIdx[k]] = String(d); });
+    return tokens.join('');
+  }
   const _compactDents = (arr) => {
     if (!arr.length) return '';
     // Tri anatomique : les dents sont classées selon leur position sur l'arcade
@@ -965,13 +985,13 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
 
     // Dent à extraire : afficher les numéros de dents (dentExtraire), jamais la mâchoire
     if (v === 'Dent à extraire') {
-      const dentStr = (p.dentExtraire || '').trim();
+      const dentStr = _sortTeethAnatomic((p.dentExtraire || '').trim());
       removItems.push({ label, jaw: '', teeth: dentStr || '', bold: isMain, indent: !isMain && !isDent, isDent });
       return;
     }
 
     const jaw   = jawLabel(raw);
-    const teeth = teethBadge(raw);
+    const teeth = _sortTeethAnatomic(teethBadge(raw));
     removItems.push({ label, jaw, teeth, bold: isMain && !isAckers, indent: isAckers, isDent, isFinition: isAckers, _v: v });
   });
 
