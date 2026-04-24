@@ -1094,6 +1094,26 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
           }
         }
 
+        // Post-merge : si 'Solidaire' est coché mais que certaines dents de
+        // l'acte ne sont dans aucun solidGroup explicite (cas des implants
+        // transvisés sur un grand bridge où seules quelques dents Rose Collet
+        // sont dans le solidGroup), elles tombent en fallback individuel de
+        // type 'solid'. On fusionne ces fallbacks consécutifs en un seul badge
+        // groupé (visuellement cohérent avec le concept JOINED).
+        if (!item.noGroupColor && hasSolid) {
+          const mergedGroups = [];
+          dentGroups.forEach(grp => {
+            const last = mergedGroups[mergedGroups.length - 1];
+            if (last && last.type === 'solid' && grp.type === 'solid') {
+              last.dents = last.dents.concat(grp.dents);
+            } else {
+              mergedGroups.push({ dents: grp.dents.slice(), type: grp.type });
+            }
+          });
+          dentGroups.length = 0;
+          dentGroups.push(...mergedGroups);
+        }
+
         // Dessiner chaque groupe de badges
         dentGroups.forEach(grp => {
           const isSolid = grp.type === 'solid';
