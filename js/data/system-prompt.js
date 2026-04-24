@@ -152,6 +152,8 @@ NE CONCERNE PAS : Inlay Core, Inlay Onlay, Facette, Ceramic Rose Collet. Si SEUL
 
 RÈGLE : sans mention explicite "solidaire"/"bridge" → Unitaire par défaut.
 Solidaire nécessite minimum 2 dents. 1 seule dent → toujours Unitaire.
+
+⛔ EXCLUSIVITÉ ABSOLUE : une même dent NE PEUT JAMAIS être à la fois dans un groupe "unit" ET dans un groupe "solid". Si une dent fait partie d'un bridge (solid), elle n'existe plus comme unitaire. Vérifie-le systématiquement avant de renvoyer solidGroups. Exemple INTERDIT : solidGroups:[{"type":"unit","dents":[12]},{"type":"solid","dents":[11,12,21,22]}] (la 12 ne peut pas être dans les 2).
 • "bridge 13-15" ou "solidarisées" → Solidaire + solidGroups: [{"type":"solid","dents":[13,14,15]}]
 • "14 15 16 unitaires" ou pas de mention → Unitaire + solidGroups: [{"type":"unit","dents":[14]},{"type":"unit","dents":[15]},{"type":"unit","dents":[16]}]
 • 1 seule dent → Unitaire + solidGroups: [{"type":"unit","dents":[21]}]

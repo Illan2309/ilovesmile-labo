@@ -93,6 +93,42 @@ function enforceCoherenceMetier(prescription) {
     }
   });
 
+  // ── RÈGLE 3bis : Une dent NE PEUT PAS être à la fois Unitaire ET Solidaire ──
+  // L'IA oublie parfois cette exclusivité (ex: Unitaire 12 + Solidaire 11 12 21 22).
+  // Priorité au SOLID (bridge/solidarisée) : le solid reste, la dent est retirée du unit.
+  (function() {
+    var solidDentsSet = {};
+    solidGroups.forEach(function(g) {
+      if (g.type === 'solid' && g.dents) g.dents.forEach(function(d) { solidDentsSet[d] = true; });
+    });
+    var dentsConflit = [];
+    solidGroups.forEach(function(g) {
+      if (g.type === 'unit' && g.dents) {
+        var before = g.dents.length;
+        g.dents = g.dents.filter(function(d) {
+          if (solidDentsSet[d]) { dentsConflit.push(d); return false; }
+          return true;
+        });
+      }
+    });
+    // Nettoyer les groupes unit vides
+    solidGroups = solidGroups.filter(function(g) {
+      return g.type !== 'unit' || (g.dents && g.dents.length > 0);
+    });
+    // Si aucune unit restante mais 'Unitaire' dans conjointe → retirer le flag
+    var hasUnitGroup = solidGroups.some(function(g) { return g.type === 'unit'; });
+    if (!hasUnitGroup && conjointe.includes('Unitaire')) {
+      conjointe = conjointe.filter(function(c) { return c !== 'Unitaire'; });
+    }
+    if (dentsConflit.length) {
+      corrections.push({
+        champ: 'solidGroups',
+        regle: 'unit-solid-exclusif',
+        message: 'Dent(s) ' + dentsConflit.join(',') + ' à la fois unitaire et solidaire → retirée(s) de l\'unitaire (priorité au bridge)'
+      });
+    }
+  })();
+
   // ── RÈGLE 4 : Solidaire nécessite minimum 2 dents ──
   if (conjointe.includes('Solidaire') && !conjointe.includes('Unitaire')) {
     // Vérifier que solidGroups a au moins un groupe avec 2+ dents
