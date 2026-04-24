@@ -1202,18 +1202,12 @@ async function buildPDFAnglaisDoc(p, commentaireEN) {
       const x = rx + 4 + (item.indent ? 6 : 0);
       const isCutTeeth = item.label === 'CUT TEETH' || item.label === 'Dent à extraire';
 
-      // Sous-item (grille, contre plaque, crochet) : petit, grisé, sans losange
-      // Ackers : taille normale, sous-item indenté mais lisible
+      // Sous-items amovibles (Ackers, grille de renfort / mesh inside,
+      // Crochet valplast, Contre plaque) : tous en taille normale avec checkbox
+      // pour que le fournisseur les voit aussi bien que les autres actes.
       if (item.isFinition) {
-        var isAckersItem = (item._v || '').startsWith('Ackers ');
-        if (isAckersItem) {
-          checkbox(item.label, false, x, acy);
-          acy += 6.5;
-        } else {
-          doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...muted);
-          doc.text('· ' + item.label, x, acy + 0.3);
-          acy += 5.5;
-        }
+        checkbox(item.label, false, x, acy);
+        acy += 6.5;
         return;
       }
 
