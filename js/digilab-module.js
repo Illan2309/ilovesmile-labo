@@ -79,6 +79,11 @@
   // CHARGEMENT DES CAS
   // ═══════════════════════════════════════════
 
+  // Pagination : 100 cas récents au démarrage, +100 à chaque "Charger la suite".
+  // Valeur persistée pendant la session pour que refresh/tab restaure la même vue.
+  var _pageSize = 100;
+  var _allLoaded = false;  // true quand on a chargé tout l'historique (recherche globale)
+
   function _chargerCasFirebase() {
     var db = window.getDB ? window.getDB() : null;
     if (!db) {
@@ -87,24 +92,39 @@
       return;
     }
 
-    // Temps réel via onSnapshot
+    // Temps réel via onSnapshot (les N cas les plus récents)
     if (_unsubFirebase) _unsubFirebase();
-    _unsubFirebase = db.collection('digilab_orders')
-      .orderBy('_receivedAt', 'desc')
-      .limit(100)
-      .onSnapshot(function(snapshot) {
-        _cases = [];
-        snapshot.forEach(function(doc) {
-          var data = doc.data();
-          data._firebaseId = doc.id;
-          _cases.push(data);
-        });
-        _renderListe();
-      }, function(err) {
-        console.error('[DIGILAB] Firebase error:', err);
-        _chargerCasWorker();
+    var query = db.collection('digilab_orders').orderBy('_receivedAt', 'desc');
+    if (!_allLoaded) query = query.limit(_pageSize);
+    _unsubFirebase = query.onSnapshot(function(snapshot) {
+      _cases = [];
+      snapshot.forEach(function(doc) {
+        var data = doc.data();
+        data._firebaseId = doc.id;
+        _cases.push(data);
       });
+      _renderListe();
+    }, function(err) {
+      console.error('[DIGILAB] Firebase error:', err);
+      _chargerCasWorker();
+    });
   }
+
+  // Charge +100 cas supplémentaires (bouton manuel)
+  window.dlbChargerPlus = function() {
+    _pageSize += 100;
+    _chargerCasFirebase();
+    if (typeof showToast === 'function') showToast('Chargement de ' + _pageSize + ' cas max...');
+  };
+
+  // Charge TOUT l'historique d'un coup (déclenché auto par la recherche)
+  window.dlbChargerTout = function() {
+    if (_allLoaded) return Promise.resolve();
+    _allLoaded = true;
+    _chargerCasFirebase();
+    if (typeof showToast === 'function') showToast('Chargement de tout l\'historique Digilab...');
+    return Promise.resolve();
+  };
 
   function _chargerCasWorker() {
     fetch(WORKER_URL + '/v1/orders?key=' + AUTH_KEY)
@@ -125,6 +145,14 @@
   };
 
   window.dlbFilterList = function() {
+    // Dès qu'on tape dans la recherche, on charge tout l'historique pour
+    // que la recherche porte sur TOUS les cas (pas juste les 100 récents).
+    var searchInput = document.getElementById('dlb-search');
+    var q = searchInput ? (searchInput.value || '').trim() : '';
+    if (q && !_allLoaded) {
+      window.dlbChargerTout();
+      return;
+    }
     _renderListe();
   };
 
@@ -210,6 +238,19 @@
     });
 
     html += '</tbody></table>';
+
+    // Bouton "Charger la suite" si on n'a pas encore tout chargé
+    // (visible quand pas en mode recherche globale et qu'on est sur la limite)
+    if (!_allLoaded && _cases.length >= _pageSize) {
+      html += '<div style="text-align:center;padding:14px 0;">';
+      html += '  <button onclick="dlbChargerPlus()" style="background:#e3f2fd;color:#0277bd;border:1px solid #bbdefb;border-radius:8px;padding:8px 20px;font-size:0.82rem;font-weight:600;cursor:pointer;margin-right:8px;">⬇ Charger +100 cas</button>';
+      html += '  <button onclick="dlbChargerTout()" style="background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:8px;padding:8px 20px;font-size:0.82rem;font-weight:600;cursor:pointer;">📚 Tout l\'historique</button>';
+      html += '  <div style="font-size:0.7rem;color:#999;margin-top:6px;">Affiche les ' + _cases.length + ' cas les plus récents. La recherche charge auto tout l\'historique.</div>';
+      html += '</div>';
+    } else if (_allLoaded) {
+      html += '<div style="text-align:center;padding:8px 0;font-size:0.7rem;color:#999;">📚 Historique complet chargé (' + _cases.length + ' cas)</div>';
+    }
+
     container.innerHTML = html;
   }
 
