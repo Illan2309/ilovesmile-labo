@@ -762,8 +762,9 @@ function exportCogilogTSV() {
     function _cogSortAnat(arr) {
       return arr.slice().sort(function(a, b) { return _cogFdiPos(a) - _cogFdiPos(b); });
     }
-    // Trie les dents dans une string (ex: "31 11 12" → "12 11 31"),
-    // préservant les non-numériques.
+    // Trie les dents dans une string (ex: "31 11 12" → "12 11 | 31"),
+    // préservant les non-numériques. Insère ' | ' entre haut et bas si les
+    // 2 arcades sont présentes (cohérent avec le PDF anglais).
     function _cogSortStr(str) {
       if (!str || typeof str !== 'string') return str;
       var tokens = str.split(/(\s+)/);
@@ -777,6 +778,19 @@ function exportCogilogTSV() {
       if (dentNums.length < 2) return str;
       var sorted = _cogSortAnat(dentNums);
       sorted.forEach(function(d, k) { tokens[dentIdx[k]] = String(d); });
+      // Ajouter un séparateur '|' entre haut et bas si les 2 arcades présentes
+      var isBas = function(d) { return _COG_FDI_B.indexOf(d) !== -1; };
+      for (var j = 0; j < sorted.length - 1; j++) {
+        if (!isBas(sorted[j]) && isBas(sorted[j + 1])) {
+          var insertAt = dentIdx[j];
+          if (tokens[insertAt + 1] !== undefined && /^\s+$/.test(tokens[insertAt + 1])) {
+            tokens[insertAt + 1] = ' | ';
+          } else {
+            tokens[insertAt] = tokens[insertAt] + ' |';
+          }
+          break;
+        }
+      }
       return tokens.join('');
     }
 
