@@ -18,15 +18,20 @@ function _chercherPraticienDansTexte(texte, cabinetName) {
     var contactClean = _norm(contact).replace(/^DR\.?\s*/i, '').trim();
     var words = contactClean.split(/[\s\-]+/).filter(function(w) { return w.length >= 3; });
     var score = 0;
+    var wordsFound = 0;
     words.forEach(function(w) {
-      if (texteUp.includes(w)) score += w.length;
+      if (texteUp.includes(w)) { score += w.length; wordsFound++; }
     });
+    // Bonus fort si 2+ mots du contact sont trouvés dans le texte
+    // (gère les noms composés type "Luis MENDES PEDRO" vs "Pedro Mendes" écrit)
+    if (wordsFound >= 2) score += 30;
     // Le nom de famille (premier mot) pese plus
     if (words.length > 0 && texteUp.includes(words[0])) score += 20;
     if (score > bestScore) { bestScore = score; bestMatch = contact; }
   });
 
   // Seuil : au moins le nom de famille (>= 23 : 20 bonus + 3 chars min)
+  // OU 2+ mots du contact trouvés (bonus 30 + au moins 6 chars matchés)
   return bestScore >= 23 ? bestMatch : null;
 }
 

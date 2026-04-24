@@ -19,6 +19,44 @@ function enforceCoherenceMetier(prescription) {
   var rawComm = (prescription.raw_commentaires || prescription.commentaires || '').toLowerCase();
   var machoire = prescription.machoire || '';
 
+  // ── RÈGLE 0 : Actes amovibles ne doivent PAS lister les dents individuelles ──
+  // Pour un stellite/complet/valplast/app résine, seule la mâchoire compte.
+  // L'IA a tendance à lister toutes les dents de l'arcade (16 dents) quand
+  // DSCORE2/scanner envoie un "denture set FULL_ARCH" → on nettoie en gardant
+  // juste la position (haut/bas/haut+bas) dans dentsActes[acte].
+  var AMOVIBLES_POSITION_ONLY = [
+    'Stellite', 'Stellite plaque nue',
+    'Stellite finition', 'Stellite finition stellite', 'Stellite montage stellite',
+    'Stellite sup. valplast', 'Stellite Valplast',
+    'App résine', 'App résine finition', 'App résine montage', 'App résine grille de renfort',
+    'Valplast', 'Valplast finition', 'Valplast montage', 'Valplast grille de renfort',
+    'Complet', 'Complet finition', 'Complet montage', 'Complet grille de renfort',
+    'PEI', "Cire d'occlusion", 'Rebasage', 'Réparation',
+    'Gouttière souple', 'Gouttière dur résine', 'Gouttière souple intra dur extra',
+    'Blanchissement', 'Contention'
+  ];
+  AMOVIBLES_POSITION_ONLY.forEach(function(acte) {
+    var raw = dentsActes[acte];
+    if (!raw || typeof raw !== 'string') return;
+    // Extraire la position si présente avant le |
+    var pos = '';
+    if (raw.indexOf('|') !== -1) {
+      pos = raw.split('|')[0].trim();
+    } else if (['haut', 'bas', 'haut+bas'].indexOf(raw.trim()) !== -1) {
+      pos = raw.trim();
+    }
+    // Si la valeur contient des dents après |, on les nettoie
+    var hadDents = raw.indexOf('|') !== -1 && raw.split('|')[1].trim().length > 0;
+    if (hadDents) {
+      dentsActes[acte] = pos || '';
+      corrections.push({
+        champ: 'dentsActes',
+        regle: 'amovible-sans-dents',
+        message: acte + ' : dents individuelles retirées (stellite/complet/valplast ne se facture que par mâchoire) → ' + (pos || 'position uniquement')
+      });
+    }
+  });
+
   // ── RÈGLE 1 : Implant nécessite toujours scellé ou transvisé ──
   var hasImplantType = conjointe.includes('Implant CCM') || conjointe.includes('Implant CCC');
   var hasImplantFixation = conjointe.includes('Implant scellé') || conjointe.includes('Implant transvisé');

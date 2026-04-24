@@ -267,6 +267,27 @@ window.generateDigilabPdf = async function(caseData) {
       return str.split(/[\s,]+/).map(function(w) { return _tradFR[w.toLowerCase()] || w; }).join(' ');
     }
 
+    // Helper : détecter une zone "denture set" (arcade complète)
+    // et détecter la mâchoire (haut si dents 11-28, bas si 31-48)
+    function _isDentureSet(item) {
+      var desig = String(item.designation || '').toLowerCase();
+      if (desig.indexOf('denture set') !== -1 || desig.indexOf('appareil') !== -1) return true;
+      // Détecte aussi par le nombre de dents : si >= 8 dents dans une seule zone → probablement une arcade
+      var zs = String(item.area || '');
+      var dents = zs.split(/[,\s]+/).filter(function(d) { return /^\d{2}$/.test(d); });
+      return dents.length >= 8;
+    }
+    function _archLabel(item) {
+      var zs = String(item.area || '');
+      var dents = zs.split(/[,\s]+/).map(function(d) { return parseInt(d); }).filter(function(n) { return !isNaN(n); });
+      var hasHaut = dents.some(function(n) { return n >= 11 && n <= 28; });
+      var hasBas  = dents.some(function(n) { return n >= 31 && n <= 48; });
+      if (hasHaut && hasBas) return 'Arcade complete';
+      if (hasHaut) return 'Arcade haut';
+      if (hasBas)  return 'Arcade bas';
+      return 'Arcade';
+    }
+
     // Data rows
     priceList.forEach(function(item) {
       var zone = item.area || '';
@@ -281,24 +302,32 @@ window.generateDigilabPdf = async function(caseData) {
       doc.text(String(designation), cols[2].x, y, { maxWidth: cols[2].w - 2 });
       doc.text(String(materiau), cols[3].x, y, { maxWidth: cols[3].w - 2 });
 
-      // Zone : retour à la ligne tous les ~30 caractères (aux virgules)
-      var zoneStr = String(zone);
+      // Zone : si denture set / arcade complète → afficher "Arcade bas/haut"
+      // au lieu de lister toutes les dents (sinon l'IA recopie 16 dents dans
+      // dentsActes pour un stellite, ce qui pollue la prescription).
+      var isDentureSet = _isDentureSet(item);
       var zoneLines = [];
-      if (zoneStr.length <= 20) {
-        zoneLines = [zoneStr];
+      if (isDentureSet) {
+        zoneLines = [_archLabel(item)];
       } else {
-        var parts = zoneStr.split(',');
-        var current = '';
-        for (var zi = 0; zi < parts.length; zi++) {
-          var test = current ? current + ',' + parts[zi].trim() : parts[zi].trim();
-          if (test.length > 20 && current) {
-            zoneLines.push(current);
-            current = parts[zi].trim();
-          } else {
-            current = test;
+        // Zone normale : retour à la ligne tous les ~20 caractères (aux virgules)
+        var zoneStr = String(zone);
+        if (zoneStr.length <= 20) {
+          zoneLines = [zoneStr];
+        } else {
+          var parts = zoneStr.split(',');
+          var current = '';
+          for (var zi = 0; zi < parts.length; zi++) {
+            var test = current ? current + ',' + parts[zi].trim() : parts[zi].trim();
+            if (test.length > 20 && current) {
+              zoneLines.push(current);
+              current = parts[zi].trim();
+            } else {
+              current = test;
+            }
           }
+          if (current) zoneLines.push(current);
         }
-        if (current) zoneLines.push(current);
       }
       doc.text(zoneLines[0], cols[0].x, y);
       for (var li = 1; li < zoneLines.length; li++) {
