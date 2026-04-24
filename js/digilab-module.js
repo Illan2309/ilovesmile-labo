@@ -635,11 +635,25 @@
     var cabinetName = dentist.name || ofData.user_name || c.realDentist || '';
 
     // Mâchoire depuis cameraData
+    // Sources détectées :
+    //   - details.jawType : 'UPPER' / 'LOWER' (format Medit / 3Shape)
+    //   - details.upperJawDenture / details.lowerJawDenture : stellite/complet DSCORE2
+    //   - itemType === 'denture set' : indicateur que la zone couvre TOUTE l'arcade
+    // (pour un stellite/complet, on veut juste la mâchoire, pas les dents individuelles)
     var hasUpper = false, hasLower = false;
+    var dentureZoneAreas = []; // zones "full arch" à exclure du mapping dents
     cameraData.forEach(function(cam) {
       var jaw = (cam.details && cam.details.jawType) || '';
       if (jaw.includes('UPPER')) hasUpper = true;
       if (jaw.includes('LOWER')) hasLower = true;
+      // Appareil amovible (denture set) : détecter la mâchoire via les objets
+      // upperJawDenture / lowerJawDenture et marquer la zone comme "full arch"
+      // pour NE PAS importer ses dents individuellement.
+      var isDentureSet = (cam.itemType === 'denture set')
+        || (cam.details && (cam.details.upperJawDenture || cam.details.lowerJawDenture));
+      if (cam.details && cam.details.upperJawDenture) hasUpper = true;
+      if (cam.details && cam.details.lowerJawDenture) hasLower = true;
+      if (isDentureSet && cam.zone) dentureZoneAreas.push(String(cam.zone));
     });
     var machoire = '';
     if (hasUpper && hasLower) machoire = 'bas+haut';
@@ -647,13 +661,25 @@
     else if (hasLower) machoire = 'bas';
 
     // Dents depuis priceList zones
+    // IMPORTANT : on IGNORE les zones issues d'un "denture set" (appareil
+    // amovible, stellite/complet) car elles couvrent toute l'arcade — on ne
+    // veut pas lister 16 dents inutiles sur un stellite. Seule la mâchoire
+    // compte pour ces cas.
     var dents = [];
     priceList.forEach(function(item) {
       var area = item.area || '';
-      if (/^\d{2}$/.test(area)) {
-        var n = parseInt(area);
-        if (n >= 11 && n <= 48 && !dents.includes(n)) dents.push(n);
-      }
+      if (!area) return;
+      // Skip les zones full arch (denture set)
+      if (dentureZoneAreas.indexOf(String(area)) !== -1) return;
+      if (String(item.designation || '').toLowerCase().indexOf('denture') !== -1) return;
+      // Support area mono-dent (ex: "14") et area comma-separated (ex: "11,12,13")
+      var areaDents = String(area).split(/[,\s]+/).filter(Boolean);
+      areaDents.forEach(function(ad) {
+        if (/^\d{2}$/.test(ad)) {
+          var n = parseInt(ad);
+          if (n >= 11 && n <= 48 && dents.indexOf(n) === -1) dents.push(n);
+        }
+      });
     });
 
     // Teinte
