@@ -82,6 +82,22 @@ function getNextCodeLabo(fournisseur, isScan = false) {
   var prefix = isScan ? 'X' : ''; // X devant pour les scans (PDF/HTML)
   var fullLettre = prefix + lettre;
 
+  // Respecter le filtre de date actif dans l'UI pour ne pas "reprendre"
+  // la numérotation depuis des prescriptions anciennes hors-période.
+  // Format attendu dans les inputs : JJ/MM/YY ou JJ/MM/YYYY.
+  var _parseFD = function(d) {
+    if (!d || d.length < 6) return null;
+    var p = d.split('/');
+    if (p.length !== 3) return null;
+    var y = parseInt(p[2]); if (y < 100) y += 2000;
+    return new Date(y, parseInt(p[1]) - 1, parseInt(p[0]));
+  };
+  var _fdFromStr = (document.getElementById('filter-date-from') && document.getElementById('filter-date-from').value || '').trim();
+  var _fdToStr   = (document.getElementById('filter-date-to')   && document.getElementById('filter-date-to').value   || '').trim();
+  var _fdFrom = _parseFD(_fdFromStr);
+  var _fdTo   = _parseFD(_fdToStr);
+  if (_fdTo) _fdTo.setHours(23, 59, 59);
+
   // Toujours scanner les prescriptions en temps réel (pas de cache par jour)
   var maxMerdental = 0;
   var maxHuile = 100;
@@ -89,6 +105,17 @@ function getNextCodeLabo(fournisseur, isScan = false) {
   // Checker : attente + vérifié + importé EN + importé Cogilog (tout sauf supprimé)
   (window.prescriptions || []).forEach(function(p) {
     if (!p.code_labo) return;
+
+    // Filtre date : si un filtre est actif dans l'UI, ignorer les prescriptions
+    // hors-période pour calculer le max. Évite de "reprendre" d'anciens codes.
+    if (_fdFrom || _fdTo) {
+      var _pDate = _parseFD(p.createdAt);
+      if (_pDate) {
+        if (_fdFrom && _pDate < _fdFrom) return;
+        if (_fdTo   && _pDate > _fdTo)   return;
+      }
+    }
+
     var cl = p.code_labo.toUpperCase();
     // Matcher avec ou sans préfixe X : XA1, A1, XAA101, AA101
     var match = cl.match(/^(X?)([A-Z]{1,2})(\d+)$/);
