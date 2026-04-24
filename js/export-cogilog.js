@@ -543,6 +543,11 @@ function exportCogilogTSV() {
       } else if (codeProd.startsWith('9-')) {
         lc[3] = '0';
         lc[29] = ';0;1;1;0;1;0.501963;0.000000;0.008128';
+      } else if (codeProd.startsWith('8-000')) {
+        // Cas non facturés (essayages stellite/PAP/complet/valplast + montage) →
+        // prix 0 et style rouge dans Cogilog, comme les cas à refaire.
+        lc[3] = '0';
+        lc[29] = ';0;1;1;0;1;0.501963;0.000000;0.008128';
       } else {
         // Essayer p.cabinet → code Cogilog → nom résolu depuis Cogilog
         const nomPourTarif = (p.cabinet || '').trim()
